@@ -1,0 +1,45 @@
+# Node modules
+node_modules
+*/node_modules
+
+# Build artifacts
+dist
+build
+.turbo
+coverage
+
+# Git
+.git
+.github
+
+# Documentation
+docs
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test.ts
+*.spec.ts
+__tests__
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
