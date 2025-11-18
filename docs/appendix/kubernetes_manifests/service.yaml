@@ -1,0 +1,224 @@
+# ============================================================================
+# NODECG NEXT - KUBERNETES SERVICES
+# ============================================================================
+# Datei: service.yaml
+# Beschreibung: Service-Definitionen für NodeCG und Dependencies
+# ============================================================================
+
+# ============================================================================
+# NODECG SERVER SERVICE
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodecg-service
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: server
+  annotations:
+    # Service-Beschreibung
+    description: "NodeCG Server LoadBalancer"
+    
+    # Cloud Provider Annotations (AWS ALB Beispiel)
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    
+spec:
+  type: LoadBalancer
+  
+  # Session Affinity (wichtig für WebSockets)
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 Stunden
+  
+  # Ports
+  ports:
+    # HTTP/HTTPS Traffic
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+    
+    # WebSocket Traffic
+    - name: websocket
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  
+  # Selektor für Backend-Pods
+  selector:
+    app: nodecg
+    component: server
+
+---
+# ============================================================================
+# NODECG INTERNAL SERVICE (ClusterIP)
+# ============================================================================
+# Für interne Cluster-Kommunikation
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodecg-internal
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: server
+spec:
+  type: ClusterIP
+  
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+    
+    - name: websocket
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  
+  selector:
+    app: nodecg
+    component: server
+
+---
+# ============================================================================
+# NODECG HEADLESS SERVICE
+# ============================================================================
+# Für direkte Pod-to-Pod Kommunikation (z.B. WebSocket-Clustering)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodecg-headless
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: server
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless Service
+  
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+    
+    - name: websocket
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    
+    - name: cluster
+      port: 6379  # Redis Pub/Sub Port für Clustering
+      targetPort: 6379
+      protocol: TCP
+  
+  selector:
+    app: nodecg
+    component: server
+  
+  # Publish Not Ready Addresses (für Clustering)
+  publishNotReadyAddresses: true
+
+---
+# ============================================================================
+# POSTGRESQL SERVICE
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: nodecg-production
+  labels:
+    app: postgres
+    component: database
+spec:
+  type: ClusterIP
+  
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  
+  selector:
+    app: postgres
+    component: database
+
+---
+# ============================================================================
+# REDIS SERVICE
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: nodecg-production
+  labels:
+    app: redis
+    component: cache
+spec:
+  type: ClusterIP
+  
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  
+  selector:
+    app: redis
+    component: cache
+
+---
+# ============================================================================
+# PROMETHEUS SERVICE
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: nodecg-production
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  type: ClusterIP
+  
+  ports:
+    - name: prometheus
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  
+  selector:
+    app: prometheus
+    component: monitoring
+
+---
+# ============================================================================
+# GRAFANA SERVICE
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: nodecg-production
+  labels:
+    app: grafana
+    component: monitoring
+spec:
+  type: LoadBalancer
+  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+  
+  selector:
+    app: grafana
+    component: monitoring

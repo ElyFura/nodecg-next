@@ -1,0 +1,396 @@
+# ============================================================================
+# NODECG NEXT - KUBERNETES DEPLOYMENT
+# ============================================================================
+# Datei: deployment.yaml
+# Beschreibung: Kubernetes Deployment für NodeCG Server
+# ============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodecg-server
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: server
+    version: v1.0.0
+  annotations:
+    # Deployment-Beschreibung
+    description: "NodeCG Next Application Server"
+    
+spec:
+  # ============================================================================
+  # REPLICA CONFIGURATION
+  # ============================================================================
+  replicas: 3
+  
+  # Rolling Update Strategie
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Max 1 zusätzlicher Pod während Update
+      maxUnavailable: 0  # Kein Pod darf unavailable sein
+  
+  # Pod-Selektor
+  selector:
+    matchLabels:
+      app: nodecg
+      component: server
+  
+  # ============================================================================
+  # POD TEMPLATE
+  # ============================================================================
+  template:
+    metadata:
+      labels:
+        app: nodecg
+        component: server
+        version: v1.0.0
+      annotations:
+        # Prometheus Scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    
+    spec:
+      # ========================================================================
+      # INIT CONTAINERS
+      # ========================================================================
+      # Warten auf Dependencies
+      initContainers:
+        # Warte auf PostgreSQL
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres-service 5432; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+        
+        # Warte auf Redis
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z redis-service 6379; do
+                echo "Waiting for Redis..."
+                sleep 2
+              done
+              echo "Redis is ready!"
+        
+        # Datenbank-Migration
+        - name: migrate-database
+          image: nodecg-next:latest
+          command:
+            - sh
+            - -c
+            - npx prisma migrate deploy
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: database-url
+      
+      # ========================================================================
+      # MAIN CONTAINER
+      # ========================================================================
+      containers:
+        - name: nodecg-server
+          image: nodecg-next:latest
+          imagePullPolicy: IfNotPresent
+          
+          # Ports
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+            - name: websocket
+              containerPort: 9090
+              protocol: TCP
+          
+          # ======================================================================
+          # ENVIRONMENT VARIABLES
+          # ======================================================================
+          env:
+            # Node.js Environment
+            - name: NODE_ENV
+              value: "production"
+            
+            - name: PORT
+              value: "3000"
+            
+            # Database Connection (aus Secret)
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: database-url
+            
+            # Redis Connection (aus Secret)
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: redis-url
+            
+            # JWT Secret (aus Secret)
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: jwt-secret
+            
+            # Session Secret (aus Secret)
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: session-secret
+            
+            # CORS Origins (aus ConfigMap)
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: nodecg-config
+                  key: cors-origins
+            
+            # WebSocket Config
+            - name: WS_HEARTBEAT_INTERVAL
+              value: "30000"
+            
+            - name: WS_MAX_CONNECTIONS
+              value: "1000"
+            
+            # Logging
+            - name: LOG_LEVEL
+              value: "info"
+            
+            - name: LOG_FORMAT
+              value: "json"
+            
+            # Pod-Informationen (für Monitoring)
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          
+          # ======================================================================
+          # VOLUME MOUNTS
+          # ======================================================================
+          volumeMounts:
+            # Bundle-Verzeichnis (persistent)
+            - name: bundles-storage
+              mountPath: /app/bundles
+            
+            # Asset-Uploads (persistent)
+            - name: assets-storage
+              mountPath: /app/assets
+            
+            # Temporäre Daten
+            - name: tmp
+              mountPath: /tmp
+          
+          # ======================================================================
+          # RESOURCE LIMITS
+          # ======================================================================
+          resources:
+            requests:
+              cpu: 500m      # 0.5 CPU
+              memory: 512Mi
+            limits:
+              cpu: 2000m     # 2 CPUs
+              memory: 2Gi
+          
+          # ======================================================================
+          # HEALTH CHECKS
+          # ======================================================================
+          # Readiness Probe (ist der Pod bereit, Traffic zu empfangen?)
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          # Liveness Probe (läuft der Pod noch?)
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          # Startup Probe (für langsamen Start)
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 30  # 5 Minuten Startup-Zeit
+          
+          # ======================================================================
+          # SECURITY CONTEXT
+          # ======================================================================
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false  # Wegen /tmp und Bundles
+      
+      # ========================================================================
+      # VOLUMES
+      # ========================================================================
+      volumes:
+        # Persistent Volume für Bundles
+        - name: bundles-storage
+          persistentVolumeClaim:
+            claimName: nodecg-bundles-pvc
+        
+        # Persistent Volume für Assets
+        - name: assets-storage
+          persistentVolumeClaim:
+            claimName: nodecg-assets-pvc
+        
+        # Temporäres Volume
+        - name: tmp
+          emptyDir: {}
+      
+      # ========================================================================
+      # POD SETTINGS
+      # ========================================================================
+      # Restart Policy
+      restartPolicy: Always
+      
+      # Termination Grace Period
+      terminationGracePeriodSeconds: 30
+      
+      # DNS Policy
+      dnsPolicy: ClusterFirst
+      
+      # Service Account
+      serviceAccountName: nodecg-service-account
+      
+      # Affinity Rules (Pod-Verteilung über Nodes)
+      affinity:
+        # Anti-Affinity: Verteile Pods über verschiedene Nodes
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - nodecg
+                topologyKey: kubernetes.io/hostname
+      
+      # Tolerations (für spezielle Nodes)
+      tolerations:
+        - key: "node-role.kubernetes.io/nodecg"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
+---
+# ============================================================================
+# HORIZONTAL POD AUTOSCALER
+# ============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nodecg-server-hpa
+  namespace: nodecg-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nodecg-server
+  
+  # Min/Max Replicas
+  minReplicas: 3
+  maxReplicas: 10
+  
+  # Scaling-Metriken
+  metrics:
+    # CPU-basiertes Scaling
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    
+    # Memory-basiertes Scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  
+  # Scaling-Verhalten
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 Minuten Stabilisierung
+      policies:
+        - type: Percent
+          value: 50           # Max 50% der Pods gleichzeitig reduzieren
+          periodSeconds: 60
+    
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100          # Schnelles Scale-Up bei Bedarf
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max
+
+---
+# ============================================================================
+# POD DISRUPTION BUDGET
+# ============================================================================
+# Garantiert Mindest-Verfügbarkeit während Maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nodecg-server-pdb
+  namespace: nodecg-production
+spec:
+  minAvailable: 2  # Mindestens 2 Pods müssen immer laufen
+  selector:
+    matchLabels:
+      app: nodecg
+      component: server

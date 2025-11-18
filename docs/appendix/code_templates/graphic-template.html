@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  NODECG NEXT - GRAPHIC OVERLAY TEMPLATE
+  ============================================================================
+  Datei: graphic-template.html
+  Beschreibung: Template für NodeCG Next Graphics/Overlays (OBS Browser Source)
+  
+  Graphics sind HTML-Seiten die als Browser Source in OBS geladen werden.
+  Sie haben Zugriff auf:
+  - Replicants (Read-Only, automatisch synchronisiert)
+  - Messages (Empfangen von Events)
+  
+  Typische Verwendung:
+  - Scoreboards
+  - Lower Thirds
+  - Timer/Countdowns
+  - Animierte Overlays
+  
+  @author NodeCG Next Development Team
+  @version 1.0.0
+  ============================================================================
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Scoreboard Graphic</title>
+  
+  <!-- ======================================================================
+       STYLES
+       ====================================================================== -->
+  <style>
+    /**
+     * Reset & Base Styles
+     * Wichtig: Transparenter Hintergrund für OBS
+     */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      font-family: 'Roboto', 'Arial', sans-serif;
+      
+      /* WICHTIG: Transparenter Hintergrund für OBS */
+      background: transparent;
+      
+      /* Anti-Aliasing für saubere Text-Darstellung */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /**
+     * ====================================================================
+     * SCOREBOARD CONTAINER
+     * ====================================================================
+     */
+    #scoreboard {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      
+      /* Initiale Opacity 0 für Animation */
+      opacity: 0;
+      
+      /* Hintergrund mit Gradient */
+      background: linear-gradient(135deg, 
+        rgba(52, 152, 219, 0.95) 0%, 
+        rgba(155, 89, 182, 0.95) 100%
+      );
+      
+      /* Schatten für Tiefe */
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      
+      border-radius: 15px;
+      padding: 20px 40px;
+      
+      /* Animation Properties */
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    #scoreboard.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    #scoreboard.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100px);
+    }
+    
+    /**
+     * ====================================================================
+     * TEAM STYLES
+     * ====================================================================
+     */
+    .team {
+      text-align: center;
+      color: white;
+      min-width: 200px;
+    }
+    
+    .team-name {
+      font-size: 24px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      
+      /* Text-Shadow für Lesbarkeit */
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      
+      /* Animation */
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInDown 0.6s ease-out forwards;
+    }
+    
+    .team-score {
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1;
+      
+      /* Text-Shadow für Tiefe */
+      text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      
+      /* Animation */
+      opacity: 0;
+      transform: scale(0.5);
+      animation: zoomIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s forwards;
+    }
+    
+    /**
+     * Score Change Animation
+     * Wird via JavaScript getriggert
+     */
+    .team-score.score-changed {
+      animation: scoreUpdate 0.6s ease-out;
+    }
+    
+    @keyframes scoreUpdate {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.3);
+        color: #f39c12;
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    
+    /**
+     * ====================================================================
+     * DIVIDER
+     * ====================================================================
+     */
+    .score-divider {
+      font-size: 60px;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.7);
+      
+      /* Animation */
+      opacity: 0;
+      animation: fadeIn 0.4s ease-out 0.2s forwards;
+    }
+    
+    /**
+     * ====================================================================
+     * META INFORMATION
+     * ====================================================================
+     */
+    #meta-info {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      
+      display: flex;
+      gap: 20px;
+      
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.8s forwards;
+    }
+    
+    .meta-badge {
+      background: rgba(44, 62, 80, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 18px;
+      font-weight: 600;
+      
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .meta-badge .icon {
+      font-size: 20px;
+    }
+    
+    /**
+     * ====================================================================
+     * LOWER THIRD
+     * ====================================================================
+     */
+    #lower-third {
+      position: absolute;
+      bottom: 80px;
+      left: 50px;
+      
+      background: linear-gradient(90deg, 
+        rgba(52, 152, 219, 0.95) 0%, 
+        rgba(52, 152, 219, 0) 100%
+      );
+      
+      padding: 20px 40px 20px 30px;
+      border-left: 5px solid #3498db;
+      
+      max-width: 600px;
+      
+      /* Initial versteckt */
+      opacity: 0;
+      transform: translateX(-100%);
+      transition: all 0.5s ease-out;
+    }
+    
+    #lower-third.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    
+    #lower-third-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      margin-bottom: 5px;
+    }
+    
+    #lower-third-subtitle {
+      font-size: 18px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+    }
+    
+    /**
+     * ====================================================================
+     * COUNTDOWN TIMER
+     * ====================================================================
+     */
+    #countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      
+      text-align: center;
+      
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    
+    #countdown.visible {
+      opacity: 1;
+    }
+    
+    #countdown-label {
+      font-size: 36px;
+      font-weight: 600;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 15px rgba(0, 0, 0, 0.7);
+    }
+    
+    #countdown-time {
+      font-size: 120px;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 5px 30px rgba(0, 0, 0, 0.8);
+      font-variant-numeric: tabular-nums;
+    }
+    
+    /**
+     * ====================================================================
+     * ANIMATIONS
+     * ====================================================================
+     */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes zoomIn {
+      from {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    /**
+     * ====================================================================
+     * UTILITY CLASSES
+     * ====================================================================
+     */
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+  </style>
+  
+  <!-- Google Fonts (optional) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  
+  <!-- ======================================================================
+       SCOREBOARD
+       ====================================================================== -->
+  <div id="scoreboard" class="visible">
+    <!-- Team A -->
+    <div class="team">
+      <div class="team-name" id="teamAName">TEAM A</div>
+      <div class="team-score" id="teamAScore">0</div>
+    </div>
+    
+    <!-- Divider -->
+    <div class="score-divider">:</div>
+    
+    <!-- Team B -->
+    <div class="team">
+      <div class="team-name" id="teamBName">TEAM B</div>
+      <div class="team-score" id="teamBScore">0</div>
+    </div>
+  </div>
+  
+  <!-- ======================================================================
+       META INFORMATION
+       ====================================================================== -->
+  <div id="meta-info">
+    <div class="meta-badge">
+      <span class="icon">📍</span>
+      <span>Quarter <span id="currentQuarter">1</span></span>
+    </div>
+    
+    <div class="meta-badge pulse">
+      <span class="icon">⏱️</span>
+      <span id="timeRemaining">12:00</span>
+    </div>
+  </div>
+  
+  <!-- ======================================================================
+       LOWER THIRD (optional)
+       ====================================================================== -->
+  <div id="lower-third">
+    <div id="lower-third-title">Spielername</div>
+    <div id="lower-third-subtitle">Position • Team Name</div>
+  </div>
+  
+  <!-- ======================================================================
+       COUNTDOWN (optional)
+       ====================================================================== -->
+  <div id="countdown">
+    <div id="countdown-label">Stream startet in</div>
+    <div id="countdown-time">00:00</div>
+  </div>
+  
+  <!-- ======================================================================
+       SCRIPTS
+       ====================================================================== -->
+  <script>
+    /**
+     * ========================================================================
+     * NODECG CLIENT API
+     * ========================================================================
+     */
+    
+    // Logger für Debugging
+    const log = (...args) => console.log('[Graphic]', ...args);
+    
+    // ========================================================================
+    // REPLICANTS
+    // ========================================================================
+    
+    /**
+     * Scoreboard Replicant
+     */
+    const scoreboardRep = nodecg.Replicant('scoreboard');
+    
+    /**
+     * Lower Third Replicant (optional)
+     */
+    const lowerThirdRep = nodecg.Replicant('lowerThird');
+    
+    /**
+     * Countdown Replicant (optional)
+     */
+    const countdownRep = nodecg.Replicant('countdown');
+    
+    // ========================================================================
+    // DOM ELEMENTS
+    // ========================================================================
+    
+    const elements = {
+      // Scoreboard
+      scoreboard: document.getElementById('scoreboard'),
+      teamAName: document.getElementById('teamAName'),
+      teamAScore: document.getElementById('teamAScore'),
+      teamBName: document.getElementById('teamBName'),
+      teamBScore: document.getElementById('teamBScore'),
+      currentQuarter: document.getElementById('currentQuarter'),
+      timeRemaining: document.getElementById('timeRemaining'),
+      
+      // Lower Third
+      lowerThird: document.getElementById('lower-third'),
+      lowerThirdTitle: document.getElementById('lower-third-title'),
+      lowerThirdSubtitle: document.getElementById('lower-third-subtitle'),
+      
+      // Countdown
+      countdown: document.getElementById('countdown'),
+      countdownTime: document.getElementById('countdown-time')
+    };
+    
+    // ========================================================================
+    // STATE
+    // ========================================================================
+    
+    let previousScoreboard = null;
+    let countdownInterval = null;
+    
+    // ========================================================================
+    // REPLICANT CHANGE HANDLERS
+    // ========================================================================
+    
+    /**
+     * Scoreboard Änderungen
+     */
+    scoreboardRep.on('change', (newValue) => {
+      if (!newValue) return;
+      
+      log('Scoreboard updated:', newValue);
+      
+      // Prüfe auf Score-Änderung für Animation
+      if (previousScoreboard) {
+        if (newValue.teamA.score !== previousScoreboard.teamA.score) {
+          animateScoreChange('A');
+        }
+        if (newValue.teamB.score !== previousScoreboard.teamB.score) {
+          animateScoreChange('B');
+        }
+      }
+      
+      // Update UI
+      updateScoreboard(newValue);
+      
+      // Speichere Previous State
+      previousScoreboard = JSON.parse(JSON.stringify(newValue));
+    });
+    
+    /**
+     * Lower Third Änderungen
+     */
+    if (lowerThirdRep) {
+      lowerThirdRep.on('change', (newValue) => {
+        if (!newValue) return;
+        
+        log('Lower Third updated:', newValue);
+        
+        if (newValue.visible) {
+          showLowerThird(newValue);
+        } else {
+          hideLowerThird();
+        }
+      });
+    }
+    
+    /**
+     * Countdown Änderungen
+     */
+    if (countdownRep) {
+      countdownRep.on('change', (newValue) => {
+        if (!newValue) return;
+        
+        log('Countdown updated:', newValue);
+        
+        if (newValue.active) {
+          startCountdown(newValue.targetTime);
+        } else {
+          stopCountdown();
+        }
+      });
+    }
+    
+    // ========================================================================
+    // MESSAGE LISTENERS
+    // ========================================================================
+    
+    /**
+     * Show Scoreboard Message
+     */
+    nodecg.listenFor('showScoreboard', () => {
+      log('Show scoreboard');
+      elements.scoreboard.classList.add('visible');
+      elements.scoreboard.classList.remove('hidden');
+    });
+    
+    /**
+     * Hide Scoreboard Message
+     */
+    nodecg.listenFor('hideScoreboard', () => {
+      log('Hide scoreboard');
+      elements.scoreboard.classList.add('hidden');
+      elements.scoreboard.classList.remove('visible');
+    });
+    
+    /**
+     * Game End Message
+     */
+    nodecg.listenFor('gameEnded', (data) => {
+      log('Game ended:', data);
+      
+      // Optional: Zeige Winner-Animation
+      showWinnerAnimation(data.winner);
+    });
+    
+    // ========================================================================
+    // UI UPDATE FUNCTIONS
+    // ========================================================================
+    
+    /**
+     * Update Scoreboard Display
+     */
+    function updateScoreboard(scoreboard) {
+      // Team Names
+      elements.teamAName.textContent = scoreboard.teamA.name.toUpperCase();
+      elements.teamBName.textContent = scoreboard.teamB.name.toUpperCase();
+      
+      // Scores
+      elements.teamAScore.textContent = scoreboard.teamA.score;
+      elements.teamBScore.textContent = scoreboard.teamB.score;
+      
+      // Meta Info
+      elements.currentQuarter.textContent = scoreboard.quarter;
+      elements.timeRemaining.textContent = scoreboard.timeRemaining;
+    }
+    
+    /**
+     * Animate Score Change
+     */
+    function animateScoreChange(team) {
+      const scoreElement = team === 'A' ? elements.teamAScore : elements.teamBScore;
+      
+      // Trigger Animation
+      scoreElement.classList.add('score-changed');
+      
+      // Entferne Class nach Animation
+      setTimeout(() => {
+        scoreElement.classList.remove('score-changed');
+      }, 600);
+      
+      // Optional: Sound Effect
+      playScoreSound();
+    }
+    
+    /**
+     * Show Lower Third
+     */
+    function showLowerThird(data) {
+      elements.lowerThirdTitle.textContent = data.title || '';
+      elements.lowerThirdSubtitle.textContent = data.subtitle || '';
+      
+      elements.lowerThird.classList.add('visible');
+      
+      // Auto-Hide nach X Sekunden (optional)
+      if (data.duration) {
+        setTimeout(() => {
+          hideLowerThird();
+        }, data.duration * 1000);
+      }
+    }
+    
+    /**
+     * Hide Lower Third
+     */
+    function hideLowerThird() {
+      elements.lowerThird.classList.remove('visible');
+    }
+    
+    /**
+     * Start Countdown
+     */
+    function startCountdown(targetTime) {
+      // Zeige Countdown
+      elements.countdown.classList.add('visible');
+      
+      // Clear existing interval
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+      
+      // Update Countdown jede Sekunde
+      countdownInterval = setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.max(0, targetTime - now);
+        
+        // Formatiere Zeit
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        
+        elements.countdownTime.textContent = 
+          `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        // Stop bei 0
+        if (remaining === 0) {
+          stopCountdown();
+          
+          // Sende Event
+          nodecg.sendMessage('countdownFinished');
+        }
+      }, 100);
+    }
+    
+    /**
+     * Stop Countdown
+     */
+    function stopCountdown() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      
+      elements.countdown.classList.remove('visible');
+    }
+    
+    /**
+     * Show Winner Animation
+     */
+    function showWinnerAnimation(winner) {
+      // Implementiere Winner-Animation
+      log('Winner:', winner);
+      
+      // Beispiel: Highlight Gewinner-Team
+      const winnerElement = winner.includes('A') 
+        ? elements.teamAScore 
+        : elements.teamBScore;
+      
+      // Füge Winner-Class hinzu für spezielle Styling
+      winnerElement.style.color = '#f39c12';
+      winnerElement.style.textShadow = '0 0 30px rgba(243, 156, 18, 0.8)';
+    }
+    
+    // ========================================================================
+    // AUDIO
+    // ========================================================================
+    
+    /**
+     * Play Score Sound
+     */
+    function playScoreSound() {
+      // Optional: Audio-Element erstellen und abspielen
+      // const audio = new Audio('/assets/my-bundle/sounds/score.mp3');
+      // audio.volume = 0.5;
+      // audio.play().catch(err => log('Audio play error:', err));
+    }
+    
+    // ========================================================================
+    // INITIALIZATION
+    // ========================================================================
+    
+    /**
+     * Graphic Initialization
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+      log('Graphic initialized');
+      
+      // Warte auf Replicant-Ready
+      NodeCG.waitForReplicants(scoreboardRep).then(() => {
+        log('All replicants ready');
+        
+        // Initiale UI-Update
+        if (scoreboardRep.value) {
+          updateScoreboard(scoreboardRep.value);
+          previousScoreboard = JSON.parse(JSON.stringify(scoreboardRep.value));
+        }
+      });
+      
+      // Optional: Hide Lower Third initial
+      hideLowerThird();
+    });
+    
+    // ========================================================================
+    // CLEANUP
+    // ========================================================================
+    
+    /**
+     * Page Unload Cleanup
+     */
+    window.addEventListener('beforeunload', () => {
+      log('Graphic unloading');
+      
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+    });
+  </script>
+</body>
+</html>

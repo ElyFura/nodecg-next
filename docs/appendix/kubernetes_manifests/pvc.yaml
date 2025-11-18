@@ -1,0 +1,288 @@
+# ============================================================================
+# NODECG NEXT - KUBERNETES PERSISTENT VOLUME CLAIMS
+# ============================================================================
+# Datei: pvc.yaml
+# Beschreibung: Storage-Definitionen für persistente Daten
+# ============================================================================
+
+# ============================================================================
+# BUNDLES STORAGE
+# ============================================================================
+# Persistent Volume Claim für NodeCG-Bundles
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nodecg-bundles-pvc
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: storage
+    type: bundles
+spec:
+  # Access Mode
+  accessModes:
+    - ReadWriteMany  # Mehrere Pods müssen gleichzeitig zugreifen können
+  
+  # Storage Class (abhängig vom Cloud Provider)
+  # AWS: gp3, gp2
+  # GCP: standard-rwo, premium-rwo
+  # Azure: managed-premium
+  storageClassName: standard-rwo
+  
+  # Requested Storage
+  resources:
+    requests:
+      storage: 20Gi  # 20GB für Bundles
+  
+  # Volume Mode
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# ASSETS STORAGE
+# ============================================================================
+# Persistent Volume Claim für Asset-Uploads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nodecg-assets-pvc
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: storage
+    type: assets
+spec:
+  accessModes:
+    - ReadWriteMany
+  
+  storageClassName: standard-rwo
+  
+  resources:
+    requests:
+      storage: 100Gi  # 100GB für Assets (Bilder, Videos, etc.)
+  
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# POSTGRES DATA STORAGE
+# ============================================================================
+# Persistent Volume Claim für PostgreSQL
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: nodecg-production
+  labels:
+    app: postgres
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce  # Nur ein Pod (Master DB)
+  
+  # Für Datenbanken: High-Performance Storage Class verwenden
+  storageClassName: premium-rwo
+  
+  resources:
+    requests:
+      storage: 50Gi  # 50GB für Datenbank
+  
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# REDIS DATA STORAGE
+# ============================================================================
+# Persistent Volume Claim für Redis
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: nodecg-production
+  labels:
+    app: redis
+    component: cache
+spec:
+  accessModes:
+    - ReadWriteOnce
+  
+  storageClassName: standard-rwo
+  
+  resources:
+    requests:
+      storage: 10Gi  # 10GB für Redis (Cache + Persistence)
+  
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# PROMETHEUS DATA STORAGE
+# ============================================================================
+# Persistent Volume Claim für Prometheus Time-Series Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data-pvc
+  namespace: nodecg-production
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  
+  storageClassName: standard-rwo
+  
+  resources:
+    requests:
+      storage: 50Gi  # 50GB für Metriken (ca. 30 Tage Retention)
+  
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# GRAFANA DATA STORAGE
+# ============================================================================
+# Persistent Volume Claim für Grafana Dashboards und Config
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data-pvc
+  namespace: nodecg-production
+  labels:
+    app: grafana
+    component: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  
+  storageClassName: standard-rwo
+  
+  resources:
+    requests:
+      storage: 5Gi  # 5GB für Grafana-Daten
+  
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# LOGS STORAGE
+# ============================================================================
+# Persistent Volume Claim für Application Logs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nodecg-logs-pvc
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: logging
+spec:
+  accessModes:
+    - ReadWriteMany
+  
+  storageClassName: standard-rwo
+  
+  resources:
+    requests:
+      storage: 20Gi  # 20GB für Logs
+  
+  volumeMode: Filesystem
+
+---
+# ============================================================================
+# STORAGE CLASS EXAMPLES
+# ============================================================================
+# Beispiele für Custom Storage Classes
+---
+# AWS EBS GP3 Storage Class
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: aws-gp3
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  fsType: ext4
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# GCP SSD Storage Class
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gcp-ssd
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-ssd
+  replication-type: regional-pd
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# Azure Premium SSD Storage Class
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: azure-premium
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: Premium_LRS
+  kind: Managed
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# ============================================================================
+# SNAPSHOT CONFIGURATION
+# ============================================================================
+# VolumeSnapshot Class für Backups
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: nodecg-snapshot-class
+driver: ebs.csi.aws.com  # Oder entsprechender CSI-Driver
+deletionPolicy: Retain
+parameters:
+  tagSpecification_1: "Name=nodecg-snapshot"
+  tagSpecification_2: "Environment=production"
+
+---
+# ============================================================================
+# BEISPIEL: SCHEDULED SNAPSHOT (mit CronJob)
+# ============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: nodecg-production
+spec:
+  schedule: "0 2 * * *"  # Täglich um 2 Uhr
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: snapshot-creator
+          containers:
+            - name: snapshot-creator
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  cat <<EOF | kubectl apply -f -
+                  apiVersion: snapshot.storage.k8s.io/v1
+                  kind: VolumeSnapshot
+                  metadata:
+                    name: postgres-backup-$(date +%Y%m%d-%H%M%S)
+                    namespace: nodecg-production
+                  spec:
+                    volumeSnapshotClassName: nodecg-snapshot-class
+                    source:
+                      persistentVolumeClaimName: postgres-data-pvc
+                  EOF
+          restartPolicy: OnFailure

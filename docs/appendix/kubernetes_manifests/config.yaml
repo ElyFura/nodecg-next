@@ -1,0 +1,299 @@
+# ============================================================================
+# NODECG NEXT - KUBERNETES CONFIGMAP & SECRETS
+# ============================================================================
+# Datei: config.yaml
+# Beschreibung: Konfiguration und Secrets für NodeCG
+# ============================================================================
+
+# ============================================================================
+# CONFIGMAP - Application Configuration
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nodecg-config
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: config
+data:
+  # ========================================================================
+  # SERVER CONFIGURATION
+  # ========================================================================
+  server-host: "0.0.0.0"
+  server-port: "3000"
+  websocket-port: "9090"
+  
+  # ========================================================================
+  # CORS CONFIGURATION
+  # ========================================================================
+  cors-origins: "https://nodecg.example.com,https://graphics.example.com"
+  cors-methods: "GET,POST,PUT,DELETE,OPTIONS"
+  cors-credentials: "true"
+  
+  # ========================================================================
+  # WEBSOCKET CONFIGURATION
+  # ========================================================================
+  ws-heartbeat-interval: "30000"
+  ws-max-connections: "1000"
+  ws-compression: "true"
+  
+  # ========================================================================
+  # BUNDLE CONFIGURATION
+  # ========================================================================
+  bundles-path: "/app/bundles"
+  bundles-auto-load: "true"
+  bundles-enable-hot-reload: "false"
+  
+  # ========================================================================
+  # ASSET CONFIGURATION
+  # ========================================================================
+  assets-path: "/app/assets"
+  assets-max-file-size: "52428800"  # 50MB in Bytes
+  assets-allowed-types: "image/png,image/jpeg,image/gif,video/mp4,audio/mpeg"
+  
+  # ========================================================================
+  # LOGGING CONFIGURATION
+  # ========================================================================
+  log-level: "info"
+  log-format: "json"
+  log-timestamp: "true"
+  
+  # ========================================================================
+  # REPLICANT CONFIGURATION
+  # ========================================================================
+  replicant-persistence-interval: "5000"  # 5 Sekunden
+  replicant-max-history: "100"
+  
+  # ========================================================================
+  # SECURITY CONFIGURATION
+  # ========================================================================
+  session-timeout: "86400000"  # 24 Stunden in Millisekunden
+  jwt-expires-in: "7d"
+  rate-limit-window: "900000"  # 15 Minuten
+  rate-limit-max: "100"
+  
+  # ========================================================================
+  # FEATURE FLAGS
+  # ========================================================================
+  feature-api-enabled: "true"
+  feature-graphql-enabled: "true"
+  feature-metrics-enabled: "true"
+  feature-debug-mode: "false"
+
+---
+# ============================================================================
+# SECRET - Sensitive Credentials
+# ============================================================================
+# WICHTIG: In Production NIEMALS Base64-Secrets in Git committen!
+# Verwende stattdessen:
+# - Sealed Secrets (https://github.com/bitnami-labs/sealed-secrets)
+# - External Secrets Operator (https://external-secrets.io)
+# - HashiCorp Vault
+# - Cloud Provider Secret Managers (AWS Secrets Manager, GCP Secret Manager)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nodecg-secrets
+  namespace: nodecg-production
+  labels:
+    app: nodecg
+    component: secrets
+type: Opaque
+data:
+  # ========================================================================
+  # DATABASE CREDENTIALS
+  # ========================================================================
+  # Format: postgresql://user:password@host:port/database
+  # PLACEHOLDER - In Production durch echte Werte ersetzen!
+  database-url: cG9zdGdyZXNxbDovL25vZGVjZzpub2RlY2dfc2VjdXJlX3Bhc3N3b3JkX0AjJEBwb3N0Z3Jlcy1zZXJ2aWNlOjU0MzIvbm9kZWNnX25leHQ=
+  
+  # ========================================================================
+  # REDIS CREDENTIALS
+  # ========================================================================
+  # Format: redis://:password@host:port
+  redis-url: cmVkaXM6Ly86cmVkaXNfc2VjdXJlX3Bhc3N3b3JkX0AjJEByZWRpcy1zZXJ2aWNlOjYzNzk=
+  
+  # ========================================================================
+  # JWT SECRET
+  # ========================================================================
+  # Generieren mit: openssl rand -base64 64
+  jwt-secret: WW91cl9TVVBFUl9TRUNVUkVfSldUX1NFQ1JFVF9DSEFOR0VfVEhJU19JTl9QUk9EVUNUSU9OXzEyMzQ1Njc4OTA=
+  
+  # ========================================================================
+  # SESSION SECRET
+  # ========================================================================
+  # Generieren mit: openssl rand -base64 64
+  session-secret: WW91cl9TVVBFUl9TRUNVUkVfU0VTU0lPTl9TRUNSRVRfQ0hBTkdFX1RISVNfSU5fUFJPRFVDVElPTl85ODc2NTQzMjEw
+
+---
+# ============================================================================
+# CONFIGMAP - Nginx Configuration
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nodecg-production
+  labels:
+    app: nginx
+    component: proxy
+data:
+  nginx.conf: |
+    # ========================================================================
+    # NGINX MAIN CONFIGURATION
+    # ========================================================================
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 2048;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        # Basic Settings
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        # Performance
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 50M;
+        
+        # Gzip Compression
+        gzip on;
+        gzip_vary on;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types text/plain text/css text/xml text/javascript 
+                   application/json application/javascript application/xml+rss;
+        
+        # Rate Limiting
+        limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+        limit_req_zone $binary_remote_addr zone=web_limit:10m rate=100r/s;
+        
+        # Upstream Backend
+        upstream nodecg_backend {
+            least_conn;
+            server nodecg-internal:3000 max_fails=3 fail_timeout=30s;
+            keepalive 32;
+        }
+        
+        # Upstream WebSocket
+        upstream nodecg_websocket {
+            ip_hash;  # Sticky Sessions für WebSockets
+            server nodecg-internal:9090 max_fails=3 fail_timeout=30s;
+        }
+        
+        # Main Server Block
+        server {
+            listen 80;
+            listen [::]:80;
+            server_name _;
+            
+            # Security Headers
+            add_header X-Frame-Options "SAMEORIGIN" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            
+            # Health Check Endpoint
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # WebSocket Proxy
+            location /socket.io/ {
+                proxy_pass http://nodecg_websocket;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                
+                # WebSocket Timeouts
+                proxy_read_timeout 3600s;
+                proxy_send_timeout 3600s;
+            }
+            
+            # API Endpoints (mit Rate Limiting)
+            location /api/ {
+                limit_req zone=api_limit burst=20 nodelay;
+                
+                proxy_pass http://nodecg_backend;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                
+                # Caching
+                proxy_cache_bypass $http_upgrade;
+            }
+            
+            # Static Assets
+            location /assets/ {
+                alias /var/www/assets/;
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+            }
+            
+            # Main Application
+            location / {
+                limit_req zone=web_limit burst=50 nodelay;
+                
+                proxy_pass http://nodecg_backend;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+    }
+
+---
+# ============================================================================
+# CONFIGMAP - Database Init Scripts
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: nodecg-production
+  labels:
+    app: postgres
+    component: database
+data:
+  01-create-extensions.sql: |
+    -- PostgreSQL Extensions für NodeCG
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- Für Full-Text-Search
+    CREATE EXTENSION IF NOT EXISTS "btree_gin"; -- Für Index-Optimierung
+  
+  02-create-user.sql: |
+    -- Erstelle Read-Only User für Reporting
+    CREATE USER nodecg_readonly WITH PASSWORD 'readonly_password_change_me';
+    GRANT CONNECT ON DATABASE nodecg_next TO nodecg_readonly;
+    GRANT USAGE ON SCHEMA public TO nodecg_readonly;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO nodecg_readonly;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO nodecg_readonly;

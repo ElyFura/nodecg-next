@@ -1,0 +1,426 @@
+# ============================================================================
+# NODECG NEXT - DOCKER COMPOSE CONFIGURATION
+# ============================================================================
+# Datei: docker-compose.yml
+# Beschreibung: Vollständige Container-Orchestrierung für Development/Production
+# Version: 3.8
+# ============================================================================
+
+version: '3.8'
+
+# ============================================================================
+# SERVICES DEFINITION
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # POSTGRESQL DATABASE
+  # --------------------------------------------------------------------------
+  # Primäre Datenbank für alle persistenten Daten
+  postgres:
+    image: postgres:16-alpine
+    container_name: nodecg-postgres
+    restart: unless-stopped
+    
+    environment:
+      # Datenbank-Credentials (Production: Secrets verwenden!)
+      POSTGRES_DB: nodecg_next
+      POSTGRES_USER: nodecg
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-nodecg_secure_password_123}
+      
+      # Performance-Tuning
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
+      POSTGRES_MAX_CONNECTIONS: 200
+    
+    volumes:
+      # Persistente Datenspeicherung
+      - postgres_data:/var/lib/postgresql/data
+      
+      # Initialisierungs-Skripte (optional)
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nodecg -d nodecg_next"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    networks:
+      - nodecg_network
+
+  # --------------------------------------------------------------------------
+  # REDIS CACHE & PUB/SUB
+  # --------------------------------------------------------------------------
+  # Session-Store, Caching und Message-Broker
+  redis:
+    image: redis:7-alpine
+    container_name: nodecg-redis
+    restart: unless-stopped
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-redis_secure_password_456}
+    
+    volumes:
+      - redis_data:/data
+    
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    
+    networks:
+      - nodecg_network
+
+  # --------------------------------------------------------------------------
+  # NODECG NEXT SERVER
+  # --------------------------------------------------------------------------
+  # Haupt-Applikationsserver mit Next.js
+  nodecg-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NODE_VERSION: 20
+    
+    container_name: nodecg-server
+    restart: unless-stopped
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    environment:
+      # Node.js Environment
+      NODE_ENV: production
+      PORT: 3000
+      
+      # Database Connection
+      DATABASE_URL: postgresql://nodecg:${DB_PASSWORD:-nodecg_secure_password_123}@postgres:5432/nodecg_next
+      
+      # Redis Connection
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secure_password_456}@redis:6379
+      
+      # JWT & Session
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      SESSION_SECRET: ${SESSION_SECRET:-your-super-secret-session-key-change-this}
+      
+      # Security
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:9090}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,nodecg.local}
+      
+      # WebSocket Configuration
+      WS_HEARTBEAT_INTERVAL: 30000
+      WS_MAX_CONNECTIONS: 1000
+      
+      # Bundle Storage
+      BUNDLES_PATH: /app/bundles
+      ASSETS_PATH: /app/assets
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+    
+    volumes:
+      # Bundle-Verzeichnis (persistent)
+      - bundles_data:/app/bundles
+      
+      # Asset-Uploads (persistent)
+      - assets_data:/app/assets
+      
+      # Logs (optional)
+      - logs_data:/app/logs
+      
+      # Config (optional)
+      - ./config:/app/config:ro
+    
+    ports:
+      - "${APP_PORT:-3000}:3000"
+      - "${WS_PORT:-9090}:9090"
+    
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - nodecg_network
+    
+    # Resource Limits (Production)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # --------------------------------------------------------------------------
+  # NGINX REVERSE PROXY
+  # --------------------------------------------------------------------------
+  # SSL-Termination, Load Balancing, Static File Serving
+  nginx:
+    image: nginx:alpine
+    container_name: nodecg-nginx
+    restart: unless-stopped
+    
+    depends_on:
+      - nodecg-server
+    
+    volumes:
+      # Nginx-Konfiguration
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      
+      # SSL-Zertifikate (Production: Let's Encrypt Volume)
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      
+      # Static Assets (für direktes Serving)
+      - assets_data:/var/www/assets:ro
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    networks:
+      - nodecg_network
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # --------------------------------------------------------------------------
+  # MONITORING - PROMETHEUS
+  # --------------------------------------------------------------------------
+  # Metriken-Collection und Time-Series DB
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nodecg-prometheus
+    restart: unless-stopped
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+    
+    networks:
+      - nodecg_network
+
+  # --------------------------------------------------------------------------
+  # MONITORING - GRAFANA
+  # --------------------------------------------------------------------------
+  # Visualisierung und Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nodecg-grafana
+    restart: unless-stopped
+    
+    depends_on:
+      - prometheus
+    
+    environment:
+      # Admin Credentials
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      
+      # Server Config
+      GF_SERVER_ROOT_URL: http://localhost:3001
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    
+    networks:
+      - nodecg_network
+
+  # --------------------------------------------------------------------------
+  # LOG AGGREGATION - LOKI (Optional)
+  # --------------------------------------------------------------------------
+  # Zentrales Log-Management
+  loki:
+    image: grafana/loki:latest
+    container_name: nodecg-loki
+    restart: unless-stopped
+    
+    command: -config.file=/etc/loki/local-config.yaml
+    
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    
+    networks:
+      - nodecg_network
+    
+    profiles:
+      - monitoring
+
+  # --------------------------------------------------------------------------
+  # LOG SHIPPER - PROMTAIL (Optional)
+  # --------------------------------------------------------------------------
+  # Log-Collection Agent
+  promtail:
+    image: grafana/promtail:latest
+    container_name: nodecg-promtail
+    restart: unless-stopped
+    
+    depends_on:
+      - loki
+    
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - logs_data:/var/log/nodecg:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    
+    command: -config.file=/etc/promtail/config.yml
+    
+    networks:
+      - nodecg_network
+    
+    profiles:
+      - monitoring
+
+  # --------------------------------------------------------------------------
+  # BACKUP SERVICE (Optional)
+  # --------------------------------------------------------------------------
+  # Automatische Datenbank-Backups
+  backup:
+    image: postgres:16-alpine
+    container_name: nodecg-backup
+    restart: unless-stopped
+    
+    depends_on:
+      - postgres
+    
+    environment:
+      PGHOST: postgres
+      PGDATABASE: nodecg_next
+      PGUSER: nodecg
+      PGPASSWORD: ${DB_PASSWORD:-nodecg_secure_password_123}
+      BACKUP_SCHEDULE: "0 2 * * *"  # Täglich um 2 Uhr
+      BACKUP_RETENTION_DAYS: 7
+    
+    volumes:
+      - ./scripts/backup.sh:/backup.sh:ro
+      - backups_data:/backups
+    
+    command: /bin/sh -c "crond -f"
+    
+    networks:
+      - nodecg_network
+    
+    profiles:
+      - backup
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  nodecg_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ============================================================================
+# VOLUMES (Persistent Storage)
+# ============================================================================
+volumes:
+  # Datenbank-Daten
+  postgres_data:
+    driver: local
+  
+  # Redis-Daten
+  redis_data:
+    driver: local
+  
+  # NodeCG-Bundles
+  bundles_data:
+    driver: local
+  
+  # Asset-Uploads
+  assets_data:
+    driver: local
+  
+  # Application-Logs
+  logs_data:
+    driver: local
+  
+  # Monitoring-Daten
+  prometheus_data:
+    driver: local
+  
+  grafana_data:
+    driver: local
+  
+  loki_data:
+    driver: local
+  
+  # Backups
+  backups_data:
+    driver: local
+
+# ============================================================================
+# VERWENDUNG
+# ============================================================================
+#
+# Development starten:
+#   docker-compose up -d
+#
+# Production starten:
+#   docker-compose -f docker-compose.yml up -d
+#
+# Mit Monitoring:
+#   docker-compose --profile monitoring up -d
+#
+# Mit Backup:
+#   docker-compose --profile backup up -d
+#
+# Logs anzeigen:
+#   docker-compose logs -f nodecg-server
+#
+# Services neustarten:
+#   docker-compose restart nodecg-server
+#
+# Alles stoppen:
+#   docker-compose down
+#
+# Mit Volume-Löschung:
+#   docker-compose down -v
+#
+# ============================================================================

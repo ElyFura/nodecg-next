@@ -1,0 +1,535 @@
+// ============================================================================
+// NODECG NEXT - PRISMA DATABASE SCHEMA
+// ============================================================================
+// Datei: prisma_schema.prisma
+// Beschreibung: Vollständiges Datenbankschema für NodeCG Next mit Prisma ORM
+// Datenbank: PostgreSQL 16+
+// Autor: NodeCG Next Development Team
+// Version: 1.0.0
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  // Optimierung für Performance
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Beispiel: postgresql://nodecg:password@localhost:5432/nodecg_next
+}
+
+// ============================================================================
+// BENUTZER & AUTHENTIFIZIERUNG
+// ============================================================================
+
+/// @description Benutzer-Accounts mit Rollen und Berechtigungen
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String   // bcrypt hash
+  firstName     String?
+  lastName      String?
+  avatar        String?  // URL zum Profilbild
+  
+  // Authentifizierung
+  emailVerified Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  
+  // Rollen und Berechtigungen
+  role          UserRole @default(VIEWER)
+  permissions   Permission[]
+  
+  // Beziehungen
+  bundles       BundlePermission[]
+  sessions      Session[]
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+  
+  // Zeitstempel
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+/// @description Benutzerrollen mit hierarchischen Berechtigungen
+enum UserRole {
+  SUPER_ADMIN   // Voller Systemzugriff
+  ADMIN         // Bundle-Management, User-Management
+  OPERATOR      // Broadcast-Kontrolle, Replicant-Zugriff
+  VIEWER        // Nur Lese-Zugriff auf Dashboard
+  GUEST         // Eingeschränkter Zugriff
+}
+
+/// @description Granulare Berechtigungen für spezifische Aktionen
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // z.B. "bundles:install", "replicants:write"
+  description String?
+  category    String   // "bundles", "replicants", "users", "system"
+  
+  users       User[]
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("permissions")
+}
+
+/// @description Aktive Benutzersitzungen mit Token-Management
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  token       String   @unique // JWT oder Session-Token
+  ipAddress   String?
+  userAgent   String?
+  
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+/// @description API-Schlüssel für externe Integrationen
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String   // Beschreibender Name
+  key         String   @unique // Gehashter API-Key
+  permissions String[] // Array von Permission-Namen
+  
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
+}
+
+// ============================================================================
+// BUNDLES & EXTENSIONS
+// ============================================================================
+
+/// @description Installierte NodeCG-Bundles mit Metadaten
+model Bundle {
+  id              String   @id @default(cuid())
+  name            String   @unique // z.B. "my-awesome-bundle"
+  displayName     String
+  version         String
+  description     String?
+  
+  // Bundle-Konfiguration
+  author          String?
+  homepage        String?
+  repository      String?
+  license         String?
+  
+  // Installation & Status
+  installPath     String   // Pfad im Dateisystem
+  isEnabled       Boolean  @default(true)
+  isCore          Boolean  @default(false) // System-Bundle
+  
+  // Dependencies
+  nodecgVersion   String   // Kompatible NodeCG-Version
+  dependencies    Json?    // Package.json dependencies
+  
+  // Beziehungen
+  graphics        Graphic[]
+  panels          Panel[]
+  replicants      Replicant[]
+  assets          Asset[]
+  permissions     BundlePermission[]
+  
+  // Zeitstempel
+  installedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([name])
+  @@map("bundles")
+}
+
+/// @description Bundle-spezifische Benutzerberechtigungen
+model BundlePermission {
+  id        String   @id @default(cuid())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  bundleId  String
+  bundle    Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  
+  canRead   Boolean  @default(true)
+  canWrite  Boolean  @default(false)
+  canAdmin  Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, bundleId])
+  @@map("bundle_permissions")
+}
+
+/// @description Grafiken/Overlays pro Bundle
+model Graphic {
+  id          String   @id @default(cuid())
+  bundleId    String
+  bundle      Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  
+  name        String   // Dateiname ohne Extension
+  file        String   // relativer Pfad
+  width       Int
+  height      Int
+  
+  // Metadaten
+  title       String?
+  description String?
+  category    String?
+  
+  // Single Instance Graphics (nur einmal laden)
+  singleInstance Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([bundleId, file])
+  @@index([bundleId])
+  @@map("graphics")
+}
+
+/// @description Dashboard-Panels pro Bundle
+model Panel {
+  id          String   @id @default(cuid())
+  bundleId    String
+  bundle      Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  
+  name        String
+  file        String   // relativer Pfad
+  title       String
+  width       Int?     // Panel-Breite in Grid-Einheiten
+  
+  // Panel-Konfiguration
+  workspace   String?  // Workspace-Zuweisung
+  headerColor String?
+  
+  // Berechtigungen
+  role        UserRole @default(VIEWER) // Mindest-Rolle für Zugriff
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([bundleId, file])
+  @@index([bundleId])
+  @@map("panels")
+}
+
+// ============================================================================
+// REPLICANTS (State Management)
+// ============================================================================
+
+/// @description Replicant-Definitionen und aktueller State
+model Replicant {
+  id              String   @id @default(cuid())
+  bundleId        String
+  bundle          Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  
+  namespace       String   // Bundle-Name
+  name            String   // Replicant-Name
+  
+  // Aktueller Wert (JSON)
+  value           Json     @default("{}")
+  
+  // Schema-Validierung
+  schema          Json?    // JSON-Schema
+  schemaVersion   String?
+  
+  // Persistierung
+  persistent      Boolean  @default(true)
+  persistenceInterval Int? // Millisekunden
+  
+  // Versionierung für Optimistic Locking
+  version         Int      @default(1)
+  
+  // Beziehungen
+  history         ReplicantHistory[]
+  operations      ReplicantOperation[]
+  
+  // Zeitstempel
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([namespace, name])
+  @@index([bundleId])
+  @@index([namespace, name])
+  @@map("replicants")
+}
+
+/// @description Historische Replicant-Werte für Audit & Rollback
+model ReplicantHistory {
+  id            String   @id @default(cuid())
+  replicantId   String
+  replicant     Replicant @relation(fields: [replicantId], references: [id], onDelete: Cascade)
+  
+  value         Json     // Snapshot des Wertes
+  version       Int      // Version zum Zeitpunkt
+  
+  // Änderungskontext
+  operation     String   // "create", "update", "delete"
+  userId        String?  // Wer hat geändert
+  source        String?  // "dashboard", "extension", "api"
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([replicantId])
+  @@index([createdAt])
+  @@map("replicant_history")
+}
+
+/// @description Replicant-Operationen für Echtzeit-Sync
+model ReplicantOperation {
+  id            String   @id @default(cuid())
+  replicantId   String
+  replicant     Replicant @relation(fields: [replicantId], references: [id], onDelete: Cascade)
+  
+  operation     String   // "assign", "patch", "delete"
+  path          String?  // JSON-Pfad für Patches (z.B. "/scores/0")
+  value         Json?    // Neuer Wert oder Patch
+  
+  version       Int      // Ziel-Version
+  userId        String?
+  
+  // Konfliktauflösung
+  status        String   @default("pending") // "pending", "applied", "rejected"
+  appliedAt     DateTime?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([replicantId, createdAt])
+  @@map("replicant_operations")
+}
+
+// ============================================================================
+// ASSETS (Datei-Uploads)
+// ============================================================================
+
+/// @description Asset-Kategorien pro Bundle
+model AssetCategory {
+  id          String   @id @default(cuid())
+  bundleId    String
+  
+  name        String   // z.B. "logos", "sounds", "videos"
+  title       String
+  
+  // Validierung
+  allowedTypes String[] // MIME-Types: ["image/png", "image/jpeg"]
+  maxSize     Int?     // in Bytes
+  
+  assets      Asset[]
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([bundleId, name])
+  @@map("asset_categories")
+}
+
+/// @description Hochgeladene Dateien pro Bundle
+model Asset {
+  id          String   @id @default(cuid())
+  bundleId    String
+  bundle      Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  
+  categoryId  String
+  category    AssetCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Datei-Informationen
+  filename    String   // Original-Dateiname
+  storagePath String   // Pfad im Storage
+  mimeType    String
+  size        Int      // in Bytes
+  
+  // Metadaten
+  title       String?
+  description String?
+  tags        String[]
+  
+  // Versionierung
+  version     Int      @default(1)
+  replacesId  String?  // ID des ersetzten Assets
+  
+  // Upload-Info
+  uploadedBy  String?  // User-ID
+  ipAddress   String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([bundleId])
+  @@index([categoryId])
+  @@map("assets")
+}
+
+// ============================================================================
+// MESSAGES (Pub/Sub System)
+// ============================================================================
+
+/// @description Message-Log für Audit und Debugging
+model Message {
+  id          String   @id @default(cuid())
+  bundleId    String?  // Optional: Bundle-Zuordnung
+  
+  // Message-Eigenschaften
+  name        String   // Message-Name/Topic
+  data        Json?    // Message-Payload
+  
+  // Kontext
+  source      String   // "dashboard", "extension", "graphic"
+  userId      String?
+  
+  // Zeitstempel
+  createdAt   DateTime @default(now())
+  
+  @@index([bundleId, createdAt])
+  @@index([name, createdAt])
+  @@map("messages")
+}
+
+// ============================================================================
+// SYSTEM & CONFIGURATION
+// ============================================================================
+
+/// @description System-Konfiguration (Key-Value-Store)
+model Config {
+  id          String   @id @default(cuid())
+  
+  key         String   @unique // z.B. "server.port", "security.sessionTimeout"
+  value       Json     // Flexibler Wert-Typ
+  
+  // Metadaten
+  category    String   // "server", "security", "bundles", "websocket"
+  description String?
+  isPublic    Boolean  @default(false) // Für Client sichtbar
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@index([category])
+  @@map("config")
+}
+
+/// @description Audit-Log für alle System-Aktionen
+model AuditLog {
+  id          String   @id @default(cuid())
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Aktion
+  action      String   // "user.login", "bundle.install", "replicant.update"
+  entity      String   // "User", "Bundle", "Replicant"
+  entityId    String?  // ID der betroffenen Entität
+  
+  // Details
+  changes     Json?    // Vorher/Nachher-Werte
+  ipAddress   String?
+  userAgent   String?
+  
+  // Status
+  success     Boolean  @default(true)
+  errorMessage String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+/// @description Scheduled Jobs und Cron-Tasks
+model ScheduledJob {
+  id          String   @id @default(cuid())
+  
+  name        String   @unique
+  bundleId    String?  // Optional: Bundle-spezifischer Job
+  
+  // Scheduling
+  cronExpression String // z.B. "0 0 * * *" (täglich Mitternacht)
+  enabled     Boolean  @default(true)
+  
+  // Ausführung
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  lastStatus  String?  // "success", "failed", "running"
+  
+  // Handler
+  handler     String   // JavaScript-Funktion als String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("scheduled_jobs")
+}
+
+// ============================================================================
+// ANALYTICS & MONITORING
+// ============================================================================
+
+/// @description System-Metriken für Monitoring
+model Metric {
+  id          String   @id @default(cuid())
+  
+  name        String   // z.B. "cpu.usage", "memory.used", "websocket.connections"
+  value       Float
+  unit        String?  // "percent", "bytes", "count"
+  
+  // Dimensionen für Gruppierung
+  tags        Json?    // {"host": "server1", "bundle": "my-bundle"}
+  
+  timestamp   DateTime @default(now())
+  
+  @@index([name, timestamp])
+  @@map("metrics")
+}
+
+/// @description Fehler-Tracking
+model ErrorLog {
+  id          String   @id @default(cuid())
+  
+  // Fehler-Informationen
+  message     String
+  stack       String?  @db.Text
+  level       String   // "error", "warning", "critical"
+  
+  // Kontext
+  bundleId    String?
+  userId      String?
+  source      String?  // "server", "extension", "graphic"
+  
+  // Request-Kontext
+  url         String?
+  method      String?
+  ipAddress   String?
+  userAgent   String?
+  
+  // Metadaten
+  metadata    Json?
+  
+  timestamp   DateTime @default(now())
+  
+  @@index([level, timestamp])
+  @@index([bundleId, timestamp])
+  @@map("error_logs")
+}
+
+// ============================================================================
+// ENDE DES SCHEMAS
+// ============================================================================

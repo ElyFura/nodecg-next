@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  NODECG NEXT - DASHBOARD PANEL TEMPLATE
+  ============================================================================
+  Datei: panel-template.html
+  Beschreibung: Template für NodeCG Next Dashboard Panels
+  
+  Dashboard Panels laufen im Browser und haben Zugriff auf:
+  - Replicants (Lesen & Schreiben)
+  - Messages (Senden & Empfangen)
+  - Assets
+  
+  @author NodeCG Next Development Team
+  @version 1.0.0
+  ============================================================================
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Panel</title>
+  
+  <!-- ======================================================================
+       STYLES
+       ====================================================================== -->
+  <style>
+    /**
+     * Reset & Base Styles
+     */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+    
+    /**
+     * Container
+     */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    /**
+     * Card Layout
+     */
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .card-header {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+      color: #2c3e50;
+    }
+    
+    /**
+     * Form Elements
+     */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+    
+    /**
+     * Buttons
+     */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .btn-primary {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #2980b9;
+    }
+    
+    .btn-success {
+      background-color: #2ecc71;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background-color: #27ae60;
+    }
+    
+    .btn-danger {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c0392b;
+    }
+    
+    .btn-secondary {
+      background-color: #95a5a6;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #7f8c8d;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /**
+     * Scoreboard Display
+     */
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+      color: white;
+      margin-bottom: 20px;
+    }
+    
+    .team {
+      text-align: center;
+    }
+    
+    .team-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    
+    .team-score {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    
+    .score-divider {
+      font-size: 36px;
+      font-weight: 300;
+      opacity: 0.7;
+    }
+    
+    /**
+     * Status Indicators
+     */
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-warning {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    /**
+     * Participants List
+     */
+    .participant-list {
+      list-style: none;
+    }
+    
+    .participant-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 8px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 3px solid #3498db;
+    }
+    
+    .participant-info {
+      flex: 1;
+    }
+    
+    .participant-name {
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
+    .participant-team {
+      font-size: 12px;
+      color: #7f8c8d;
+      margin-top: 2px;
+    }
+    
+    .participant-actions button {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    
+    /**
+     * Loading Spinner
+     */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0,0,0,.1);
+      border-radius: 50%;
+      border-top-color: #3498db;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /**
+     * Alert Messages
+     */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    
+    .alert.show {
+      display: block;
+    }
+    
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- ==================================================================
+         ALERTS
+         ================================================================== -->
+    <div id="alertSuccess" class="alert alert-success"></div>
+    <div id="alertError" class="alert alert-error"></div>
+    
+    <!-- ==================================================================
+         SCOREBOARD DISPLAY
+         ================================================================== -->
+    <div class="card">
+      <div class="card-header">Live Scoreboard</div>
+      
+      <div class="scoreboard">
+        <div class="team">
+          <div class="team-name" id="teamAName">Team A</div>
+          <div class="team-score" id="teamAScore">0</div>
+        </div>
+        
+        <div class="score-divider">:</div>
+        
+        <div class="team">
+          <div class="team-name" id="teamBName">Team B</div>
+          <div class="team-score" id="teamBScore">0</div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 15px;">
+        <span class="status status-success">Quarter <span id="currentQuarter">1</span></span>
+        <span class="status status-warning" style="margin-left: 10px;">
+          Time: <span id="timeRemaining">12:00</span>
+        </span>
+      </div>
+    </div>
+    
+    <!-- ==================================================================
+         SCORE CONTROL
+         ================================================================== -->
+    <div class="card">
+      <div class="card-header">Score Control</div>
+      
+      <div class="form-group">
+        <label for="teamSelect">Team auswählen</label>
+        <select id="teamSelect">
+          <option value="A">Team A</option>
+          <option value="B">Team B</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="scoreInput">Neuer Score</label>
+        <input type="number" id="scoreInput" min="0" value="0">
+      </div>
+      
+      <button class="btn btn-primary" onclick="updateScore()">
+        Score Aktualisieren
+      </button>
+      
+      <button class="btn btn-success" onclick="incrementScore()">
+        +1 Punkt
+      </button>
+      
+      <button class="btn btn-danger" onclick="resetScoreboard()">
+        Zurücksetzen
+      </button>
+    </div>
+    
+    <!-- ==================================================================
+         PARTICIPANTS
+         ================================================================== -->
+    <div class="card">
+      <div class="card-header">
+        Teilnehmer 
+        <span class="status status-success">
+          <span id="participantCount">0</span> Personen
+        </span>
+      </div>
+      
+      <!-- Add Participant Form -->
+      <div class="form-group">
+        <label for="participantName">Name</label>
+        <input type="text" id="participantName" placeholder="Teilnehmer-Name">
+      </div>
+      
+      <div class="form-group">
+        <label for="participantTeam">Team</label>
+        <select id="participantTeam">
+          <option value="A">Team A</option>
+          <option value="B">Team B</option>
+        </select>
+      </div>
+      
+      <button class="btn btn-primary" onclick="addParticipant()">
+        Teilnehmer hinzufügen
+      </button>
+      
+      <!-- Participants List -->
+      <ul id="participantList" class="participant-list" style="margin-top: 20px;">
+        <!-- Dynamisch befüllt via JavaScript -->
+      </ul>
+    </div>
+    
+  </div>
+  
+  <!-- ======================================================================
+       SCRIPTS
+       ====================================================================== -->
+  
+  <!-- NodeCG API (automatisch injiziert) -->
+  <script>
+    /**
+     * ========================================================================
+     * NODECG CLIENT API
+     * ========================================================================
+     * NodeCG stellt automatisch das 'nodecg' Objekt zur Verfügung
+     */
+    
+    // ========================================================================
+    // REPLICANTS
+    // ========================================================================
+    
+    /**
+     * Scoreboard Replicant
+     * Synchronisiert automatisch mit Server
+     */
+    const scoreboardRep = nodecg.Replicant('scoreboard');
+    
+    /**
+     * Participants Replicant
+     */
+    const participantsRep = nodecg.Replicant('participants');
+    
+    // ========================================================================
+    // REPLICANT CHANGE HANDLERS
+    // ========================================================================
+    
+    /**
+     * Scoreboard Änderungen
+     */
+    scoreboardRep.on('change', (newValue) => {
+      console.log('Scoreboard updated:', newValue);
+      updateScoreboardDisplay(newValue);
+    });
+    
+    /**
+     * Participants Änderungen
+     */
+    participantsRep.on('change', (newValue) => {
+      console.log('Participants updated:', newValue);
+      updateParticipantsList(newValue);
+    });
+    
+    // ========================================================================
+    // UI UPDATE FUNCTIONS
+    // ========================================================================
+    
+    /**
+     * Aktualisiere Scoreboard-Anzeige
+     */
+    function updateScoreboardDisplay(scoreboard) {
+      // Team A
+      document.getElementById('teamAName').textContent = scoreboard.teamA.name;
+      document.getElementById('teamAScore').textContent = scoreboard.teamA.score;
+      
+      // Team B
+      document.getElementById('teamBName').textContent = scoreboard.teamB.name;
+      document.getElementById('teamBScore').textContent = scoreboard.teamB.score;
+      
+      // Meta-Informationen
+      document.getElementById('currentQuarter').textContent = scoreboard.quarter;
+      document.getElementById('timeRemaining').textContent = scoreboard.timeRemaining;
+    }
+    
+    /**
+     * Aktualisiere Participants-Liste
+     */
+    function updateParticipantsList(participants) {
+      const listElement = document.getElementById('participantList');
+      const countElement = document.getElementById('participantCount');
+      
+      // Update Count
+      countElement.textContent = participants.length;
+      
+      // Clear List
+      listElement.innerHTML = '';
+      
+      // Populate List
+      participants.forEach(participant => {
+        const li = document.createElement('li');
+        li.className = 'participant-item';
+        
+        li.innerHTML = `
+          <div class="participant-info">
+            <div class="participant-name">${escapeHtml(participant.name)}</div>
+            <div class="participant-team">Team ${participant.team}</div>
+          </div>
+          <div class="participant-actions">
+            <button class="btn btn-secondary btn-sm" 
+                    onclick="editParticipant('${participant.id}')">
+              Bearbeiten
+            </button>
+            <button class="btn btn-danger btn-sm" 
+                    onclick="removeParticipant('${participant.id}')">
+              Entfernen
+            </button>
+          </div>
+        `;
+        
+        listElement.appendChild(li);
+      });
+    }
+    
+    // ========================================================================
+    // USER ACTIONS
+    // ========================================================================
+    
+    /**
+     * Score aktualisieren
+     */
+    function updateScore() {
+      const team = document.getElementById('teamSelect').value;
+      const score = parseInt(document.getElementById('scoreInput').value);
+      
+      // Validierung
+      if (isNaN(score) || score < 0) {
+        showAlert('error', 'Bitte gültigen Score eingeben!');
+        return;
+      }
+      
+      // Sende Message an Extension
+      nodecg.sendMessage('updateScore', { team, score }, (error, response) => {
+        if (error) {
+          console.error('Error updating score:', error);
+          showAlert('error', `Fehler: ${error.message}`);
+        } else {
+          console.log('Score updated successfully:', response);
+          showAlert('success', 'Score erfolgreich aktualisiert!');
+        }
+      });
+    }
+    
+    /**
+     * Score um 1 erhöhen
+     */
+    function incrementScore() {
+      const team = document.getElementById('teamSelect').value;
+      const currentScore = scoreboardRep.value[`team${team}`].score;
+      const newScore = currentScore + 1;
+      
+      nodecg.sendMessage('updateScore', { team, score: newScore }, (error) => {
+        if (error) {
+          showAlert('error', `Fehler: ${error.message}`);
+        } else {
+          showAlert('success', 'Punkt hinzugefügt!');
+        }
+      });
+    }
+    
+    /**
+     * Scoreboard zurücksetzen
+     */
+    function resetScoreboard() {
+      if (!confirm('Möchten Sie das Scoreboard wirklich zurücksetzen?')) {
+        return;
+      }
+      
+      nodecg.sendMessage('resetScoreboard', null, (error) => {
+        if (error) {
+          showAlert('error', `Fehler: ${error.message}`);
+        } else {
+          showAlert('success', 'Scoreboard zurückgesetzt!');
+        }
+      });
+    }
+    
+    /**
+     * Participant hinzufügen
+     */
+    function addParticipant() {
+      const name = document.getElementById('participantName').value.trim();
+      const team = document.getElementById('participantTeam').value;
+      
+      // Validierung
+      if (!name) {
+        showAlert('error', 'Bitte Namen eingeben!');
+        return;
+      }
+      
+      const participant = {
+        id: generateId(),
+        name: name,
+        team: team
+      };
+      
+      nodecg.sendMessage('addParticipant', participant, (error, response) => {
+        if (error) {
+          showAlert('error', `Fehler: ${error.message}`);
+        } else {
+          showAlert('success', 'Teilnehmer hinzugefügt!');
+          
+          // Formular zurücksetzen
+          document.getElementById('participantName').value = '';
+          document.getElementById('participantTeam').value = 'A';
+        }
+      });
+    }
+    
+    /**
+     * Participant entfernen
+     */
+    function removeParticipant(id) {
+      if (!confirm('Teilnehmer wirklich entfernen?')) {
+        return;
+      }
+      
+      // Filtere Participant aus Array
+      const updatedParticipants = participantsRep.value.filter(p => p.id !== id);
+      
+      // Update Replicant direkt (keine Message nötig)
+      participantsRep.value = updatedParticipants;
+      
+      showAlert('success', 'Teilnehmer entfernt!');
+    }
+    
+    /**
+     * Participant bearbeiten (Beispiel)
+     */
+    function editParticipant(id) {
+      const participant = participantsRep.value.find(p => p.id === id);
+      
+      if (!participant) return;
+      
+      const newName = prompt('Neuer Name:', participant.name);
+      
+      if (newName && newName.trim()) {
+        // Finde und aktualisiere Participant
+        const updatedParticipants = participantsRep.value.map(p => {
+          if (p.id === id) {
+            return { ...p, name: newName.trim() };
+          }
+          return p;
+        });
+        
+        participantsRep.value = updatedParticipants;
+        showAlert('success', 'Teilnehmer aktualisiert!');
+      }
+    }
+    
+    // ========================================================================
+    // MESSAGE LISTENERS
+    // ========================================================================
+    
+    /**
+     * Score Update Benachrichtigung
+     */
+    nodecg.listenFor('scoreUpdated', (data) => {
+      console.log('Score update received:', data);
+      // Optional: Visuelles Feedback
+    });
+    
+    /**
+     * Game End Event
+     */
+    nodecg.listenFor('gameEnded', (data) => {
+      console.log('Game ended:', data);
+      alert(`Spiel beendet! Gewinner: ${data.winner}`);
+    });
+    
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
+    
+    /**
+     * Zeige Alert
+     */
+    function showAlert(type, message) {
+      const alertId = type === 'success' ? 'alertSuccess' : 'alertError';
+      const alertElement = document.getElementById(alertId);
+      
+      alertElement.textContent = message;
+      alertElement.classList.add('show');
+      
+      // Auto-Hide nach 3 Sekunden
+      setTimeout(() => {
+        alertElement.classList.remove('show');
+      }, 3000);
+    }
+    
+    /**
+     * Generiere eindeutige ID
+     */
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+    
+    /**
+     * Escape HTML
+     */
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // ========================================================================
+    // INITIALIZATION
+    // ========================================================================
+    
+    /**
+     * Panel Initialisierung
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Panel initialized');
+      
+      // Warte auf Replicant-Ready
+      NodeCG.waitForReplicants(scoreboardRep, participantsRep).then(() => {
+        console.log('All replicants ready');
+        
+        // Initiale UI-Updates
+        if (scoreboardRep.value) {
+          updateScoreboardDisplay(scoreboardRep.value);
+        }
+        
+        if (participantsRep.value) {
+          updateParticipantsList(participantsRep.value);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
