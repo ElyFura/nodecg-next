@@ -44,6 +44,19 @@ export default [
     },
   },
   {
-    ignores: ['node_modules', 'dist', 'build', '.turbo', 'coverage'],
+    ignores: [
+      'node_modules',
+      'dist',
+      'build',
+      '.turbo',
+      'coverage',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      'vitest.config.ts',
+      '**/vitest.config.ts',
+      'docs/**',
+    ],
   },
 ];

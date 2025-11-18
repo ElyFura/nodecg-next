@@ -1,9 +1,10 @@
 # NodeCG Next - Code-Beispiele & Templates
+
 ## Produktions-fertiger Code für alle Kern-Komponenten
 
 **Version:** 1.0  
 **Sprache:** TypeScript  
-**Status:** Production-Ready Examples  
+**Status:** Production-Ready Examples
 
 ---
 
@@ -18,6 +19,7 @@
 7. Testing Examples
 
 Siehe die bereits erstellten Dateien:
+
 - `nodecg_ground_up_rebuild.md` (enthält Core Server & Replicant Service)
 - `modern_bundle_template.ts` (enthält Bundle-Templates)
 - `migration_checklist.ts` (enthält weitere Beispiele)
@@ -29,15 +31,19 @@ Siehe die bereits erstellten Dateien:
 ## Quick Links zu Code-Beispielen
 
 ### Core Server
+
 👉 Siehe `nodecg_ground_up_rebuild.md` Abschnitt 10.1
 
-### Replicant Service  
+### Replicant Service
+
 👉 Siehe `nodecg_ground_up_rebuild.md` Abschnitt 10.2
 
 ### Bundle Templates
+
 👉 Siehe `modern_bundle_template.ts`
 
 ### Migration Checkliste
+
 👉 Siehe `migration_checklist.ts`
 
 ---

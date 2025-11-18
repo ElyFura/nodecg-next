@@ -1,8 +1,9 @@
 # NodeCG Next - Deployment & Infrastructure
+
 ## DevOps, Docker, Kubernetes & Cloud Setup
 
 **Version:** 1.0  
-**Status:** Production-Ready  
+**Status:** Production-Ready
 
 ---
 
@@ -101,7 +102,7 @@ jobs:
       - run: pnpm install
       - run: pnpm run test
       - run: pnpm run lint
-      
+
   build:
     needs: test
     runs-on: ubuntu-latest
@@ -116,6 +117,7 @@ jobs:
 ---
 
 **Vollständige Infrastructure-Details in:**
+
 - `nodecg_ground_up_rebuild.md` - Docker & K8s Setup
 - `01_ARCHITECTURE_DESIGN.md` - Deployment-Architektur
 

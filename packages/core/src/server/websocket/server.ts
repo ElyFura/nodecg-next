@@ -96,8 +96,17 @@ export class WebSocketServer {
   /**
    * Broadcast to all clients in a namespace
    */
-  public broadcast(namespace: 'dashboard' | 'graphics' | 'extension', event: string, data: any): void {
-    const ns = namespace === 'dashboard' ? this.dashboardNs : namespace === 'graphics' ? this.graphicsNs : this.extensionNs;
+  public broadcast(
+    namespace: 'dashboard' | 'graphics' | 'extension',
+    event: string,
+    data: unknown
+  ): void {
+    const ns =
+      namespace === 'dashboard'
+        ? this.dashboardNs
+        : namespace === 'graphics'
+          ? this.graphicsNs
+          : this.extensionNs;
     ns.emit(event, data);
     this.logger.debug(`Broadcasted ${event} to ${namespace} namespace`);
   }
@@ -105,7 +114,7 @@ export class WebSocketServer {
   /**
    * Broadcast to all namespaces
    */
-  public broadcastAll(event: string, data: any): void {
+  public broadcastAll(event: string, data: unknown): void {
     this.io.emit(event, data);
     this.logger.debug(`Broadcasted ${event} to all namespaces`);
   }

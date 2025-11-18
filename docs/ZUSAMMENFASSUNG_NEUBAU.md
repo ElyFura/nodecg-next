@@ -1,9 +1,10 @@
 # NodeCG Next - Vollständiger Neubau Plan
+
 ## 📚 Komplette Dokumentation
 
 **Stand:** November 2025  
 **Version:** 1.0  
-**Status:** ✅ Vollständig  
+**Status:** ✅ Vollständig
 
 ---
 
@@ -73,19 +74,20 @@
 
 ### Projekt-Metriken
 
-| Metrik | Wert |
-|--------|------|
-| **Gesamtbudget** | 600.000 € |
-| **Entwicklungszeit** | 12-14 Monate |
-| **Aufwand** | 4.080-6.120 Stunden |
-| **Team-Größe** | 3-4 Full-Time + Support |
-| **Code-Lines** | ~150.000 LoC (geschätzt) |
-| **Test Coverage Ziel** | >90% |
-| **TypeScript Coverage** | 100% |
+| Metrik                  | Wert                     |
+| ----------------------- | ------------------------ |
+| **Gesamtbudget**        | 600.000 €                |
+| **Entwicklungszeit**    | 12-14 Monate             |
+| **Aufwand**             | 4.080-6.120 Stunden      |
+| **Team-Größe**          | 3-4 Full-Time + Support  |
+| **Code-Lines**          | ~150.000 LoC (geschätzt) |
+| **Test Coverage Ziel**  | >90%                     |
+| **TypeScript Coverage** | 100%                     |
 
 ### Technologie-Stack
 
 **Backend:**
+
 - Fastify (statt Express)
 - Prisma ORM
 - PostgreSQL + Redis
@@ -94,6 +96,7 @@
 - RabbitMQ
 
 **Frontend:**
+
 - React 18 + TypeScript
 - Vite 6
 - TanStack Query
@@ -101,6 +104,7 @@
 - shadcn/ui
 
 **DevOps:**
+
 - Docker + Kubernetes
 - GitHub Actions
 - OpenTelemetry
@@ -108,13 +112,13 @@
 
 ### Meilensteine
 
-| Monat | Meilenstein | Status |
-|-------|-------------|--------|
-| 3 | Alpha Internal | 🔵 Geplant |
-| 6 | Alpha Community | 🔵 Geplant |
-| 10 | Beta Release | 🔵 Geplant |
-| 12 | Release Candidate | 🔵 Geplant |
-| 14 | V1.0.0 Launch | 🔵 Geplant |
+| Monat | Meilenstein       | Status     |
+| ----- | ----------------- | ---------- |
+| 3     | Alpha Internal    | 🔵 Geplant |
+| 6     | Alpha Community   | 🔵 Geplant |
+| 10    | Beta Release      | 🔵 Geplant |
+| 12    | Release Candidate | 🔵 Geplant |
+| 14    | V1.0.0 Launch     | 🔵 Geplant |
 
 ---
 
@@ -125,13 +129,13 @@
 ```
 1. README_NEUIMPLEMENTIERUNG.md (5 min)
    └─> Überblick verschaffen
-   
+
 2. 00_EXECUTIVE_SUMMARY_REBUILD.md (15 min)
    └─> Go/No-Go Entscheidung treffen
-   
+
 3. 10_BUDGET_COST_BREAKDOWN.md (20 min)
    └─> Budget prüfen und freigeben
-   
+
 4. migration_vs_rebuild_decision.md (30 min)
    └─> Alternativen verstehen
 
@@ -146,13 +150,13 @@ GESAMT: ~70 Minuten
 
 2. 01_ARCHITECTURE_DESIGN.md (30 min)
    └─> Technisches Design verstehen
-   
+
 3. 02_DEVELOPMENT_PHASES.md (45 min)
    └─> Entwicklungsplan durcharbeiten
-   
+
 4. nodecg_ground_up_rebuild.md (60 min)
    └─> Detaillierte Implementierung
-   
+
 5. 10_BUDGET_COST_BREAKDOWN.md (20 min)
    └─> Ressourcen-Planung
 
@@ -164,10 +168,10 @@ GESAMT: ~160 Minuten
 ```
 1. 01_ARCHITECTURE_DESIGN.md (30 min)
    └─> System-Design lernen
-   
+
 2. 02_DEVELOPMENT_PHASES.md (45 min)
    └─> Eigene Phase(n) im Detail
-   
+
 3. nodecg_ground_up_rebuild.md (60 min)
    └─> Code-Beispiele & Best Practices
 
@@ -203,18 +207,21 @@ GESAMT: ~135 Minuten
 ### Nächste Schritte bei GO
 
 **Woche 1:**
+
 - [ ] Kick-off Meeting
 - [ ] Tech Lead ernennen
 - [ ] Budget Owner zuweisen
 - [ ] Recruitment starten
 
 **Woche 2-4:**
+
 - [ ] Repository erstellen
 - [ ] Development Environment Setup
 - [ ] CI/CD Pipeline
 - [ ] Community RFC
 
 **Monat 2:**
+
 - [ ] Phase 1 Development Start
 - [ ] Sprint Planning
 - [ ] Daily Stand-ups
@@ -226,6 +233,7 @@ GESAMT: ~135 Minuten
 ### Für wen ist Neuimplementierung geeignet?
 
 ✅ **Perfekt wenn:**
+
 - Budget 500k+€ verfügbar
 - Zeit 12-14 Monate akzeptabel
 - Team 4+ Entwickler verfügbar
@@ -236,6 +244,7 @@ GESAMT: ~135 Minuten
 - Beste Code-Qualität Priorität
 
 ❌ **Nicht geeignet wenn:**
+
 - Budget <500k€
 - Zeit <12 Monate erforderlich
 - Kleines Team (<3 Entwickler)
@@ -247,6 +256,7 @@ GESAMT: ~135 Minuten
 ### Alternative: Hybrid-Ansatz
 
 Falls unsicher:
+
 1. **Start mit Migration** (150k€, 6 Monate)
 2. Alpha Release & Feedback
 3. **Dann Entscheidung:** Weitermachen oder neu bauen
@@ -259,6 +269,7 @@ Falls unsicher:
 ### ⚠️ Risiken
 
 Die Top 3 Risiken:
+
 1. **Scope Creep** (Sehr Hoch) → Strikte MVP-Definition
 2. **Budget-Überschreitung** (Hoch) → 20% Contingency
 3. **Zeitplan-Verzögerung** (Hoch) → 30% Zeit-Buffer
@@ -280,11 +291,13 @@ Siehe [07_RISK_MANAGEMENT.md] für Details (wenn erstellt)
 ## 📞 Kontakt & Support
 
 **Projekt-Verantwortliche:**
+
 - Tech Lead: [Name einsetzen]
 - Budget Owner: [Name einsetzen]
 - Product Owner: [Name einsetzen]
 
 **Eskalationspfad:**
+
 ```
 Level 1: Tech Lead
 Level 2: Project Manager
@@ -292,6 +305,7 @@ Level 3: CTO / VP Engineering
 ```
 
 **Meetings:**
+
 - Weekly Progress Review (Team)
 - Monthly Stakeholder Update (Management)
 - Quarterly Board Review (Executives)
@@ -366,11 +380,13 @@ Der Plan für die vollständige Neuimplementierung von NodeCG ist **komplett und
 ### Zusammenfassung der Hauptpunkte
 
 **Investition:**
+
 - 600.000 € Budget
 - 12-14 Monate Zeit
 - 3-4 Entwickler Team
 
 **Ergebnis:**
+
 - Modernes, TypeScript-first Framework
 - Cloud-Native & Kubernetes-ready
 - Horizontal Scaling
@@ -379,6 +395,7 @@ Der Plan für die vollständige Neuimplementierung von NodeCG ist **komplett und
 - Exzellente Performance
 
 **ROI:**
+
 - Break-Even nach 8-9 Jahren
 - Langfristig deutlich günstiger als Migration
 - Nicht-monetäre Vorteile überwiegen
@@ -386,7 +403,7 @@ Der Plan für die vollständige Neuimplementierung von NodeCG ist **komplett und
 **Empfehlung:**
 ✅ **GO** - wenn Budget, Zeit und Team verfügbar sind  
 ⚠️ **Hybrid** - wenn unsicher, erst mit Migration starten  
-❌ **NO-GO** - wenn Budget/Zeit/Team nicht passen  
+❌ **NO-GO** - wenn Budget/Zeit/Team nicht passen
 
 ---
 

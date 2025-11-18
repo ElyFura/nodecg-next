@@ -3,7 +3,7 @@
 **Projekt-Codename:** NodeCG Next  
 **Ansatz:** Greenfield - Komplette Neuimplementierung  
 **Status:** Planning Phase  
-**Ziel-Release:** V1.0.0 in 12-14 Monaten  
+**Ziel-Release:** V1.0.0 in 12-14 Monaten
 
 ---
 
@@ -28,9 +28,11 @@ Dieser Plan umfasst folgende Dokumente:
 ## 🎯 Projekt-Übersicht
 
 ### Vision
+
 NodeCG Next ist ein **modernes, TypeScript-first Framework** für professionelle Broadcast-Graphics, das von Grund auf für die Anforderungen von 2025+ entwickelt wurde.
 
 ### Kernziele
+
 - ✅ 100% TypeScript - Keine Legacy-Altlasten
 - ✅ Developer Experience First - Setup in <2 Minuten
 - ✅ Cloud Native - Kubernetes, Horizontal Scaling
@@ -40,14 +42,14 @@ NodeCG Next ist ein **modernes, TypeScript-first Framework** für professionelle
 
 ### Haupt-Metriken
 
-| Metrik | Wert |
-|--------|------|
-| **Entwicklungszeit** | 12-14 Monate |
-| **Aufwand** | 4.080-6.120 Stunden |
-| **Budget** | 550.000-600.000 € |
-| **Team-Größe** | 3-4 Full-Time Entwickler |
-| **Code-Lines** | ~150.000 LoC (geschätzt) |
-| **Test Coverage** | >90% |
+| Metrik               | Wert                     |
+| -------------------- | ------------------------ |
+| **Entwicklungszeit** | 12-14 Monate             |
+| **Aufwand**          | 4.080-6.120 Stunden      |
+| **Budget**           | 550.000-600.000 €        |
+| **Team-Größe**       | 3-4 Full-Time Entwickler |
+| **Code-Lines**       | ~150.000 LoC (geschätzt) |
+| **Test Coverage**    | >90%                     |
 
 ---
 
@@ -78,21 +80,25 @@ nodecg-next-rebuild/
 ## 🚀 Quick Start für Stakeholder
 
 ### Schritt 1: Executive Summary lesen
+
 👉 [00_EXECUTIVE_SUMMARY_REBUILD.md](./00_EXECUTIVE_SUMMARY_REBUILD.md)
 
 **Inhalt:** Management-Übersicht, Budget, Timeline, Go/No-Go Entscheidung
 
 ### Schritt 2: Architektur verstehen
+
 👉 [01_ARCHITECTURE_DESIGN.md](./01_ARCHITECTURE_DESIGN.md)
 
 **Inhalt:** System-Design, Komponenten, Datenfluss
 
 ### Schritt 3: Entwicklungsplan prüfen
+
 👉 [02_DEVELOPMENT_PHASES.md](./02_DEVELOPMENT_PHASES.md)
 
 **Inhalt:** 10 Phasen, Deliverables, Abhängigkeiten
 
 ### Schritt 4: Budget freigeben
+
 👉 [10_BUDGET_COST_BREAKDOWN.md](./10_BUDGET_COST_BREAKDOWN.md)
 
 **Inhalt:** Detaillierte Kostenaufstellung
@@ -102,18 +108,21 @@ nodecg-next-rebuild/
 ## 🎬 Nächste Schritte
 
 ### Diese Woche
+
 1. ✅ Stakeholder-Meeting
 2. ✅ Budget-Freigabe
 3. ✅ Team-Formation starten
 4. ✅ Development Environment Setup
 
 ### Woche 2-4
+
 1. Project Setup (Repository, CI/CD)
 2. PoC: Core Components
 3. Architecture Review
 4. Community RFC
 
 ### Monat 2
+
 1. Phase 1 Development Start
 2. Sprint Planning
 3. Daily Stand-ups etablieren
