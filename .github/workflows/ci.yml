@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: |
+          cd packages/core
+          pnpm prisma:generate
+
       - name: Run ESLint
         run: pnpm lint
 
@@ -79,6 +84,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: |
+          cd packages/core
+          pnpm prisma:generate
+
       - name: Build packages
         run: pnpm build
 
@@ -87,7 +97,6 @@ jobs:
           DATABASE_URL: postgresql://nodecg:nodecg@localhost:5432/nodecg_test
         run: |
           cd packages/core
-          pnpm prisma:generate
           pnpm prisma migrate deploy || true
 
       - name: Run tests
@@ -114,6 +123,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: |
+          cd packages/core
+          pnpm prisma:generate
 
       - name: Build packages
         run: pnpm build
