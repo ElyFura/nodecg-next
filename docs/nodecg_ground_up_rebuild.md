@@ -3,7 +3,7 @@
 **Projekt:** NodeCG Next Generation - Ground-Up Rebuild  
 **Ansatz:** Greenfield statt Migration  
 **Ziel:** Modernes Broadcast-Graphics-Framework mit allen V3-Features  
-**Datum:** November 2025  
+**Datum:** November 2025
 
 ---
 
@@ -19,16 +19,17 @@ Anstatt NodeCG V2 zu migrieren, bauen wir das Framework **von Grund auf neu** mi
 
 ### Zeitrahmen & Budget (Neuimplementierung)
 
-| Metrik | Wert | Vergleich zu Migration |
-|--------|------|------------------------|
-| **Dauer** | 8-14 Monate | +2 Monate |
-| **Entwicklungsaufwand** | 1.600-2.400 Stunden | +40% |
-| **Team-Größe** | 3-4 Full-Time Entwickler | +1 Person |
-| **Budget** | 180.000€ - 250.000€ | +50% |
-| **Risiko** | Mittel-Hoch | Höher als Migration |
-| **Langfristige Vorteile** | Sehr Hoch | Deutlich besser |
+| Metrik                    | Wert                     | Vergleich zu Migration |
+| ------------------------- | ------------------------ | ---------------------- |
+| **Dauer**                 | 8-14 Monate              | +2 Monate              |
+| **Entwicklungsaufwand**   | 1.600-2.400 Stunden      | +40%                   |
+| **Team-Größe**            | 3-4 Full-Time Entwickler | +1 Person              |
+| **Budget**                | 180.000€ - 250.000€      | +50%                   |
+| **Risiko**                | Mittel-Hoch              | Höher als Migration    |
+| **Langfristige Vorteile** | Sehr Hoch                | Deutlich besser        |
 
 **Empfehlung:** Neuimplementierung lohnt sich, wenn:
+
 - Budget und Zeit verfügbar sind
 - Langfristige Vision wichtiger als schnelle Migration
 - Team hat Kapazität für größeres Projekt
@@ -55,20 +56,20 @@ Anstatt NodeCG V2 zu migrieren, bauen wir das Framework **von Grund auf neu** mi
 
 ### 1.3 Differenzierung zu NodeCG V2
 
-| Feature | NodeCG V2 | NodeCG Next |
-|---------|-----------|-------------|
-| Sprache | JavaScript + teilweise TS | 100% TypeScript |
-| Module System | CommonJS | Native ESM |
-| UI Framework | Polymer 3 | React 18+ / Vue 3 |
-| Build System | Custom | Vite 6+ |
-| WebSocket | Socket.IO V2 | Socket.IO V4 + WebRTC |
-| Database | NeDB | Prisma + Multi-DB |
-| API | Custom | GraphQL + REST |
-| Auth | Basic | OAuth2 + RBAC + SSO |
-| Deployment | Manual | Docker + K8s |
-| Testing | Puppeteer | Vitest + Playwright |
-| Monitoring | Minimal | OpenTelemetry |
-| Scaling | Single Instance | Horizontal Scaling |
+| Feature       | NodeCG V2                 | NodeCG Next           |
+| ------------- | ------------------------- | --------------------- |
+| Sprache       | JavaScript + teilweise TS | 100% TypeScript       |
+| Module System | CommonJS                  | Native ESM            |
+| UI Framework  | Polymer 3                 | React 18+ / Vue 3     |
+| Build System  | Custom                    | Vite 6+               |
+| WebSocket     | Socket.IO V2              | Socket.IO V4 + WebRTC |
+| Database      | NeDB                      | Prisma + Multi-DB     |
+| API           | Custom                    | GraphQL + REST        |
+| Auth          | Basic                     | OAuth2 + RBAC + SSO   |
+| Deployment    | Manual                    | Docker + K8s          |
+| Testing       | Puppeteer                 | Vitest + Playwright   |
+| Monitoring    | Minimal                   | OpenTelemetry         |
+| Scaling       | Single Instance           | Horizontal Scaling    |
 
 ---
 
@@ -269,35 +270,35 @@ nodecg-next/
     "@fastify/cors": "^10.0.0",
     "@fastify/helmet": "^12.0.0",
     "@fastify/rate-limit": "^10.0.0",
-    
+
     // GraphQL
     "@apollo/server": "^4.11.0",
     "graphql": "^16.9.0",
     "@graphql-tools/schema": "^10.0.0",
-    
+
     // WebSocket
     "socket.io": "^4.8.0",
     "ws": "^8.18.0",
-    
+
     // Database
     "@prisma/client": "^6.0.0",
     "prisma": "^6.0.0",
-    
+
     // Cache & Queue
     "ioredis": "^5.4.0",
     "amqplib": "^0.10.0",
-    
+
     // Authentication
     "jsonwebtoken": "^9.0.0",
     "passport": "^0.7.0",
     "bcrypt": "^5.1.0",
-    
+
     // Utilities
     "zod": "^3.23.0",               // Validation
     "pino": "^9.4.0",               // Logging
     "pino-pretty": "^11.2.0",
     "dotenv": "^16.4.0",
-    
+
     // Observability
     "@opentelemetry/sdk-node": "^0.53.0",
     "@opentelemetry/auto-instrumentations-node": "^0.50.0"
@@ -321,29 +322,29 @@ nodecg-next/
     // UI Framework
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    
+
     // Routing
     "@tanstack/react-router": "^1.73.0",
-    
+
     // State Management
     "zustand": "^5.0.0",
     "@tanstack/react-query": "^5.59.0",
-    
+
     // GraphQL Client
     "@apollo/client": "^3.11.0",
     "graphql": "^16.9.0",
-    
+
     // UI Components
     "@radix-ui/react-*": "^1.1.0",  // Primitives
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.5.0",
-    
+
     // Forms & Validation
     "react-hook-form": "^7.53.0",
     "zod": "^3.23.0",
     "@hookform/resolvers": "^3.9.0",
-    
+
     // Utilities
     "date-fns": "^4.1.0",
     "lodash-es": "^4.17.21"
@@ -371,9 +372,9 @@ services:
   nodecg:
     build: .
     ports:
-      - "3000:3000"
-      - "3001:3001"    # WebSocket
-      - "4000:4000"    # GraphQL
+      - '3000:3000'
+      - '3001:3001' # WebSocket
+      - '4000:4000' # GraphQL
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://nodecg:nodecg@postgres:5432/nodecg
@@ -397,13 +398,13 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
 
   # Redis Cache
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
 
@@ -411,8 +412,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     ports:
-      - "5672:5672"    # AMQP
-      - "15672:15672"  # Management UI
+      - '5672:5672' # AMQP
+      - '15672:15672' # Management UI
     environment:
       RABBITMQ_DEFAULT_USER: nodecg
       RABBITMQ_DEFAULT_PASS: nodecg
@@ -422,8 +423,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - '9000:9000'
+      - '9001:9001'
     environment:
       MINIO_ROOT_USER: nodecg
       MINIO_ROOT_PASSWORD: nodecg123
@@ -441,9 +442,11 @@ volumes:
 ## 4. Implementierungs-Phasen (Ground-Up)
 
 ### Phase 1: Core Foundation (Monate 1-3)
+
 **Aufwand:** 480-720 Stunden
 
 #### 1.1 Project Setup
+
 - Monorepo mit pnpm + Turborepo
 - TypeScript Konfiguration
 - ESLint + Prettier
@@ -451,6 +454,7 @@ volumes:
 - CI/CD Pipeline (GitHub Actions)
 
 #### 1.2 Core Server
+
 - Fastify Server Setup
 - Middleware Pipeline
 - Error Handling
@@ -458,6 +462,7 @@ volumes:
 - Configuration (Zod)
 
 #### 1.3 Database Layer
+
 - Prisma Schema Design
 - Repository Pattern
 - Migrations System
@@ -465,6 +470,7 @@ volumes:
 - Multi-Tenant Support (optional)
 
 #### 1.4 WebSocket Layer
+
 - Socket.IO V4 Integration
 - Connection Management
 - Room/Namespace System
@@ -472,15 +478,18 @@ volumes:
 - Message Routing
 
 **Deliverables Phase 1:**
+
 - ✅ Lauffähiger Server mit DB-Anbindung
 - ✅ WebSocket funktionsfähig
 - ✅ Basis-Tests (>80% Coverage)
 - ✅ Docker-Setup
 
 ### Phase 2: Replicant System V2 (Monate 2-4)
+
 **Aufwand:** 400-600 Stunden
 
 #### 2.1 Replicant Core
+
 - Type-Safe Replicant API
 - Schema Validation (Zod)
 - Change Detection
@@ -488,6 +497,7 @@ volumes:
 - History/Versioning
 
 #### 2.2 Replicant Synchronization
+
 - Client-Server Sync
 - Conflict Resolution
 - Optimistic Updates
@@ -495,20 +505,24 @@ volumes:
 - Compression
 
 #### 2.3 Replicant Client API
+
 - React Hooks
 - Vue Composables
 - Svelte Stores
 - Vanilla JS API
 
 **Deliverables Phase 2:**
+
 - ✅ Funktionierendes Replicant-System
 - ✅ Client-Libraries für React/Vue/Svelte
 - ✅ Benchmark: <10ms Latenz für Updates
 
 ### Phase 3: Bundle System (Monate 3-5)
+
 **Aufwand:** 400-600 Stunden
 
 #### 3.1 Bundle Manager
+
 - Bundle Discovery
 - Dependency Resolution
 - Lifecycle Management
@@ -516,6 +530,7 @@ volumes:
 - Bundle Registry
 
 #### 3.2 Bundle Development
+
 - CLI Tool (create, dev, build)
 - Vite Integration
 - Template System
@@ -523,6 +538,7 @@ volumes:
 - Bundle Documentation Generator
 
 #### 3.3 Asset Management
+
 - Upload System
 - Storage (MinIO/S3)
 - CDN Integration
@@ -530,15 +546,18 @@ volumes:
 - Audio Processing
 
 **Deliverables Phase 3:**
+
 - ✅ CLI: `npx create-nodecg-bundle`
 - ✅ Hot Reload: <100ms
 - ✅ Asset Upload funktioniert
 - ✅ 3 Bundle-Templates (React, Vue, Minimal)
 
 ### Phase 4: Authentication & Authorization (Monate 4-6)
+
 **Aufwand:** 320-480 Stunden
 
 #### 4.1 Authentication
+
 - JWT Token System
 - OAuth2 Provider (Twitch, Discord, Google, GitHub)
 - LDAP/AD Integration (optional)
@@ -546,6 +565,7 @@ volumes:
 - 2FA/MFA
 
 #### 4.2 Authorization
+
 - RBAC System
 - Permission System
 - API Key Management
@@ -553,14 +573,17 @@ volumes:
 - Audit Logging
 
 **Deliverables Phase 4:**
+
 - ✅ OAuth2 funktioniert
 - ✅ RBAC implementiert
 - ✅ Audit Log vorhanden
 
 ### Phase 5: Dashboard & UI (Monate 5-8)
+
 **Aufwand:** 640-960 Stunden
 
 #### 5.1 Dashboard Core
+
 - React App Setup
 - Routing (TanStack Router)
 - Layout System
@@ -568,6 +591,7 @@ volumes:
 - Responsive Design
 
 #### 5.2 Dashboard Features
+
 - Bundle Management UI
 - Asset Manager
 - Replicant Inspector
@@ -576,6 +600,7 @@ volumes:
 - Analytics Dashboard
 
 #### 5.3 Component Library
+
 - Button, Input, Select, etc.
 - Modal, Drawer, Dropdown
 - Table, DataGrid
@@ -583,14 +608,17 @@ volumes:
 - Forms (React Hook Form)
 
 **Deliverables Phase 5:**
+
 - ✅ Vollständiges Dashboard
 - ✅ Mobile-responsive
 - ✅ Lighthouse Score >90
 
 ### Phase 6: GraphQL API (Monate 6-8)
+
 **Aufwand:** 320-480 Stunden
 
 #### 6.1 GraphQL Server
+
 - Apollo Server Setup
 - Schema Definition
 - Resolvers
@@ -598,20 +626,24 @@ volumes:
 - Subscriptions
 
 #### 6.2 GraphQL Client
+
 - Apollo Client Integration
 - Code Generation (GraphQL Codegen)
 - Optimistic Updates
 - Cache Management
 
 **Deliverables Phase 6:**
+
 - ✅ GraphQL API funktionsfähig
 - ✅ Subscription für Replicants
 - ✅ Playground verfügbar
 
 ### Phase 7: Plugin System (Monate 7-9)
+
 **Aufwand:** 400-600 Stunden
 
 #### 7.1 Plugin Architecture
+
 - Plugin Loader
 - Plugin API
 - Plugin Hooks
@@ -619,20 +651,24 @@ volumes:
 - Plugin Registry
 
 #### 7.2 Core Plugins
+
 - OBS WebSocket Plugin
 - Analytics Plugin
 - Webhook Plugin
 - Backup Plugin
 
 **Deliverables Phase 7:**
+
 - ✅ Plugin-System funktioniert
 - ✅ 4 Core Plugins verfügbar
 - ✅ Plugin Development Guide
 
 ### Phase 8: Observability & Production (Monate 8-10)
+
 **Aufwand:** 320-480 Stunden
 
 #### 8.1 Observability
+
 - OpenTelemetry Integration
 - Prometheus Metrics
 - Structured Logging
@@ -640,6 +676,7 @@ volumes:
 - Performance Monitoring
 
 #### 8.2 Production Readiness
+
 - Docker Optimization
 - Kubernetes Manifests
 - Health Checks
@@ -647,14 +684,17 @@ volumes:
 - Load Testing
 
 **Deliverables Phase 8:**
+
 - ✅ Production-ready Docker Images
 - ✅ K8s Deployment funktioniert
 - ✅ Monitoring Dashboard
 
 ### Phase 9: Documentation & Testing (Monate 9-12)
+
 **Aufwand:** 480-720 Stunden
 
 #### 9.1 Documentation
+
 - VitePress Setup
 - User Guide
 - Developer Guide
@@ -662,6 +702,7 @@ volumes:
 - Video Tutorials
 
 #### 9.2 Testing
+
 - Unit Tests (90%+ Coverage)
 - Integration Tests
 - E2E Tests (Playwright)
@@ -669,32 +710,38 @@ volumes:
 - Security Audit
 
 #### 9.3 Migration Tools
+
 - V2 → Next Migration CLI
 - Bundle Converter
 - Configuration Migrator
 - Data Migration
 
 **Deliverables Phase 9:**
+
 - ✅ Vollständige Dokumentation
 - ✅ Migration Tools funktionieren
 - ✅ Security Audit bestanden
 
 ### Phase 10: Beta & Launch (Monate 10-14)
+
 **Aufwand:** 320-480 Stunden
 
 #### 10.1 Beta Release
+
 - Community Testing
 - Bug Fixes
 - Performance Tuning
 - Feature Feedback
 
 #### 10.2 Launch Preparation
+
 - Marketing Material
 - Release Notes
 - Launch Event
 - Community Support
 
 **Deliverables Phase 10:**
+
 - ✅ V1.0.0 Release
 - ✅ Launch Event durchgeführt
 - ✅ Community Support etabliert
@@ -705,25 +752,26 @@ volumes:
 
 ### 5.1 Gesamtaufwand nach Phase
 
-| Phase | Dauer | Aufwand (Std.) | FTE |
-|-------|-------|----------------|-----|
-| Phase 1: Core Foundation | 3 Monate | 480-720 | 2.5 |
-| Phase 2: Replicant System | 2 Monate | 400-600 | 3.0 |
-| Phase 3: Bundle System | 2 Monate | 400-600 | 2.5 |
-| Phase 4: Auth & Authz | 2 Monate | 320-480 | 2.0 |
-| Phase 5: Dashboard & UI | 3 Monate | 640-960 | 3.0 |
-| Phase 6: GraphQL API | 2 Monate | 320-480 | 2.0 |
-| Phase 7: Plugin System | 2 Monate | 400-600 | 2.5 |
-| Phase 8: Observability | 2 Monate | 320-480 | 2.0 |
-| Phase 9: Docs & Testing | 3 Monate | 480-720 | 2.0 |
-| Phase 10: Beta & Launch | 4 Monate | 320-480 | 1.0 |
-| **GESAMT** | **25 Monate** | **4.080-6.120** | **~2.3** |
+| Phase                     | Dauer         | Aufwand (Std.)  | FTE      |
+| ------------------------- | ------------- | --------------- | -------- |
+| Phase 1: Core Foundation  | 3 Monate      | 480-720         | 2.5      |
+| Phase 2: Replicant System | 2 Monate      | 400-600         | 3.0      |
+| Phase 3: Bundle System    | 2 Monate      | 400-600         | 2.5      |
+| Phase 4: Auth & Authz     | 2 Monate      | 320-480         | 2.0      |
+| Phase 5: Dashboard & UI   | 3 Monate      | 640-960         | 3.0      |
+| Phase 6: GraphQL API      | 2 Monate      | 320-480         | 2.0      |
+| Phase 7: Plugin System    | 2 Monate      | 400-600         | 2.5      |
+| Phase 8: Observability    | 2 Monate      | 320-480         | 2.0      |
+| Phase 9: Docs & Testing   | 3 Monate      | 480-720         | 2.0      |
+| Phase 10: Beta & Launch   | 4 Monate      | 320-480         | 1.0      |
+| **GESAMT**                | **25 Monate** | **4.080-6.120** | **~2.3** |
 
 **Aber:** Phasen überlappen sich → **Realistische Dauer: 12-14 Monate**
 
 ### 5.2 Team-Struktur
 
 **Empfohlenes Team:**
+
 - 1x Senior Architect/Lead Developer (100%, gesamte Dauer)
 - 2x Full-Stack Developer (100%, Monate 1-12)
 - 1x Frontend Developer (75%, Monate 5-12)
@@ -732,6 +780,7 @@ volumes:
 - 1x QA Engineer (50%, Monate 9-12)
 
 **Minimales Team:**
+
 - 1x Senior Architect (100%)
 - 1x Full-Stack Developer (100%)
 - 1x Frontend Developer (75%)
@@ -740,6 +789,7 @@ volumes:
 ### 5.3 Kostenabschätzung
 
 **Stundensätze (Annahme):**
+
 - Senior Architect: 100€/Std
 - Full-Stack Developer: 80€/Std
 - Frontend Developer: 75€/Std
@@ -748,6 +798,7 @@ volumes:
 - QA Engineer: 70€/Std
 
 **Minimalkalkulation (4.080 Std):**
+
 - 2.040 Std Senior Architect @ 100€: 204.000€
 - 1.200 Std Full-Stack Developer @ 80€: 96.000€
 - 480 Std Frontend Developer @ 75€: 36.000€
@@ -757,6 +808,7 @@ volumes:
 - **Gesamt:** ca. **363.400€**
 
 **Maximalkalkulation (6.120 Std):**
+
 - 3.060 Std Senior Architect @ 100€: 306.000€
 - 1.800 Std Full-Stack Developer @ 80€: 144.000€
 - 720 Std Frontend Developer @ 75€: 54.000€
@@ -766,6 +818,7 @@ volumes:
 - **Gesamt:** ca. **545.100€**
 
 **Realistische Schätzung mit Puffer:**
+
 - **Personalkosten:** 400.000€ - 480.000€
 - **Infrastructure:** 24.000€ (2.000€/Monat × 12)
 - **Tools & Lizenzen:** 12.000€
@@ -781,19 +834,20 @@ volumes:
 
 ### 6.1 Aufwands-Vergleich
 
-| Metrik | Migration V2→V3 | Neuimplementierung |
-|--------|-----------------|-------------------|
-| Entwicklungszeit | 1.120-1.840 Std | 4.080-6.120 Std |
-| Dauer | 6-12 Monate | 12-14 Monate |
-| Budget | 135k-170k€ | 550k-600k€ |
-| Team-Größe | 2-3 Personen | 3-4 Personen |
-| Risiko | Mittel | Mittel-Hoch |
+| Metrik           | Migration V2→V3 | Neuimplementierung |
+| ---------------- | --------------- | ------------------ |
+| Entwicklungszeit | 1.120-1.840 Std | 4.080-6.120 Std    |
+| Dauer            | 6-12 Monate     | 12-14 Monate       |
+| Budget           | 135k-170k€      | 550k-600k€         |
+| Team-Größe       | 2-3 Personen    | 3-4 Personen       |
+| Risiko           | Mittel          | Mittel-Hoch        |
 
 ### 6.2 Vor- und Nachteile
 
 **Migration V2→V3:**
 
 ✅ **Vorteile:**
+
 - Geringerer Aufwand
 - Schneller fertig
 - Bestehende Bundles laufen weiter
@@ -801,6 +855,7 @@ volumes:
 - Niedrigeres Risiko
 
 ❌ **Nachteile:**
+
 - Legacy-Code bleibt teilweise
 - Technische Schulden bleiben
 - Kompromisse bei Architektur
@@ -810,6 +865,7 @@ volumes:
 **Neuimplementierung:**
 
 ✅ **Vorteile:**
+
 - Saubere Architektur
 - Keine Legacy-Altlasten
 - Moderne Best Practices
@@ -819,6 +875,7 @@ volumes:
 - Bessere Developer Experience
 
 ❌ **Nachteile:**
+
 - Deutlich höherer Aufwand
 - Längere Entwicklungszeit
 - Höheres Budget erforderlich
@@ -829,12 +886,14 @@ volumes:
 ### 6.3 ROI-Analyse (5 Jahre)
 
 **Migration:**
+
 - Initiale Kosten: 150.000€
 - Jährliche Wartung: 20.000€
 - Technische Schulden: 30.000€ (über 5 Jahre)
 - **Gesamt (5 Jahre):** 280.000€
 
 **Neuimplementierung:**
+
 - Initiale Kosten: 575.000€
 - Jährliche Wartung: 10.000€ (weniger wegen besserer Code-Qualität)
 - Technische Schulden: 0€
@@ -843,6 +902,7 @@ volumes:
 **Break-Even:** Nach ~5 Jahren
 
 **Langfristig (10 Jahre):**
+
 - Migration: 480.000€ (inkl. größeres Refactoring nach 5 Jahren)
 - Neuimplementierung: 675.000€
 
@@ -854,37 +914,41 @@ volumes:
 
 ### 7.1 Top Risiken
 
-| Risiko | Wahrscheinlichkeit | Impact | Mitigation |
-|--------|-------------------|---------|------------|
-| Scope Creep | Sehr Hoch | Sehr Hoch | Strikte MVP-Definition, monatliche Reviews |
-| Zeitplan-Verzögerungen | Hoch | Hoch | 30% Buffer, agile Entwicklung, Priorisierung |
-| Budget-Überschreitung | Hoch | Sehr Hoch | Monatliches Tracking, frühzeitige Eskalation |
-| Technische Herausforderungen | Mittel | Hoch | PoCs für kritische Features, Expertenberatung |
-| Team-Fluktuation | Mittel | Sehr Hoch | Knowledge Sharing, Dokumentation, Backup-Plan |
-| Community-Akzeptanz | Mittel | Hoch | Early Alpha, Community-Feedback, Migration Tools |
-| Performance-Probleme | Niedrig | Hoch | Continuous Benchmarking, Load Testing |
-| Security-Vulnerabilities | Niedrig | Sehr Hoch | Security Audits, Penetration Testing |
+| Risiko                       | Wahrscheinlichkeit | Impact    | Mitigation                                       |
+| ---------------------------- | ------------------ | --------- | ------------------------------------------------ |
+| Scope Creep                  | Sehr Hoch          | Sehr Hoch | Strikte MVP-Definition, monatliche Reviews       |
+| Zeitplan-Verzögerungen       | Hoch               | Hoch      | 30% Buffer, agile Entwicklung, Priorisierung     |
+| Budget-Überschreitung        | Hoch               | Sehr Hoch | Monatliches Tracking, frühzeitige Eskalation     |
+| Technische Herausforderungen | Mittel             | Hoch      | PoCs für kritische Features, Expertenberatung    |
+| Team-Fluktuation             | Mittel             | Sehr Hoch | Knowledge Sharing, Dokumentation, Backup-Plan    |
+| Community-Akzeptanz          | Mittel             | Hoch      | Early Alpha, Community-Feedback, Migration Tools |
+| Performance-Probleme         | Niedrig            | Hoch      | Continuous Benchmarking, Load Testing            |
+| Security-Vulnerabilities     | Niedrig            | Sehr Hoch | Security Audits, Penetration Testing             |
 
 ### 7.2 Risiko-Mitigation Strategie
 
 **1. Scope Management:**
+
 - Klare MVP-Definition (siehe Abschnitt 8)
 - Feature Freeze nach Phase 7
 - Nice-to-Haves für V1.1+
 
 **2. Zeitplan-Management:**
+
 - 2-Wochen Sprints mit klaren Deliverables
 - Weekly Progress Reviews
 - Monthly Stakeholder Updates
 - Kritischer Pfad identifizieren
 
 **3. Qualitäts-Sicherung:**
+
 - Test Coverage >85% enforced
 - Automatische Code Quality Checks
 - Peer Reviews für alle PRs
 - Security Scanning (Snyk, Dependabot)
 
 **4. Community-Management:**
+
 - Monatliche Blog Posts über Fortschritt
 - Alpha Release nach Monat 6
 - Beta Release nach Monat 10
@@ -897,6 +961,7 @@ volumes:
 ### 8.1 Core Features (Must-Have)
 
 ✅ **1. Bundle System**
+
 - Bundle laden und ausführen
 - Dashboard Panels anzeigen
 - Graphics rendern
@@ -904,6 +969,7 @@ volumes:
 - Hot Reload
 
 ✅ **2. Replicant System**
+
 - Replicants erstellen/lesen/updaten/löschen
 - Client-Server Synchronisation
 - Persistence
@@ -911,34 +977,40 @@ volumes:
 - React/Vue/Svelte Hooks
 
 ✅ **3. Message System**
+
 - Messages senden/empfangen
 - Acknowledgements
 - Type-Safety
 
 ✅ **4. Asset System**
+
 - File Upload
 - Storage (S3/MinIO)
 - Asset Categories
 - Basic Processing (Resize, Compress)
 
 ✅ **5. Dashboard**
+
 - Bundle Overview
 - Replicant Inspector
 - Asset Manager
 - Settings
 
 ✅ **6. Authentication**
+
 - Local Auth (Username/Password)
 - OAuth2 (Twitch, Discord)
 - RBAC (Admin, Operator, Viewer)
 
 ✅ **7. CLI**
+
 - create bundle
 - dev server
 - build
 - deploy
 
 ✅ **8. Documentation**
+
 - Getting Started Guide
 - Bundle Development Guide
 - API Reference
@@ -947,6 +1019,7 @@ volumes:
 ### 8.2 Features für V1.1+ (Nice-to-Have)
 
 🔄 **V1.1 Features:**
+
 - GraphQL API
 - Advanced Analytics
 - Electron Desktop App
@@ -954,12 +1027,14 @@ volumes:
 - Bundle Marketplace
 
 🔄 **V1.2 Features:**
+
 - WebRTC Support
 - Multi-Instance Clustering
 - Advanced Caching
 - AI-Assisted Bundle Creation
 
 🔄 **V2.0 Features:**
+
 - Cloud Hosting (SaaS)
 - Advanced Networking (P2P)
 - Browser Extensions
@@ -974,6 +1049,7 @@ volumes:
 **Entscheidung: Fastify**
 
 **Begründung:**
+
 - 2-3x schneller als Express
 - Native TypeScript Support
 - Better Plugin System
@@ -981,6 +1057,7 @@ volumes:
 - Moderne Architektur
 
 **Vergleich:**
+
 ```typescript
 // Express (Old Way)
 app.get('/api/replicants/:name', (req, res) => {
@@ -994,24 +1071,28 @@ app.get('/api/replicants/:name', (req, res) => {
 fastify.get<{
   Params: { name: string };
   Reply: ReplicantResponse;
-}>('/api/replicants/:name', {
-  schema: {
-    params: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' }
+}>(
+  '/api/replicants/:name',
+  {
+    schema: {
+      params: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+        required: ['name'],
       },
-      required: ['name']
+      response: {
+        200: ReplicantResponseSchema,
+      },
     },
-    response: {
-      200: ReplicantResponseSchema
-    }
+  },
+  async (request, reply) => {
+    const { name } = request.params; // Type-safe!
+    const replicant = await getReplicant(name);
+    return replicant; // Auto-validated against schema
   }
-}, async (request, reply) => {
-  const { name } = request.params; // Type-safe!
-  const replicant = await getReplicant(name);
-  return replicant; // Auto-validated against schema
-});
+);
 ```
 
 ### 9.2 State Management: Zustand vs. Redux
@@ -1019,6 +1100,7 @@ fastify.get<{
 **Entscheidung: Zustand**
 
 **Begründung:**
+
 - Einfacher als Redux
 - Weniger Boilerplate
 - Type-Safe
@@ -1041,19 +1123,19 @@ const useBundleStore = create<BundleStore>((set) => ({
     const bundles = await fetchBundles();
     set({ bundles });
   },
-  addBundle: (bundle) => set((state) => ({ 
-    bundles: [...state.bundles, bundle] 
+  addBundle: (bundle) => set((state) => ({
+    bundles: [...state.bundles, bundle]
   }))
 }));
 
 // Usage
 function BundleList() {
   const { bundles, loadBundles } = useBundleStore();
-  
+
   useEffect(() => {
     loadBundles();
   }, []);
-  
+
   return <div>{bundles.map(b => <BundleCard key={b.id} bundle={b} />)}</div>;
 }
 ```
@@ -1063,6 +1145,7 @@ function BundleList() {
 **Entscheidung: PostgreSQL (Primary) + SQLite (Dev)**
 
 **Begründung:**
+
 - PostgreSQL: ACID, Relational, JSON Support, Best Tooling
 - SQLite: Zero-Config für Development
 - Prisma unterstützt beide
@@ -1073,6 +1156,7 @@ function BundleList() {
 **Entscheidung: Beide (GraphQL Primary, REST Fallback)**
 
 **Begründung:**
+
 - GraphQL für flexible Queries
 - REST für einfache Endpoints
 - GraphQL Subscriptions für Replicants
@@ -1089,9 +1173,9 @@ function BundleList() {
 
 /**
  * NodeCG Next - Core Server
- * 
+ *
  * Hauptserver mit Fastify, GraphQL und WebSocket
- * 
+ *
  * @module core/server
  */
 
@@ -1126,12 +1210,12 @@ export class NodeCGServer {
 
   /**
    * Initialisiert NodeCG Server
-   * 
+   *
    * @param config - Server-Konfiguration
    */
   constructor(config: NodeCGConfig) {
     this.config = config;
-    
+
     // Logger initialisieren
     this.logger = pino({
       level: config.logLevel || 'info',
@@ -1140,30 +1224,26 @@ export class NodeCGServer {
         options: {
           colorize: true,
           translateTime: 'HH:MM:ss',
-          ignore: 'pid,hostname'
-        }
-      }
+          ignore: 'pid,hostname',
+        },
+      },
     });
 
     // Prisma Client
     this.prisma = new PrismaClient({
-      log: ['warn', 'error']
+      log: ['warn', 'error'],
     });
 
     // Fastify initialisieren
     this.fastify = Fastify({
       logger: this.logger,
       requestIdLogLabel: 'reqId',
-      disableRequestLogging: false
+      disableRequestLogging: false,
     });
 
     // Services initialisieren
     this.replicantService = new ReplicantService(this.prisma, this.logger);
-    this.bundleManager = new BundleManager(
-      config.bundlesPath,
-      this.replicantService,
-      this.logger
-    );
+    this.bundleManager = new BundleManager(config.bundlesPath, this.replicantService, this.logger);
   }
 
   /**
@@ -1173,29 +1253,28 @@ export class NodeCGServer {
     try {
       // Middleware registrieren
       await this.registerMiddleware();
-      
+
       // Routes registrieren
       await this.registerRoutes();
-      
+
       // GraphQL Server starten
       await this.startGraphQL();
-      
+
       // WebSocket Server starten
       await this.startWebSocket();
-      
+
       // Bundles laden
       await this.bundleManager.loadBundles();
-      
+
       // HTTP Server starten
       const address = await this.fastify.listen({
         port: this.config.port || 3000,
-        host: this.config.host || '0.0.0.0'
+        host: this.config.host || '0.0.0.0',
       });
-      
+
       this.logger.info(`🚀 NodeCG Next running at ${address}`);
       this.logger.info(`📊 GraphQL Playground: ${address}/graphql`);
       this.logger.info(`🎨 Dashboard: ${address}/dashboard`);
-      
     } catch (error) {
       this.logger.error('Failed to start server:', error);
       throw error;
@@ -1209,7 +1288,7 @@ export class NodeCGServer {
     // CORS
     await this.fastify.register(fastifyCors, {
       origin: this.config.cors?.allowedOrigins || true,
-      credentials: true
+      credentials: true,
     });
 
     // Security Headers
@@ -1219,15 +1298,15 @@ export class NodeCGServer {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:']
-        }
-      }
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
     });
 
     // Rate Limiting
     await this.fastify.register(fastifyRateLimit, {
       max: 100,
-      timeWindow: '15 minutes'
+      timeWindow: '15 minutes',
     });
 
     // Request Logging
@@ -1238,10 +1317,10 @@ export class NodeCGServer {
     // Error Handling
     this.fastify.setErrorHandler((error, request, reply) => {
       request.log.error(error);
-      
+
       reply.status(error.statusCode || 500).send({
         error: error.message,
-        statusCode: error.statusCode || 500
+        statusCode: error.statusCode || 500,
       });
     });
   }
@@ -1255,42 +1334,45 @@ export class NodeCGServer {
       return {
         status: 'ok',
         uptime: process.uptime(),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     });
 
     // API Routes
-    this.fastify.register(async (fastify) => {
-      // Replicants API
-      fastify.get<{
-        Params: { namespace: string; name: string };
-      }>('/api/replicants/:namespace/:name', async (request, reply) => {
-        const { namespace, name } = request.params;
-        const replicant = await this.replicantService.get(namespace, name);
-        
-        if (!replicant) {
-          return reply.code(404).send({ error: 'Replicant not found' });
-        }
-        
-        return replicant;
-      });
+    this.fastify.register(
+      async (fastify) => {
+        // Replicants API
+        fastify.get<{
+          Params: { namespace: string; name: string };
+        }>('/api/replicants/:namespace/:name', async (request, reply) => {
+          const { namespace, name } = request.params;
+          const replicant = await this.replicantService.get(namespace, name);
 
-      // Bundles API
-      fastify.get('/api/bundles', async () => {
-        return this.bundleManager.getBundles();
-      });
+          if (!replicant) {
+            return reply.code(404).send({ error: 'Replicant not found' });
+          }
 
-      // Assets API
-      fastify.post('/api/assets/upload', async (request, reply) => {
-        // Asset Upload Logic
-        return { success: true };
-      });
-    }, { prefix: '/api' });
+          return replicant;
+        });
+
+        // Bundles API
+        fastify.get('/api/bundles', async () => {
+          return this.bundleManager.getBundles();
+        });
+
+        // Assets API
+        fastify.post('/api/assets/upload', async (request, reply) => {
+          // Asset Upload Logic
+          return { success: true };
+        });
+      },
+      { prefix: '/api' }
+    );
 
     // Static Files
     this.fastify.register(require('@fastify/static'), {
       root: this.config.publicPath || './public',
-      prefix: '/public/'
+      prefix: '/public/',
     });
   }
 
@@ -1301,9 +1383,7 @@ export class NodeCGServer {
     this.apollo = new ApolloServer({
       typeDefs: schema,
       resolvers,
-      plugins: [
-        fastifyApolloDrainjPlugin(this.fastify)
-      ]
+      plugins: [fastifyApolloDrainjPlugin(this.fastify)],
     });
 
     await this.apollo.start();
@@ -1312,7 +1392,7 @@ export class NodeCGServer {
       fastify.post('/graphql', async (request, reply) => {
         const response = await this.apollo.executeOperation({
           query: (request.body as any).query,
-          variables: (request.body as any).variables
+          variables: (request.body as any).variables,
         });
 
         reply.send(response);
@@ -1342,8 +1422,8 @@ export class NodeCGServer {
     this.io = new SocketIOServer(this.fastify.server, {
       cors: {
         origin: '*',
-        methods: ['GET', 'POST']
-      }
+        methods: ['GET', 'POST'],
+      },
     });
 
     setupWebSocket(this.io, this.replicantService, this.logger);
@@ -1354,16 +1434,16 @@ export class NodeCGServer {
    */
   async stop(): Promise<void> {
     this.logger.info('Shutting down gracefully...');
-    
+
     // WebSocket Connections schließen
     this.io.close();
-    
+
     // Database Connections schließen
     await this.prisma.$disconnect();
-    
+
     // HTTP Server schließen
     await this.fastify.close();
-    
+
     this.logger.info('Server stopped');
   }
 }
@@ -1377,11 +1457,11 @@ if (require.main === module) {
     host: process.env.HOST || '0.0.0.0',
     bundlesPath: process.env.BUNDLES_PATH || './bundles',
     publicPath: process.env.PUBLIC_PATH || './public',
-    logLevel: (process.env.LOG_LEVEL as any) || 'info'
+    logLevel: (process.env.LOG_LEVEL as any) || 'info',
   };
 
   const server = new NodeCGServer(config);
-  
+
   server.start().catch((error) => {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -1402,10 +1482,10 @@ if (require.main === module) {
 
 /**
  * Replicant Service
- * 
+ *
  * Verwaltet alle Replicant-Operationen mit Validierung,
  * Persistence und Real-time Updates.
- * 
+ *
  * @module services/replicant-service
  */
 
@@ -1451,7 +1531,7 @@ export class ReplicantService extends EventEmitter {
 
   /**
    * Registriert Replicant
-   * 
+   *
    * @param namespace - Bundle-Name
    * @param name - Replicant-Name
    * @param options - Replicant-Optionen
@@ -1463,7 +1543,7 @@ export class ReplicantService extends EventEmitter {
     options: ReplicantOptions<T> = {}
   ): Promise<T> {
     const key = this.getKey(namespace, name);
-    
+
     // Schema speichern falls vorhanden
     if (options.schema) {
       this.schemas.set(key, options.schema);
@@ -1472,23 +1552,23 @@ export class ReplicantService extends EventEmitter {
     // Aus DB laden oder Default-Wert verwenden
     const dbReplicant = await this.prisma.replicant.findUnique({
       where: {
-        namespace_name: { namespace, name }
-      }
+        namespace_name: { namespace, name },
+      },
     });
 
     let value: T;
-    
+
     if (dbReplicant) {
       value = JSON.parse(dbReplicant.value);
       this.logger.debug(`Loaded replicant ${key} from database`);
     } else if (options.defaultValue !== undefined) {
       value = options.defaultValue;
-      
+
       // In DB speichern wenn persistent
       if (options.persistent) {
         await this.save(namespace, name, value);
       }
-      
+
       this.logger.debug(`Initialized replicant ${key} with default value`);
     } else {
       throw new Error(`Replicant ${key} not found and no default value provided`);
@@ -1502,14 +1582,14 @@ export class ReplicantService extends EventEmitter {
 
   /**
    * Holt Replicant-Wert
-   * 
+   *
    * @param namespace - Bundle-Name
    * @param name - Replicant-Name
    * @returns Aktueller Wert oder null
    */
   async get<T>(namespace: string, name: string): Promise<T | null> {
     const key = this.getKey(namespace, name);
-    
+
     // Aus Cache holen
     if (this.cache.has(key)) {
       return this.cache.get(key);
@@ -1518,8 +1598,8 @@ export class ReplicantService extends EventEmitter {
     // Aus DB laden
     const dbReplicant = await this.prisma.replicant.findUnique({
       where: {
-        namespace_name: { namespace, name }
-      }
+        namespace_name: { namespace, name },
+      },
     });
 
     if (!dbReplicant) {
@@ -1528,13 +1608,13 @@ export class ReplicantService extends EventEmitter {
 
     const value = JSON.parse(dbReplicant.value);
     this.cache.set(key, value);
-    
+
     return value;
   }
 
   /**
    * Setzt Replicant-Wert
-   * 
+   *
    * @param namespace - Bundle-Name
    * @param name - Replicant-Name
    * @param value - Neuer Wert
@@ -1575,7 +1655,7 @@ export class ReplicantService extends EventEmitter {
       name,
       newValue: value,
       oldValue,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     this.emit('change', changeEvent);
@@ -1588,43 +1668,39 @@ export class ReplicantService extends EventEmitter {
 
   /**
    * Speichert Replicant in Datenbank
-   * 
+   *
    * @param namespace - Bundle-Name
    * @param name - Replicant-Name
    * @param value - Wert
    */
-  private async save<T>(
-    namespace: string,
-    name: string,
-    value: T
-  ): Promise<void> {
+  private async save<T>(namespace: string, name: string, value: T): Promise<void> {
     const valueJson = JSON.stringify(value);
 
     await this.prisma.replicant.upsert({
       where: {
-        namespace_name: { namespace, name }
+        namespace_name: { namespace, name },
       },
       update: {
         value: valueJson,
-        revision: { increment: 1 }
+        revision: { increment: 1 },
       },
       create: {
         namespace,
         name,
-        value: valueJson
-      }
+        value: valueJson,
+      },
     });
   }
 
   /**
    * Löscht Replicant
-   * 
+   *
    * @param namespace - Bundle-Name
    * @param name - Replicant-Name
    */
   async delete(namespace: string, name: string): Promise<void> {
     const key = this.getKey(namespace, name);
-    
+
     // Aus Cache entfernen
     this.cache.delete(key);
     this.schemas.delete(key);
@@ -1632,8 +1708,8 @@ export class ReplicantService extends EventEmitter {
     // Aus DB löschen
     await this.prisma.replicant.delete({
       where: {
-        namespace_name: { namespace, name }
-      }
+        namespace_name: { namespace, name },
+      },
     });
 
     this.logger.debug(`Replicant ${key} deleted`);
@@ -1641,7 +1717,7 @@ export class ReplicantService extends EventEmitter {
 
   /**
    * Generiert Cache-Key
-   * 
+   *
    * @param namespace - Bundle-Name
    * @param name - Replicant-Name
    * @returns Cache-Key
@@ -1652,21 +1728,23 @@ export class ReplicantService extends EventEmitter {
 
   /**
    * Gibt alle Replicants eines Bundles zurück
-   * 
+   *
    * @param namespace - Bundle-Name
    * @returns Array von Replicants
    */
-  async getByNamespace(namespace: string): Promise<Array<{
-    name: string;
-    value: any;
-  }>> {
+  async getByNamespace(namespace: string): Promise<
+    Array<{
+      name: string;
+      value: any;
+    }>
+  > {
     const replicants = await this.prisma.replicant.findMany({
-      where: { namespace }
+      where: { namespace },
     });
 
-    return replicants.map(r => ({
+    return replicants.map((r) => ({
       name: r.name,
-      value: JSON.parse(r.value)
+      value: JSON.parse(r.value),
     }));
   }
 }

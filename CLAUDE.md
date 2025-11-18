@@ -5,6 +5,7 @@
 **This repository contains NO implementation code.** This is a comprehensive planning and design documentation repository for a proposed complete rebuild of NodeCG from the ground up. All files are design specifications, architecture documents, and planning materials written primarily in German.
 
 **Before proceeding with any task, understand that:**
+
 - There is no source code to modify or run
 - There are no dependencies to install or build scripts to execute
 - This is strategic planning documentation for a future implementation
@@ -29,6 +30,7 @@ NodeCG Next is a proposed ground-up rebuild of the NodeCG broadcast graphics fra
 ### Why Rebuild vs. Migration?
 
 The project documentation recommends a complete rebuild over migration for:
+
 - Zero technical debt in new implementation
 - Modern, cloud-native architecture from day one
 - 10+ year longevity vs. 3-5 years with migration
@@ -76,52 +78,52 @@ The project documentation recommends a complete rebuild over migration for:
 
 ### Backend Technologies
 
-| Category | Technology | Version | Purpose |
-|----------|-----------|---------|---------|
-| **Web Framework** | Fastify | 5.x | High-performance HTTP server (chosen over Express) |
-| **ORM** | Prisma | 6.x | Type-safe database access with PostgreSQL |
-| **Database** | PostgreSQL | 16+ | Primary data store |
-| **Cache** | Redis | 7.x | Session storage & caching layer |
-| **Message Queue** | RabbitMQ | 3.x | Event-driven communication |
-| **WebSocket** | Socket.IO | 4.x | Real-time bidirectional communication |
-| **GraphQL** | Apollo Server | 4.x | Modern API layer |
-| **Storage** | MinIO/S3 | - | Asset storage |
-| **Language** | TypeScript | 5+ | 100% TypeScript, strict mode |
+| Category          | Technology    | Version | Purpose                                            |
+| ----------------- | ------------- | ------- | -------------------------------------------------- |
+| **Web Framework** | Fastify       | 5.x     | High-performance HTTP server (chosen over Express) |
+| **ORM**           | Prisma        | 6.x     | Type-safe database access with PostgreSQL          |
+| **Database**      | PostgreSQL    | 16+     | Primary data store                                 |
+| **Cache**         | Redis         | 7.x     | Session storage & caching layer                    |
+| **Message Queue** | RabbitMQ      | 3.x     | Event-driven communication                         |
+| **WebSocket**     | Socket.IO     | 4.x     | Real-time bidirectional communication              |
+| **GraphQL**       | Apollo Server | 4.x     | Modern API layer                                   |
+| **Storage**       | MinIO/S3      | -       | Asset storage                                      |
+| **Language**      | TypeScript    | 5+      | 100% TypeScript, strict mode                       |
 
 ### Frontend Technologies
 
-| Category | Technology | Version | Purpose |
-|----------|-----------|---------|---------|
-| **Framework** | React | 18 | UI library with hooks & concurrent rendering |
-| **Build Tool** | Vite | 6.x | Fast builds with <100ms HMR |
-| **State Management** | Zustand | 5.x | Lightweight state management |
-| **Data Fetching** | TanStack Query | 5.x | Server state management |
-| **Routing** | TanStack Router | - | Type-safe routing |
-| **UI Components** | shadcn/ui | - | Accessible component library |
-| **Styling** | Tailwind CSS | 3.4+ | Utility-first CSS framework |
-| **Forms** | React Hook Form | - | Performant form handling |
-| **Validation** | Zod | 3.x | Runtime type validation |
+| Category             | Technology      | Version | Purpose                                      |
+| -------------------- | --------------- | ------- | -------------------------------------------- |
+| **Framework**        | React           | 18      | UI library with hooks & concurrent rendering |
+| **Build Tool**       | Vite            | 6.x     | Fast builds with <100ms HMR                  |
+| **State Management** | Zustand         | 5.x     | Lightweight state management                 |
+| **Data Fetching**    | TanStack Query  | 5.x     | Server state management                      |
+| **Routing**          | TanStack Router | -       | Type-safe routing                            |
+| **UI Components**    | shadcn/ui       | -       | Accessible component library                 |
+| **Styling**          | Tailwind CSS    | 3.4+    | Utility-first CSS framework                  |
+| **Forms**            | React Hook Form | -       | Performant form handling                     |
+| **Validation**       | Zod             | 3.x     | Runtime type validation                      |
 
 ### DevOps & Infrastructure
 
-| Category | Technology | Purpose |
-|----------|-----------|---------|
-| **Containerization** | Docker | Application packaging |
-| **Orchestration** | Kubernetes | Container orchestration |
-| **CI/CD** | GitHub Actions | Automated testing & deployment |
-| **Monitoring** | Prometheus + Grafana | Metrics & visualization |
-| **Logging** | Pino | Structured logging |
-| **Tracing** | OpenTelemetry | Distributed tracing |
-| **Security Scanning** | Snyk | Vulnerability detection |
+| Category              | Technology           | Purpose                        |
+| --------------------- | -------------------- | ------------------------------ |
+| **Containerization**  | Docker               | Application packaging          |
+| **Orchestration**     | Kubernetes           | Container orchestration        |
+| **CI/CD**             | GitHub Actions       | Automated testing & deployment |
+| **Monitoring**        | Prometheus + Grafana | Metrics & visualization        |
+| **Logging**           | Pino                 | Structured logging             |
+| **Tracing**           | OpenTelemetry        | Distributed tracing            |
+| **Security Scanning** | Snyk                 | Vulnerability detection        |
 
 ### Testing Stack
 
-| Category | Technology | Purpose |
-|----------|-----------|---------|
-| **Unit/Integration** | Vitest | Fast unit testing |
-| **E2E Testing** | Playwright | Browser automation |
-| **Load Testing** | k6 | Performance testing |
-| **Coverage** | Vitest Coverage | >90% target |
+| Category             | Technology      | Purpose             |
+| -------------------- | --------------- | ------------------- |
+| **Unit/Integration** | Vitest          | Fast unit testing   |
+| **E2E Testing**      | Playwright      | Browser automation  |
+| **Load Testing**     | k6              | Performance testing |
+| **Coverage**         | Vitest Coverage | >90% target         |
 
 ## Proposed Architecture
 
@@ -178,18 +180,18 @@ packages/
 
 The project is planned in 10 phases over 12-14 months:
 
-| Phase | Timeline | Focus Area |
-|-------|----------|------------|
-| **Phase 1** | Months 1-3 | Core Foundation (Monorepo, TypeScript setup, Fastify) |
-| **Phase 2** | Months 2-4 | Replicant System V2 (CQRS, Event sourcing) |
-| **Phase 3** | Months 3-5 | Bundle System (Loading, lifecycle, isolation) |
-| **Phase 4** | Months 4-6 | Authentication & Authorization (OAuth2, RBAC) |
-| **Phase 5** | Months 5-9 | Dashboard & UI (React, Tailwind, shadcn/ui) |
-| **Phase 6** | Months 6-8 | GraphQL API (Apollo Server, schema stitching) |
-| **Phase 7** | Months 7-9 | Plugin System (Dynamic loading, versioning) |
-| **Phase 8** | Months 8-10 | Observability (Monitoring, logging, tracing) |
-| **Phase 9** | Months 9-13 | Documentation & Advanced Testing |
-| **Phase 10** | Months 10-14 | Beta Testing & V1.0 Launch |
+| Phase        | Timeline     | Focus Area                                            |
+| ------------ | ------------ | ----------------------------------------------------- |
+| **Phase 1**  | Months 1-3   | Core Foundation (Monorepo, TypeScript setup, Fastify) |
+| **Phase 2**  | Months 2-4   | Replicant System V2 (CQRS, Event sourcing)            |
+| **Phase 3**  | Months 3-5   | Bundle System (Loading, lifecycle, isolation)         |
+| **Phase 4**  | Months 4-6   | Authentication & Authorization (OAuth2, RBAC)         |
+| **Phase 5**  | Months 5-9   | Dashboard & UI (React, Tailwind, shadcn/ui)           |
+| **Phase 6**  | Months 6-8   | GraphQL API (Apollo Server, schema stitching)         |
+| **Phase 7**  | Months 7-9   | Plugin System (Dynamic loading, versioning)           |
+| **Phase 8**  | Months 8-10  | Observability (Monitoring, logging, tracing)          |
+| **Phase 9**  | Months 9-13  | Documentation & Advanced Testing                      |
+| **Phase 10** | Months 10-14 | Beta Testing & V1.0 Launch                            |
 
 ### Key Milestones
 
@@ -203,23 +205,23 @@ The project is planned in 10 phases over 12-14 months:
 
 ### Planning Documents
 
-| File | Purpose | Read When... |
-|------|---------|--------------|
-| `docs/00_EXECUTIVE_SUMMARY_REBUILD.md` | High-level overview, budget, timeline | Starting any work on this project |
-| `docs/01_ARCHITECTURE_DESIGN.md` | Complete system architecture, diagrams, patterns | Understanding system design |
-| `docs/02_DEVELOPMENT_PHASES.md` | Detailed implementation roadmap | Planning development work |
-| `docs/03_TECH_STACK_DECISIONS.md` | Architecture Decision Records (ADRs) | Understanding technology choices |
-| `docs/04_CODE_EXAMPLES.md` | Example implementations and patterns | Writing new code |
-| `docs/08_TESTING_STRATEGY.md` | QA strategy, test coverage goals | Setting up testing |
+| File                                   | Purpose                                          | Read When...                      |
+| -------------------------------------- | ------------------------------------------------ | --------------------------------- |
+| `docs/00_EXECUTIVE_SUMMARY_REBUILD.md` | High-level overview, budget, timeline            | Starting any work on this project |
+| `docs/01_ARCHITECTURE_DESIGN.md`       | Complete system architecture, diagrams, patterns | Understanding system design       |
+| `docs/02_DEVELOPMENT_PHASES.md`        | Detailed implementation roadmap                  | Planning development work         |
+| `docs/03_TECH_STACK_DECISIONS.md`      | Architecture Decision Records (ADRs)             | Understanding technology choices  |
+| `docs/04_CODE_EXAMPLES.md`             | Example implementations and patterns             | Writing new code                  |
+| `docs/08_TESTING_STRATEGY.md`          | QA strategy, test coverage goals                 | Setting up testing                |
 
 ### Code Templates & Examples
 
-| File | Purpose | Use When... |
-|------|---------|-------------|
-| `docs/appendix/prisma_schema.prisma` | Complete database schema design | Setting up database |
-| `docs/appendix/code_templates/extension-template.js` | Example bundle extension | Creating extensions |
-| `docs/appendix/docker-compose.yml` | Docker development environment | Setting up local dev |
-| `docs/appendix/kubernetes_manifests/*.yaml` | K8s deployment configuration | Deploying to production |
+| File                                                 | Purpose                         | Use When...             |
+| ---------------------------------------------------- | ------------------------------- | ----------------------- |
+| `docs/appendix/prisma_schema.prisma`                 | Complete database schema design | Setting up database     |
+| `docs/appendix/code_templates/extension-template.js` | Example bundle extension        | Creating extensions     |
+| `docs/appendix/docker-compose.yml`                   | Docker development environment  | Setting up local dev    |
+| `docs/appendix/kubernetes_manifests/*.yaml`          | K8s deployment configuration    | Deploying to production |
 
 ## Conventions & Standards
 
@@ -278,24 +280,28 @@ The project is planned in 10 phases over 12-14 months:
 #### Common Tasks
 
 **Task: "Add a new feature to NodeCG Next"**
+
 - Response: Clarify if they want to:
   - Add to planning docs (update architecture, phases)
   - Create example code in templates
   - Begin implementing (requires project setup first)
 
 **Task: "Fix a bug in the system"**
+
 - Response: Explain no implementation exists yet; offer to:
   - Document the bug consideration in planning
   - Adjust architecture to prevent it
   - Add to testing strategy
 
 **Task: "Run the tests"**
+
 - Response: No tests exist; offer to:
   - Review testing strategy document
   - Create test plan based on `docs/08_TESTING_STRATEGY.md`
   - Design test structure for future implementation
 
 **Task: "Update dependencies"**
+
 - Response: No dependencies installed; offer to:
   - Update tech stack recommendations in `docs/03_TECH_STACK_DECISIONS.md`
   - Modify proposed versions in planning docs
@@ -325,6 +331,7 @@ When adding code templates:
 When this project moves to implementation:
 
 1. **Initialize monorepo**:
+
    ```bash
    pnpm init
    pnpm add -Dw turbo
@@ -332,17 +339,20 @@ When this project moves to implementation:
    ```
 
 2. **Create package structure**:
+
    ```bash
    mkdir -p packages/{core,cli,client,dashboard,types}
    ```
 
 3. **Setup TypeScript**:
+
    ```bash
    pnpm add -Dw typescript @types/node
    # Create tsconfig.json based on docs/04_CODE_EXAMPLES.md
    ```
 
 4. **Initialize Prisma**:
+
    ```bash
    cd packages/core
    pnpm add @prisma/client
@@ -602,6 +612,7 @@ When analyzing this repo for the first time, explain to users:
 ### User Intent Disambiguation
 
 When users ask to:
+
 - **"Run the application"** → Explain no implementation exists yet
 - **"Fix this bug"** → Clarify if they mean update planning docs
 - **"Add a feature"** → Ask if they want planning docs or implementation
@@ -611,6 +622,7 @@ When users ask to:
 ### Safe Operations
 
 You can safely:
+
 - ✅ Read and analyze all documentation
 - ✅ Update planning documents
 - ✅ Add or modify example code templates
@@ -621,6 +633,7 @@ You can safely:
 ### Operations Requiring Clarification
 
 Ask before:
+
 - ❓ Starting actual implementation (requires full setup)
 - ❓ Installing dependencies (none currently exist)
 - ❓ Creating package.json (moves from planning to implementation)

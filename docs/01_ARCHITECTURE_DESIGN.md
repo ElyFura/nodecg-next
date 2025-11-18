@@ -1,9 +1,10 @@
 # NodeCG Next - System-Architektur
+
 ## Technisches Design für komplette Neuimplementierung
 
 **Version:** 1.0  
 **Status:** Design Phase  
-**Architektur-Ansatz:** Microservices-Ready, Cloud-Native  
+**Architektur-Ansatz:** Microservices-Ready, Cloud-Native
 
 ---
 
@@ -89,6 +90,7 @@
 ### 1. API Gateway Layer
 
 **Verantwortlichkeiten:**
+
 - Request Routing
 - Authentication & Authorization
 - Rate Limiting
@@ -97,12 +99,14 @@
 - API Versioning
 
 **Technologien:**
+
 - **Fastify** - HTTP Server
 - **Apollo Server** - GraphQL
 - **Socket.IO** - WebSocket
 - **Passport.js** - Authentication
 
 **Dateistruktur:**
+
 ```
 packages/core/src/gateway/
 ├── http/
@@ -133,6 +137,7 @@ packages/core/src/gateway/
 #### 2.1 Replicant Service
 
 **Funktionen:**
+
 - Type-Safe Replicant CRUD
 - Schema Validation (Zod)
 - Real-Time Synchronization
@@ -141,6 +146,7 @@ packages/core/src/gateway/
 - Persistence Layer
 
 **Interface:**
+
 ```typescript
 interface ReplicantService {
   register<T>(namespace: string, name: string, options: ReplicantOptions<T>): Promise<T>;
@@ -153,6 +159,7 @@ interface ReplicantService {
 ```
 
 **Dateistruktur:**
+
 ```
 packages/core/src/services/replicant/
 ├── service.ts              # Main Service Class
@@ -167,6 +174,7 @@ packages/core/src/services/replicant/
 #### 2.2 Bundle Manager
 
 **Funktionen:**
+
 - Bundle Discovery & Loading
 - Dependency Resolution
 - Lifecycle Management (start, stop, reload)
@@ -175,6 +183,7 @@ packages/core/src/services/replicant/
 - Configuration Management
 
 **Dateistruktur:**
+
 ```
 packages/core/src/services/bundle/
 ├── manager.ts              # Bundle Manager
@@ -188,6 +197,7 @@ packages/core/src/services/bundle/
 #### 2.3 Asset Manager
 
 **Funktionen:**
+
 - File Upload (Multipart)
 - Storage (S3/MinIO)
 - Image Processing (Sharp)
@@ -196,6 +206,7 @@ packages/core/src/services/bundle/
 - Asset Categories
 
 **Dateistruktur:**
+
 ```
 packages/core/src/services/asset/
 ├── manager.ts              # Asset Manager
@@ -210,6 +221,7 @@ packages/core/src/services/asset/
 #### 2.4 User Service
 
 **Funktionen:**
+
 - User CRUD
 - Authentication (Local, OAuth2, LDAP)
 - Authorization (RBAC)
@@ -218,6 +230,7 @@ packages/core/src/services/asset/
 - 2FA/MFA (optional)
 
 **Dateistruktur:**
+
 ```
 packages/core/src/services/user/
 ├── service.ts              # User Service
@@ -233,6 +246,7 @@ packages/core/src/services/user/
 #### 2.5 Plugin System
 
 **Funktionen:**
+
 - Plugin Discovery & Loading
 - Plugin API
 - Hook System
@@ -240,6 +254,7 @@ packages/core/src/services/user/
 - Plugin Registry
 
 **Dateistruktur:**
+
 ```
 packages/core/src/services/plugin/
 ├── manager.ts              # Plugin Manager
@@ -254,6 +269,7 @@ packages/core/src/services/plugin/
 #### 3.1 Database (PostgreSQL + Prisma)
 
 **Schema:**
+
 ```prisma
 // Prisma Schema
 model Replicant {
@@ -266,7 +282,7 @@ model Replicant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   history     ReplicantHistory[]
-  
+
   @@unique([namespace, name])
   @@index([namespace])
 }
@@ -278,7 +294,7 @@ model ReplicantHistory {
   value         String
   changedBy     String?
   changedAt     DateTime   @default(now())
-  
+
   @@index([replicantId])
 }
 
@@ -311,7 +327,7 @@ model OAuthProvider {
   expiresAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@unique([provider, providerId])
   @@index([userId])
 }
@@ -325,7 +341,7 @@ model Session {
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@index([token])
 }
@@ -341,7 +357,7 @@ model Asset {
   mimeType    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@unique([namespace, category, name])
   @@index([namespace, category])
 }
@@ -360,12 +376,14 @@ model Bundle {
 #### 3.2 Cache (Redis)
 
 **Verwendung:**
+
 - Session Storage
 - Replicant Cache (Hot Data)
 - Rate Limiting Counters
 - Pub/Sub für Multi-Instance
 
 **Keys:**
+
 ```
 sessions:<sessionId>           # Session Data
 replicants:<namespace>:<name>  # Replicant Cache
@@ -376,6 +394,7 @@ locks:<resource>               # Distributed Locks
 #### 3.3 Message Queue (RabbitMQ)
 
 **Queues:**
+
 - `bundle.lifecycle` - Bundle Start/Stop/Reload
 - `asset.processing` - Image/Audio Processing
 - `analytics.events` - Analytics Events
@@ -503,6 +522,7 @@ locks:<resource>               # Distributed Locks
 ### 1. Authentication
 
 **Flow:**
+
 ```
 1. User → Login Request (username/password or OAuth2)
 2. Server → Validate Credentials
@@ -515,6 +535,7 @@ locks:<resource>               # Distributed Locks
 ```
 
 **JWT Payload:**
+
 ```json
 {
   "sub": "user-id",
@@ -528,20 +549,21 @@ locks:<resource>               # Distributed Locks
 ### 2. Authorization (RBAC)
 
 **Rollen:**
+
 - **ADMIN:** Alle Rechte
 - **OPERATOR:** Dashboard, Replicant Updates, Asset Upload
 - **VIEWER:** Nur Lesezugriff
 
 **Permissions Matrix:**
 
-| Ressource | ADMIN | OPERATOR | VIEWER |
-|-----------|-------|----------|--------|
-| Replicant Read | ✅ | ✅ | ✅ |
-| Replicant Write | ✅ | ✅ | ❌ |
-| Bundle Management | ✅ | ❌ | ❌ |
-| User Management | ✅ | ❌ | ❌ |
-| Asset Upload | ✅ | ✅ | ❌ |
-| Settings | ✅ | ❌ | ❌ |
+| Ressource         | ADMIN | OPERATOR | VIEWER |
+| ----------------- | ----- | -------- | ------ |
+| Replicant Read    | ✅    | ✅       | ✅     |
+| Replicant Write   | ✅    | ✅       | ❌     |
+| Bundle Management | ✅    | ❌       | ❌     |
+| User Management   | ✅    | ❌       | ❌     |
+| Asset Upload      | ✅    | ✅       | ❌     |
+| Settings          | ✅    | ❌       | ❌     |
 
 ### 3. Security Best Practices
 
@@ -554,7 +576,7 @@ locks:<resource>               # Distributed Locks
 ✅ **CSRF Protection** via Tokens  
 ✅ **Password Hashing** via bcrypt (10 Rounds)  
 ✅ **Sensitive Data Encryption** at Rest  
-✅ **Audit Logging** für alle kritischen Operationen  
+✅ **Audit Logging** für alle kritischen Operationen
 
 ---
 
@@ -563,6 +585,7 @@ locks:<resource>               # Distributed Locks
 ### 1. Caching-Strategie
 
 **Multi-Layer Cache:**
+
 ```
 ┌─────────────────────────────────────┐
 │  L1: In-Memory Cache (Node.js Map)  │  <-- Hot Replicants
@@ -580,6 +603,7 @@ locks:<resource>               # Distributed Locks
 ```
 
 **Cache Invalidation:**
+
 - **Write-Through:** Update DB + Cache gleichzeitig
 - **TTL:** Automatisches Expiry nach X Sekunden
 - **Event-Based:** Invalidierung via Event Bus
@@ -587,6 +611,7 @@ locks:<resource>               # Distributed Locks
 ### 2. Horizontal Scaling
 
 **Multi-Instance Setup:**
+
 ```
          ┌─────────────────┐
          │  Load Balancer  │
@@ -608,30 +633,33 @@ locks:<resource>               # Distributed Locks
 ```
 
 **Session Stickiness:**
+
 - Via Load Balancer (Sticky Sessions)
 - Oder via Redis (Shared Sessions)
 
 ### 3. Database Optimization
 
 **Connection Pooling:**
+
 ```typescript
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
-    }
+      url: process.env.DATABASE_URL,
+    },
   },
   log: ['warn', 'error'],
   // Connection Pool
   pool: {
     min: 2,
     max: 10,
-    idleTimeoutMillis: 30000
-  }
+    idleTimeoutMillis: 30000,
+  },
 });
 ```
 
 **Query Optimization:**
+
 - Indexes auf häufig abgefragte Felder
 - Eager Loading statt N+1 Queries
 - Batch Queries wo möglich
@@ -660,37 +688,37 @@ spec:
         app: nodecg-next
     spec:
       containers:
-      - name: nodecg-next
-        image: nodecg/nodecg-next:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: nodecg-secrets
-              key: database-url
-        - name: REDIS_URL
-          value: "redis://redis-service:6379"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: nodecg-next
+          image: nodecg/nodecg-next:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: database-url
+            - name: REDIS_URL
+              value: 'redis://redis-service:6379'
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -700,9 +728,9 @@ spec:
   selector:
     app: nodecg-next
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 3000
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
   type: LoadBalancer
 ```
 

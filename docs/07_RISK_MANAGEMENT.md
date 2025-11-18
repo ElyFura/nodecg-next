@@ -1,8 +1,9 @@
 # NodeCG Next - Risiko-Management
+
 ## Risiken, Bewertung & Mitigation-Strategien
 
 **Version:** 1.0  
-**Status:** Active Monitoring  
+**Status:** Active Monitoring
 
 ---
 
@@ -10,18 +11,18 @@
 
 ### Top 10 Risiken
 
-| # | Risiko | Wahrsch. | Impact | Score | Status |
-|---|--------|----------|--------|-------|--------|
-| 1 | Scope Creep | Sehr Hoch | Sehr Hoch | 🔴 9/10 | Aktiv |
-| 2 | Budget-Überschreitung | Hoch | Sehr Hoch | 🔴 9/10 | Aktiv |
-| 3 | Zeitplan-Verzögerung | Hoch | Hoch | 🔴 8/10 | Aktiv |
-| 4 | Team-Fluktuation | Mittel | Sehr Hoch | 🔴 8/10 | Aktiv |
-| 5 | Technische Herausforderungen | Mittel | Hoch | 🟡 6/10 | Monitor |
-| 6 | Community-Widerstand | Mittel | Hoch | 🟡 6/10 | Monitor |
-| 7 | Performance-Probleme | Niedrig | Hoch | 🟡 5/10 | Monitor |
-| 8 | Security-Vulnerabilities | Niedrig | Sehr Hoch | 🟡 6/10 | Monitor |
-| 9 | Dependency-Issues | Niedrig | Mittel | 🟢 4/10 | Low |
-| 10 | Infrastructure-Ausfälle | Niedrig | Mittel | 🟢 4/10 | Low |
+| #   | Risiko                       | Wahrsch.  | Impact    | Score   | Status  |
+| --- | ---------------------------- | --------- | --------- | ------- | ------- |
+| 1   | Scope Creep                  | Sehr Hoch | Sehr Hoch | 🔴 9/10 | Aktiv   |
+| 2   | Budget-Überschreitung        | Hoch      | Sehr Hoch | 🔴 9/10 | Aktiv   |
+| 3   | Zeitplan-Verzögerung         | Hoch      | Hoch      | 🔴 8/10 | Aktiv   |
+| 4   | Team-Fluktuation             | Mittel    | Sehr Hoch | 🔴 8/10 | Aktiv   |
+| 5   | Technische Herausforderungen | Mittel    | Hoch      | 🟡 6/10 | Monitor |
+| 6   | Community-Widerstand         | Mittel    | Hoch      | 🟡 6/10 | Monitor |
+| 7   | Performance-Probleme         | Niedrig   | Hoch      | 🟡 5/10 | Monitor |
+| 8   | Security-Vulnerabilities     | Niedrig   | Sehr Hoch | 🟡 6/10 | Monitor |
+| 9   | Dependency-Issues            | Niedrig   | Mittel    | 🟢 4/10 | Low     |
+| 10  | Infrastructure-Ausfälle      | Niedrig   | Mittel    | 🟢 4/10 | Low     |
 
 ---
 
@@ -36,6 +37,7 @@
 **Score:** 9/10
 
 **Mitigation:**
+
 1. ✅ Strikte MVP-Definition (Feature Freeze nach Phase 7)
 2. ✅ Change Request Process (Formales Approval erforderlich)
 3. ✅ Monatliche Scope Reviews mit Stakeholdern
@@ -55,6 +57,7 @@
 **Score:** 9/10
 
 **Mitigation:**
+
 1. ✅ 20% Contingency Reserve (68k€)
 2. ✅ Monatliches Budget-Tracking
 3. ✅ Eskalation bei >5% Abweichung
@@ -62,6 +65,7 @@
 5. ✅ Flexibles Team (Stunden reduzierbar)
 
 **Early Warning Indicators:**
+
 - Monatlicher Burn Rate >50k€
 - Velocity <80% des Plans
 - Unvorhergesehene Kosten >10k€
@@ -79,6 +83,7 @@
 **Score:** 8/10
 
 **Mitigation:**
+
 1. ✅ 30% Zeit-Buffer in kritischen Phasen
 2. ✅ Agile 2-Wochen Sprints (schnelle Anpassung)
 3. ✅ Weekly Progress Reviews
@@ -86,6 +91,7 @@
 5. ✅ Parallel-Entwicklung wo möglich
 
 **Contingency Plan:**
+
 - MVP-Fokus (GraphQL → V1.1)
 - Beta-Launch verschieben (M12 statt M10)
 - Externe Ressourcen temporär
@@ -101,6 +107,7 @@
 **Score:** 8/10
 
 **Mitigation:**
+
 1. ✅ Konkurrenzfähige Vergütung
 2. ✅ Interessante Technologien
 3. ✅ Pair Programming (Knowledge Sharing)
@@ -109,6 +116,7 @@
 6. ✅ 3-Monats Kündigungsfrist in Verträgen
 
 **Succession Plan:**
+
 - Tech Lead: Senior Developer #1 übernimmt
 - Developer #1: Externe Rekrutierung (4 Wochen)
 - Developer #2: Aus internem Team
@@ -120,6 +128,7 @@
 ### Risiko #5: Technische Herausforderungen
 
 **Mitigation:**
+
 - PoCs für kritische Features (vor Phase-Start)
 - Expertenberatung einholen bei Bedarf
 - Spike-Tasks für unklare Bereiche
@@ -127,6 +136,7 @@
 ### Risiko #6: Community-Widerstand
 
 **Mitigation:**
+
 - Early Alpha Release (Monat 6)
 - Community-Feedback einbeziehen
 - Migration Tools bereitstellen
@@ -136,6 +146,7 @@
 ### Risiko #7: Performance-Probleme
 
 **Mitigation:**
+
 - Continuous Benchmarking
 - Load Testing ab Phase 8
 - Performance-Budget definieren
@@ -144,6 +155,7 @@
 ### Risiko #8: Security-Vulnerabilities
 
 **Mitigation:**
+
 - Security Audit (extern, Monat 9)
 - Penetration Testing (Monat 10)
 - Automated Security Scanning (Snyk)
@@ -157,6 +169,7 @@
 ### Monthly Risk Review
 
 **Prozess:**
+
 1. Alle Risiken durchgehen
 2. Scores aktualisieren
 3. Neue Risiken identifizieren
@@ -178,6 +191,7 @@ Level 3 (Score 9-10): PM → Budget Owner → CTO/CFO
 ## 🛡️ Risiko-Mitigation Budget
 
 Aus Contingency Reserve (68k€):
+
 - Team-Fluktuation: 30.000€ (Rekrutierung)
 - Technische Challenges: 20.000€ (Consulting)
 - Security Issues: 10.000€ (Audits)

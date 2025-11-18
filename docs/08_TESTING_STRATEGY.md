@@ -1,8 +1,9 @@
 # NodeCG Next - Testing-Strategie
+
 ## Umfassender QA & Testing Plan
 
 **Version:** 1.0  
-**Test Coverage Ziel:** >90%  
+**Test Coverage Ziel:** >90%
 
 ---
 
@@ -25,12 +26,14 @@
 **Ziel:** >85% Code Coverage
 
 **Was wird getestet:**
+
 - Alle Service-Klassen
 - Utility Functions
 - Business Logic
 - Data Transformations
 
 **Beispiel:**
+
 ```typescript
 // replicant.service.test.ts
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -45,15 +48,13 @@ describe('ReplicantService', () => {
 
   it('should create replicant with default value', async () => {
     const result = await service.register('test', 'myRep', {
-      defaultValue: 42
+      defaultValue: 42,
     });
     expect(result).toBe(42);
   });
 
   it('should validate against schema', async () => {
-    await expect(
-      service.set('test', 'myRep', 'invalid')
-    ).rejects.toThrow('Validation failed');
+    await expect(service.set('test', 'myRep', 'invalid')).rejects.toThrow('Validation failed');
   });
 });
 ```
@@ -65,12 +66,14 @@ describe('ReplicantService', () => {
 **Ziel:** API Endpoints, Database, WebSocket
 
 **Was wird getestet:**
+
 - REST API Endpoints
 - GraphQL Queries/Mutations
 - WebSocket Events
 - Database Operations
 
 **Beispiel:**
+
 ```typescript
 // api.integration.test.ts
 describe('API Integration', () => {
@@ -80,13 +83,13 @@ describe('API Integration', () => {
       .send({
         namespace: 'test',
         name: 'score',
-        value: 0
+        value: 0,
       })
       .expect(201);
 
     expect(response.body).toMatchObject({
       namespace: 'test',
-      name: 'score'
+      name: 'score',
     });
   });
 });
@@ -99,6 +102,7 @@ describe('API Integration', () => {
 **Ziel:** User Journeys im Dashboard
 
 **Test Scenarios:**
+
 1. User Login & Authentication
 2. Bundle Management (Enable/Disable)
 3. Replicant Updates (Dashboard → Graphics)
@@ -106,6 +110,7 @@ describe('API Integration', () => {
 5. Settings Changes
 
 **Beispiel:**
+
 ```typescript
 // dashboard.e2e.test.ts
 import { test, expect } from '@playwright/test';
@@ -125,8 +130,7 @@ test('user can update replicant value', async ({ page }) => {
   await page.click('[data-testid="score-submit"]');
 
   // Verify
-  await expect(page.locator('[data-testid="score-display"]'))
-    .toHaveText('100');
+  await expect(page.locator('[data-testid="score-display"]')).toHaveText('100');
 });
 ```
 
@@ -145,7 +149,7 @@ export const options = {
   stages: [
     { duration: '2m', target: 100 }, // Ramp-up
     { duration: '5m', target: 100 }, // Stay at 100
-    { duration: '2m', target: 0 },   // Ramp-down
+    { duration: '2m', target: 0 }, // Ramp-down
   ],
   thresholds: {
     http_req_duration: ['p(95)<100'], // 95% under 100ms
@@ -164,11 +168,13 @@ export default function () {
 ## 🔐 Security Tests
 
 **Tools:**
+
 - Snyk (Dependency Scanning)
 - OWASP ZAP (Penetration Testing)
 - npm audit
 
 **Tests:**
+
 1. SQL Injection
 2. XSS Attacks
 3. CSRF Protection
@@ -179,13 +185,13 @@ export default function () {
 
 ## 📊 Test Coverage Ziele
 
-| Test Type | Coverage Target | Status |
-|-----------|----------------|--------|
-| Unit Tests | >85% | 🎯 |
-| Integration Tests | >70% | 🎯 |
-| E2E Tests | Critical Paths | 🎯 |
-| Performance | <100ms p95 | 🎯 |
-| Security | 0 Critical | 🎯 |
+| Test Type         | Coverage Target | Status |
+| ----------------- | --------------- | ------ |
+| Unit Tests        | >85%            | 🎯     |
+| Integration Tests | >70%            | 🎯     |
+| E2E Tests         | Critical Paths  | 🎯     |
+| Performance       | <100ms p95      | 🎯     |
+| Security          | 0 Critical      | 🎯     |
 
 ---
 
@@ -203,10 +209,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pnpm install
-      - run: pnpm test              # Unit Tests
-      - run: pnpm test:integration  # Integration
-      - run: pnpm test:e2e          # E2E Tests
-      - run: pnpm test:coverage     # Coverage Report
+      - run: pnpm test # Unit Tests
+      - run: pnpm test:integration # Integration
+      - run: pnpm test:e2e # E2E Tests
+      - run: pnpm test:coverage # Coverage Report
 ```
 
 ---

@@ -5,6 +5,20 @@
 import { PrismaClient } from './generated/client';
 import { Logger } from '@nodecg/types';
 
+// Prisma event types
+interface PrismaQueryEvent {
+  query: string;
+  duration: number;
+  timestamp: Date;
+  target: string;
+}
+
+interface PrismaLogEvent {
+  message: string;
+  timestamp: Date;
+  target: string;
+}
+
 let prisma: PrismaClient | undefined;
 
 export function getPrismaClient(logger?: Logger): PrismaClient {
@@ -19,15 +33,15 @@ export function getPrismaClient(logger?: Logger): PrismaClient {
 
     // Log queries in development
     if (process.env.NODE_ENV !== 'production' && logger) {
-      prisma.$on('query', (e: any) => {
+      prisma.$on('query', (e: PrismaQueryEvent) => {
         logger.debug(`Query: ${e.query} - Duration: ${e.duration}ms`);
       });
 
-      prisma.$on('error', (e: any) => {
+      prisma.$on('error', (e: PrismaLogEvent) => {
         logger.error(`Database error: ${e.message}`);
       });
 
-      prisma.$on('warn', (e: any) => {
+      prisma.$on('warn', (e: PrismaLogEvent) => {
         logger.warn(`Database warning: ${e.message}`);
       });
     }

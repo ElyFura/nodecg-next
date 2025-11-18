@@ -156,6 +156,7 @@ Full documentation is available in the `/docs` directory:
 ## 🗓️ Roadmap
 
 ### Phase 1: Core Foundation (Current - Months 1-3)
+
 - ✅ Monorepo setup with Turborepo
 - ✅ TypeScript configuration
 - ✅ Fastify server with health checks
@@ -166,12 +167,14 @@ Full documentation is available in the `/docs` directory:
 - ⏳ Bundle Manager
 
 ### Phase 2: Replicant System V2 (Months 2-4)
+
 - Type-safe Replicant API
 - Client-server synchronization
 - Schema validation with Zod
 - React/Vue/Svelte hooks
 
 ### Phase 3: Bundle System (Months 3-5)
+
 - Bundle discovery and loading
 - CLI tool (create, dev, build)
 - Hot Module Replacement

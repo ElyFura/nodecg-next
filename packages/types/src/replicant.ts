@@ -61,18 +61,10 @@ export interface Replicant<T = unknown> {
 export type Unsubscribe = () => void;
 
 export interface ReplicantService {
-  register<T>(
-    namespace: string,
-    name: string,
-    options: ReplicantOptions<T>
-  ): Promise<Replicant<T>>;
+  register<T>(namespace: string, name: string, options: ReplicantOptions<T>): Promise<Replicant<T>>;
   get<T>(namespace: string, name: string): Promise<Replicant<T> | null>;
   set<T>(namespace: string, name: string, value: T): Promise<void>;
   delete(namespace: string, name: string): Promise<void>;
-  subscribe<T>(
-    namespace: string,
-    name: string,
-    callback: (value: T) => void
-  ): Unsubscribe;
+  subscribe<T>(namespace: string, name: string, callback: (value: T) => void): Unsubscribe;
   getAll(namespace: string): Promise<ReplicantMetadata[]>;
 }
