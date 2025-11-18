@@ -13,6 +13,7 @@ dist
 build
 out
 .next
+*.tsbuildinfo
 
 # Misc
 .DS_Store
@@ -46,6 +47,9 @@ out
 *.db
 *.db-journal
 prisma/migrations
+
+# Generated files
+**/generated/
 
 # Temporary files
 tmp

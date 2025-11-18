@@ -8,7 +8,7 @@ import { healthRoutes } from './health';
 
 export async function registerRoutes(
   fastify: FastifyInstance,
-  config: NodeCGConfig
+  _config: NodeCGConfig
 ): Promise<void> {
   // Health check routes
   await fastify.register(healthRoutes);

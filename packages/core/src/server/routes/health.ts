@@ -2,11 +2,11 @@
  * Health check routes
  */
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance } from 'fastify';
 
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   // Basic health check
-  fastify.get('/health', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/health', async () => {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -15,7 +15,7 @@ export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // Readiness check (for Kubernetes)
-  fastify.get('/ready', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/ready', async () => {
     // TODO: Check database connection, etc.
     return {
       status: 'ready',
@@ -24,7 +24,7 @@ export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // Liveness check (for Kubernetes)
-  fastify.get('/live', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/live', async () => {
     return {
       status: 'alive',
       timestamp: new Date().toISOString(),

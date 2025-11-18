@@ -21,6 +21,7 @@ export async function createServer(config?: Partial<NodeCGConfig>) {
     ...defaultConfig,
     ...config,
     logging: {
+      level: 'info',
       ...defaultConfig.logging,
       ...config?.logging,
     },
