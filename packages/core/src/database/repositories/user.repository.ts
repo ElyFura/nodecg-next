@@ -47,7 +47,8 @@ export interface OAuthProviderCreateInput {
 }
 
 export class UserRepository
-  implements BaseRepository<User, UserCreateInput, UserUpdateInput>
+  implements
+    BaseRepository<User, UserCreateInput, UserUpdateInput, UserFindOptions, { role?: UserRole }>
 {
   constructor(private prisma: PrismaClient) {}
 
@@ -324,10 +325,7 @@ export class UserRepository
   /**
    * Find user by OAuth provider
    */
-  async findByOAuthProvider(
-    provider: string,
-    providerId: string
-  ): Promise<User | null> {
+  async findByOAuthProvider(provider: string, providerId: string): Promise<User | null> {
     const oauthProvider = await this.prisma.oAuthProvider.findUnique({
       where: {
         provider_providerId: { provider, providerId },

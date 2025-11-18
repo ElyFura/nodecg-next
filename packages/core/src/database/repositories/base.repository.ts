@@ -3,7 +3,14 @@
  * All repositories extend this interface for consistency
  */
 
-export interface BaseRepository<T, TCreateInput, TUpdateInput> {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface BaseRepository<
+  T,
+  TCreateInput,
+  TUpdateInput,
+  TFindOptions = any,
+  TCountOptions = any,
+> {
   /**
    * Find a single record by ID
    */
@@ -12,7 +19,7 @@ export interface BaseRepository<T, TCreateInput, TUpdateInput> {
   /**
    * Find all records with optional filtering
    */
-  findMany(options?: FindManyOptions<T>): Promise<T[]>;
+  findMany(options?: TFindOptions): Promise<T[]>;
 
   /**
    * Create a new record
@@ -32,7 +39,7 @@ export interface BaseRepository<T, TCreateInput, TUpdateInput> {
   /**
    * Count records with optional filtering
    */
-  count(options?: CountOptions): Promise<number>;
+  count(options?: TCountOptions): Promise<number>;
 
   /**
    * Check if a record exists by ID

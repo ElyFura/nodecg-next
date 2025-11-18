@@ -41,7 +41,14 @@ export interface AssetStatistics {
 }
 
 export class AssetRepository
-  implements BaseRepository<Asset, AssetCreateInput, AssetUpdateInput>
+  implements
+    BaseRepository<
+      Asset,
+      AssetCreateInput,
+      AssetUpdateInput,
+      AssetFindOptions,
+      { namespace?: string; category?: string }
+    >
 {
   constructor(private prisma: PrismaClient) {}
 
@@ -305,7 +312,7 @@ export class AssetRepository
       orderBy: { namespace: 'asc' },
     });
 
-    return result.map((r) => r.namespace);
+    return result.map((r: { namespace: string }) => r.namespace);
   }
 
   /**
@@ -319,7 +326,7 @@ export class AssetRepository
       orderBy: { category: 'asc' },
     });
 
-    return result.map((r) => r.category);
+    return result.map((r: { category: string }) => r.category);
   }
 
   /**
@@ -348,8 +355,7 @@ export class AssetRepository
       statistics.totalSize += asset.size;
 
       // By namespace
-      statistics.byNamespace[asset.namespace] =
-        (statistics.byNamespace[asset.namespace] || 0) + 1;
+      statistics.byNamespace[asset.namespace] = (statistics.byNamespace[asset.namespace] || 0) + 1;
 
       // By category
       const categoryKey = `${asset.namespace}:${asset.category}`;

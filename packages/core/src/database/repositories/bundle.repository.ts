@@ -61,7 +61,14 @@ export interface BundleConfig {
 }
 
 export class BundleRepository
-  implements BaseRepository<Bundle, BundleCreateInput, BundleUpdateInput>
+  implements
+    BaseRepository<
+      Bundle,
+      BundleCreateInput,
+      BundleUpdateInput,
+      BundleFindOptions,
+      { enabled?: boolean }
+    >
 {
   constructor(private prisma: PrismaClient) {}
 
@@ -306,10 +313,7 @@ export class BundleRepository
     enabled: number;
     disabled: number;
   }> {
-    const [total, enabled] = await Promise.all([
-      this.count(),
-      this.count({ enabled: true }),
-    ]);
+    const [total, enabled] = await Promise.all([this.count(), this.count({ enabled: true })]);
 
     return {
       total,
@@ -340,7 +344,7 @@ export class BundleRepository
       orderBy: { name: 'asc' },
     });
 
-    return bundles.map((b) => b.name);
+    return bundles.map((b: { name: string }) => b.name);
   }
 
   /**

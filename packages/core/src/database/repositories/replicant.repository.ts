@@ -4,7 +4,7 @@
  * SQL-only, works completely offline with local PostgreSQL
  */
 
-import { PrismaClient, Replicant, ReplicantHistory } from '../generated/client';
+import { PrismaClient, Replicant } from '../generated/client';
 import { BaseRepository } from './base.repository';
 
 export interface ReplicantCreateInput {
@@ -34,7 +34,14 @@ export interface ReplicantHistoryEntry {
 }
 
 export class ReplicantRepository
-  implements BaseRepository<Replicant, ReplicantCreateInput, ReplicantUpdateInput>
+  implements
+    BaseRepository<
+      Replicant,
+      ReplicantCreateInput,
+      ReplicantUpdateInput,
+      ReplicantFindOptions,
+      { namespace?: string }
+    >
 {
   constructor(private prisma: PrismaClient) {}
 
@@ -136,7 +143,7 @@ export class ReplicantRepository
     }
 
     // Update replicant and create history entry in a transaction
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: PrismaClient) => {
       // Create history entry with old value
       await tx.replicantHistory.create({
         data: {
@@ -174,7 +181,7 @@ export class ReplicantRepository
       throw new Error(`Replicant ${namespace}:${name} not found`);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: PrismaClient) => {
       // Create history entry
       await tx.replicantHistory.create({
         data: {
@@ -305,7 +312,7 @@ export class ReplicantRepository
       if (history.length > 0) {
         const { count } = await this.prisma.replicantHistory.deleteMany({
           where: {
-            id: { in: history.map((h) => h.id) },
+            id: { in: history.map((h: { id: string }) => h.id) },
           },
         });
         totalDeleted += count;
@@ -325,7 +332,7 @@ export class ReplicantRepository
       orderBy: { namespace: 'asc' },
     });
 
-    return result.map((r) => r.namespace);
+    return result.map((r: { namespace: string }) => r.namespace);
   }
 
   /**
@@ -338,6 +345,6 @@ export class ReplicantRepository
       orderBy: { name: 'asc' },
     });
 
-    return result.map((r) => r.name);
+    return result.map((r: { name: string }) => r.name);
   }
 }
