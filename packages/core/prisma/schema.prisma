@@ -1,0 +1,149 @@
+// Prisma Schema for NodeCG Next
+// Based on architecture design from documentation
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/database/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Replicant storage
+model Replicant {
+  id        String   @id @default(cuid())
+  namespace String
+  name      String
+  value     String // JSON serialized
+  schema    String? // JSON Schema
+  revision  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  history   ReplicantHistory[]
+
+  @@unique([namespace, name])
+  @@index([namespace])
+  @@map("replicants")
+}
+
+model ReplicantHistory {
+  id          String    @id @default(cuid())
+  replicantId String
+  replicant   Replicant @relation(fields: [replicantId], references: [id], onDelete: Cascade)
+  value       String // JSON serialized
+  revision    Int
+  changedBy   String?
+  changedAt   DateTime  @default(now())
+
+  @@index([replicantId])
+  @@index([changedAt])
+  @@map("replicant_history")
+}
+
+// User management
+model User {
+  id        String          @id @default(cuid())
+  username  String          @unique
+  email     String?         @unique
+  password  String? // bcrypt hashed (null for OAuth-only users)
+  role      UserRole        @default(VIEWER)
+  providers OAuthProvider[]
+  sessions  Session[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([username])
+  @@index([email])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+model OAuthProvider {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String // "twitch", "discord", "google", "github"
+  providerId   String // Provider's user ID
+  accessToken  String? // Encrypted
+  refreshToken String? // Encrypted
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@map("oauth_providers")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique // JWT token
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// Asset management
+model Asset {
+  id        String   @id @default(cuid())
+  namespace String // Bundle namespace
+  category  String // Asset category (e.g., "images", "sounds")
+  name      String // Filename
+  sum       String // MD5 checksum
+  url       String // S3/MinIO URL
+  size      Int // File size in bytes
+  mimeType  String // MIME type
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([namespace, category, name])
+  @@index([namespace, category])
+  @@map("assets")
+}
+
+// Bundle management
+model Bundle {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  version   String
+  config    String // JSON serialized bundle config
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([enabled])
+  @@map("bundles")
+}
+
+// Audit logging
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String // "replicant:update", "bundle:load", etc.
+  resource  String // Resource identifier
+  metadata  String? // JSON serialized additional data
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
