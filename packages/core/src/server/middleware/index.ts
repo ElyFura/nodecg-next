@@ -2,15 +2,15 @@
  * Middleware registration for Fastify
  */
 
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyError } from 'fastify';
 import { NodeCGConfig } from '@nodecg/types';
 
 export async function registerMiddleware(
   fastify: FastifyInstance,
-  config: NodeCGConfig
+  _config: NodeCGConfig
 ): Promise<void> {
   // Error handler
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error: FastifyError, _request, reply) => {
     fastify.log.error(error);
 
     // Don't leak error details in production

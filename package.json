@@ -1,6 +1,7 @@
 {
   "name": "nodecg-next",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "description": "NodeCG Next Generation - Modern Broadcast Graphics Framework",
   "repository": {
