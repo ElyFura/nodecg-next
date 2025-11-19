@@ -3,8 +3,8 @@
  * Creates a new NodeCG bundle from templates
  */
 
-import { mkdir, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { mkdir, writeFile, access } from 'fs/promises';
+import { join, resolve } from 'path';
 import chalk from 'chalk';
 import { input, select, confirm } from '@inquirer/prompts';
 
@@ -40,9 +40,45 @@ const TEMPLATES = [
 ];
 
 /**
+ * Find the NodeCG project root by looking for package.json with workspaces
+ * or fallback to current directory
+ */
+async function findProjectRoot(): Promise<string> {
+  let currentDir = process.cwd();
+  const { readFile } = await import('fs/promises');
+
+  // Try to find project root by looking for package.json with workspaces
+  while (currentDir !== '/') {
+    try {
+      const packageJsonPath = join(currentDir, 'package.json');
+      await access(packageJsonPath);
+      const content = await readFile(packageJsonPath, 'utf-8');
+      const pkg = JSON.parse(content);
+
+      // Check if this is the NodeCG workspace root
+      if (pkg.workspaces || pkg.name === 'nodecg-next' || pkg.name === '@nodecg/monorepo') {
+        return currentDir;
+      }
+    } catch {
+      // Continue searching up
+    }
+
+    const parentDir = resolve(currentDir, '..');
+    if (parentDir === currentDir) break;
+    currentDir = parentDir;
+  }
+
+  // Fallback to current working directory
+  return process.cwd();
+}
+
+/**
  * Create command handler
  */
-export async function createCommand(bundleName?: string, options: CreateOptions = {}): Promise<void> {
+export async function createCommand(
+  bundleName?: string,
+  options: CreateOptions = {}
+): Promise<void> {
   console.log(chalk.blue.bold('\n🚀 NodeCG Bundle Generator\n'));
 
   // Get bundle name
@@ -97,7 +133,13 @@ export async function createCommand(bundleName?: string, options: CreateOptions 
 
   console.log(chalk.cyan('\n📦 Creating bundle...'));
 
-  const bundleDir = join(process.cwd(), name);
+  // Find project root and create bundle in /bundles directory
+  const projectRoot = await findProjectRoot();
+  const bundlesDir = join(projectRoot, 'bundles');
+  const bundleDir = join(bundlesDir, name);
+
+  // Ensure bundles directory exists
+  await mkdir(bundlesDir, { recursive: true });
 
   try {
     // Create bundle directory structure
@@ -137,8 +179,9 @@ coverage/
     }
 
     console.log(chalk.green.bold(`\n✨ Bundle created successfully!`));
+    console.log(chalk.white(`\nBundle created at: ${chalk.cyan(bundleDir)}`));
     console.log(chalk.white(`\nNext steps:`));
-    console.log(chalk.cyan(`  cd ${name}`));
+    console.log(chalk.cyan(`  cd bundles/${name}`));
     console.log(chalk.cyan(`  npm install`));
     console.log(chalk.cyan(`  npm run dev`));
     console.log();
