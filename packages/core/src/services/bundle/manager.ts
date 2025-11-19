@@ -37,9 +37,10 @@ export class BundleManager extends BaseService implements IBundleManager {
     super('BundleManager', options);
 
     // Find the project root (go up from packages/core to project root)
-    const projectRoot = process.cwd().includes('/packages/')
-      ? join(process.cwd(), '../..')
-      : process.cwd();
+    // Check for both Unix (/) and Windows (\) path separators
+    const cwd = process.cwd();
+    const projectRoot =
+      cwd.includes('/packages/') || cwd.includes('\\packages\\') ? join(cwd, '../..') : cwd;
 
     this.bundlesDir = options.bundlesDir || join(projectRoot, 'bundles');
     this.enableHotReload = options.enableHotReload ?? true;
@@ -53,6 +54,7 @@ export class BundleManager extends BaseService implements IBundleManager {
     this.logger.info(`Bundle directory: ${this.bundlesDir}`);
     this.logger.info(`Current working directory: ${process.cwd()}`);
     this.logger.info(`Hot reload: ${this.enableHotReload ? 'enabled' : 'disabled'}`);
+    this.logger.debug(`Resolved bundle directory: ${this.bundlesDir}`);
 
     // Discover and load bundles
     const discovered = await this.discoverBundles();
