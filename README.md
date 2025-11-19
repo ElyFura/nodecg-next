@@ -39,14 +39,14 @@ NodeCG Next is built as a monorepo using modern tooling:
 
 ### Package Structure
 
-\`\`\`
+```
 packages/
 ├── core/ # Core server implementation
 ├── types/ # Shared TypeScript types
 ├── client/ # Client library for graphics/dashboard
 ├── cli/ # CLI tools for bundle development
 └── dashboard/ # React dashboard UI (Phase 5)
-\`\`\`
+```
 
 ## 🛠️ Development Setup
 
@@ -60,35 +60,35 @@ packages/
 
 1. **Clone the repository:**
 
-\`\`\`bash
+```bash
 git clone https://github.com/ElyFura/nodecg-next.git
 cd nodecg-next
-\`\`\`
+```
 
 2. **Install dependencies:**
 
-\`\`\`bash
+```bash
 pnpm install
-\`\`\`
+```
 
 3. **Set up environment variables:**
 
-\`\`\`bash
+```bash
 cp .env.example .env
 
 # Edit .env with your configuration
 
-\`\`\`
+```
 
 4. **Start with Docker (recommended):**
 
-\`\`\`bash
+```bash
 docker-compose up -d
-\`\`\`
+```
 
 Or **start development services manually:**
 
-\`\`\`bash
+```bash
 
 # Terminal 1: Start PostgreSQL, Redis, RabbitMQ
 
@@ -103,7 +103,7 @@ pnpm prisma migrate dev
 # Terminal 3: Start development server
 
 pnpm --filter @nodecg/core dev
-\`\`\`
+```
 
 5. **Access the application:**
 
@@ -117,7 +117,7 @@ pnpm --filter @nodecg/core dev
 
 ### Creating Your First Bundle
 
-\`\`\`bash
+```bash
 
 # Using the CLI (after building)
 
@@ -132,10 +132,11 @@ cd bundles/my-bundle
 
 # Add package.json with nodecg configuration
 
-\`\`\`
+```
 
 Example bundle structure:
-\`\`\`
+
+```
 bundles/my-bundle/
 ├── package.json # Bundle configuration
 ├── extension/ # Server-side logic
@@ -144,11 +145,11 @@ bundles/my-bundle/
 │ └── panel.html
 └── graphics/ # Graphics overlays
 └── graphic.html
-\`\`\`
+```
 
 ## 📦 Available Scripts
 
-\`\`\`bash
+```bash
 
 # Development
 
@@ -173,11 +174,11 @@ pnpm prisma:studio # Open Prisma Studio
 # Cleanup
 
 pnpm clean # Remove all build artifacts
-\`\`\`
+```
 
 ## 🧪 Testing
 
-\`\`\`bash
+```bash
 
 # Run all tests
 
@@ -194,7 +195,7 @@ pnpm test:coverage
 # Run specific package tests
 
 pnpm --filter @nodecg/core test
-\`\`\`
+```
 
 ## 📚 Documentation
 
