@@ -108,8 +108,8 @@ async function discoverBundles(bundlesDir: string): Promise<string[]> {
     }
 
     return bundles;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if ((error as { code?: string }).code === 'ENOENT') {
       console.warn(chalk.yellow('Bundles directory not found'));
       return [];
     }
@@ -168,7 +168,7 @@ async function buildBundle(bundlesDir: string, bundleName: string): Promise<void
       await execAsync('npx vite build', { cwd: bundleDir });
       console.log(chalk.green('      ✓ Vite build complete'));
     }
-  } catch (error) {
+  } catch (_error) {
     // Vite build failed, but might not be required
     console.log(chalk.yellow('      ⚠ Vite build failed (may not be required)'));
   }
@@ -179,7 +179,7 @@ async function buildBundle(bundlesDir: string, bundleName: string): Promise<void
     try {
       await execAsync('npm run build', { cwd: bundleDir });
       console.log(chalk.green('      ✓ Custom build complete'));
-    } catch (error) {
+    } catch (_error) {
       // Build script might include vite/tsc which we already ran
       console.log(chalk.gray('      ⓘ Build script completed (with warnings)'));
     }
