@@ -1,0 +1,47 @@
+{
+  "name": "@nodecg/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for NodeCG Next",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "nodecg": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "nodecg",
+    "cli",
+    "broadcast",
+    "graphics"
+  ],
+  "author": "NodeCG Team",
+  "license": "MIT",
+  "dependencies": {
+    "@nodecg/core": "workspace:*",
+    "@nodecg/types": "workspace:*",
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.9"
+  }
+}
