@@ -98,8 +98,11 @@ export class ReplicantService extends EventEmitter {
       return null;
     }
 
+    // Parse value from JSON string stored in DB
+    const parsedValue = JSON.parse(replicant.value) as T;
+
     const result: ReplicantValue<T> = {
-      value: replicant.value as T,
+      value: parsedValue,
       revision: replicant.revision,
       namespace: replicant.namespace,
       name: replicant.name,
@@ -124,16 +127,16 @@ export class ReplicantService extends EventEmitter {
     const isNew = !replicant;
 
     if (isNew) {
-      // Create new replicant
+      // Create new replicant (value stored as JSON string in DB)
       replicant = await this.repository.create({
         namespace,
         name,
-        value: validatedValue as unknown,
+        value: JSON.stringify(validatedValue),
       });
     } else {
-      // Update existing replicant (we know replicant is not null here)
+      // Update existing replicant (value stored as JSON string in DB)
       replicant = await this.repository.update(replicant!.id, {
-        value: validatedValue as unknown,
+        value: JSON.stringify(validatedValue),
       });
     }
 
@@ -183,7 +186,7 @@ export class ReplicantService extends EventEmitter {
     const replicants = await this.repository.findByNamespace(namespace);
 
     return replicants.map((r) => ({
-      value: r.value as T,
+      value: JSON.parse(r.value) as T,
       revision: r.revision,
       namespace: r.namespace,
       name: r.name,
