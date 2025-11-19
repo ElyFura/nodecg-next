@@ -17,6 +17,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "chmod +x dist/cli.js",
     "dev": "echo \"@nodecg/cli: CLI tool ready (use after build: pnpm build && nodecg start)\"",
     "lint": "eslint src --ext .ts",
     "test": "vitest run"

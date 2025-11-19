@@ -119,11 +119,21 @@ pnpm --filter @nodecg/core dev
 
 ```bash
 
-# Using the CLI (after building)
+# Build the CLI package first
 
-pnpm build
+pnpm --filter @nodecg/cli build
+
+# Using the CLI from the workspace root
+
+node packages/cli/dist/cli.js create my-bundle --template react-ts
+
+# Available templates: react-ts, vue-ts, minimal-ts, minimal-js
+
+# Or install CLI globally for easier access
+
 cd packages/cli
-node dist/cli.js create my-bundle --template react
+pnpm link -g
+nodecg create my-bundle --template react-ts
 
 # Or manually create a bundle
 
