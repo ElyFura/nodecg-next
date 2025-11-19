@@ -59,7 +59,23 @@ export class SyncManager {
       // Handle subscribe requests
       socket.on('subscribe', async (data: { namespace: string; name: string }) => {
         try {
+          // Validate data
+          if (!data || typeof data !== 'object') {
+            logger.error(`Invalid subscribe data from ${clientId}:`, data);
+            socket.emit('error', { message: 'Invalid subscribe data: expected object' });
+            return;
+          }
+
           const { namespace, name } = data;
+
+          if (!namespace || !name) {
+            logger.error(`Missing namespace or name from ${clientId}:`, { namespace, name });
+            socket.emit('error', {
+              message: 'Missing required fields: namespace and name',
+            });
+            return;
+          }
+
           logger.debug(`Client ${clientId} subscribing to ${namespace}:${name}`);
 
           // Subscribe client
@@ -97,8 +113,27 @@ export class SyncManager {
       // Handle set requests (client wants to update replicant)
       socket.on('set', async (data: { namespace: string; name: string; value: unknown }) => {
         try {
+          // Validate data
+          if (!data || typeof data !== 'object') {
+            logger.error(`Invalid set data from ${clientId}:`, data);
+            socket.emit('error', { message: 'Invalid set data: expected object' });
+            return;
+          }
+
           const { namespace, name, value } = data;
-          logger.debug(`Client ${clientId} setting ${namespace}:${name}`);
+
+          if (!namespace || !name) {
+            logger.error(`Missing namespace or name from ${clientId}:`, { namespace, name });
+            socket.emit('set-ack', {
+              namespace,
+              name,
+              success: false,
+              error: 'Missing required fields: namespace and name',
+            });
+            return;
+          }
+
+          logger.debug(`Client ${clientId} setting ${namespace}:${name} to:`, value);
 
           // Update replicant (will trigger change event automatically)
           const result = await this.replicantService.set(namespace, name, value);
@@ -113,8 +148,8 @@ export class SyncManager {
         } catch (error) {
           logger.error('Error handling set:', error);
           socket.emit('set-ack', {
-            namespace: data.namespace,
-            name: data.name,
+            namespace: data?.namespace,
+            name: data?.name,
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
           });
