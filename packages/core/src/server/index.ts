@@ -10,6 +10,7 @@ import { NodeCGConfig, NodeCGServer, Logger } from '@nodecg/types';
 import { createLogger } from '../utils/logger';
 import { registerMiddleware } from './middleware';
 import { registerRoutes } from './routes';
+import { setupWebSocket, closeWebSocket } from './websocket';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
@@ -58,6 +59,9 @@ export class NodeCGServerImpl implements NodeCGServer {
         host: this.config.host,
       });
 
+      // Setup WebSocket after HTTP server is ready
+      await setupWebSocket(this.fastify, this.config);
+
       this.started = true;
       this.logger.info(
         `NodeCG Next server started on http://${this.config.host}:${this.config.port}`
@@ -75,6 +79,11 @@ export class NodeCGServerImpl implements NodeCGServer {
 
     try {
       this.logger.info('Stopping NodeCG Next server...');
+
+      // Close WebSocket connections first
+      await closeWebSocket();
+
+      // Then close Fastify server
       await this.fastify.close();
       this.started = false;
       this.logger.info('NodeCG Next server stopped');
