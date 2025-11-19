@@ -7,9 +7,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// For production PostgreSQL, change provider to "postgresql" and update DATABASE_URL
+// provider = "postgresql"
+// url      = env("DATABASE_URL")
 
 // Replicant storage
 model Replicant {

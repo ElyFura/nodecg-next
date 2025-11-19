@@ -4,15 +4,13 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { getRepositories } from '../../../../database/client';
-import { authenticateToken, requireAdmin, requireOperator } from '../../middleware/auth';
+import { getBundleManager } from '../../../../server/websocket';
+import { authenticateToken, requireOperator } from '../../middleware/auth';
 import { createLogger } from '../../../../utils/logger';
 
 const logger = createLogger({ level: 'info' });
 
 export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
-  const repos = getRepositories(logger);
-
   // Get all bundles
   fastify.get(
     '/',
@@ -21,28 +19,17 @@ export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (_request, reply) => {
       try {
-        const bundles = await repos.bundle.findMany();
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
+        const bundles = bundleManager.getAll();
         reply.send({ bundles });
       } catch (error) {
         logger.error('Failed to get bundles:', error);
         reply.code(500).send({ error: 'Failed to get bundles' });
-      }
-    }
-  );
-
-  // Get enabled bundles only
-  fastify.get(
-    '/enabled',
-    {
-      preHandler: [authenticateToken],
-    },
-    async (_request, reply) => {
-      try {
-        const bundles = await repos.bundle.findEnabled();
-        reply.send({ bundles });
-      } catch (error) {
-        logger.error('Failed to get enabled bundles:', error);
-        reply.code(500).send({ error: 'Failed to get enabled bundles' });
       }
     }
   );
@@ -55,8 +42,14 @@ export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
         const { name } = request.params;
-        const bundle = await repos.bundle.findByName(name);
+        const bundle = bundleManager.get(name);
 
         if (!bundle) {
           reply.code(404).send({ error: 'Bundle not found' });
@@ -71,30 +64,6 @@ export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // Get bundle configuration
-  fastify.get<{ Params: { name: string } }>(
-    '/:name/config',
-    {
-      preHandler: [authenticateToken],
-    },
-    async (request, reply) => {
-      try {
-        const { name } = request.params;
-        const config = await repos.bundle.getConfigByName(name);
-
-        if (!config) {
-          reply.code(404).send({ error: 'Bundle not found' });
-          return;
-        }
-
-        reply.send({ config });
-      } catch (error) {
-        logger.error('Failed to get bundle config:', error);
-        reply.code(500).send({ error: 'Failed to get bundle config' });
-      }
-    }
-  );
-
   // Enable bundle
   fastify.post<{ Params: { name: string } }>(
     '/:name/enable',
@@ -103,12 +72,22 @@ export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
         const { name } = request.params;
-        const bundle = await repos.bundle.enableByName(name);
+        await bundleManager.enable(name);
+
+        const bundle = bundleManager.get(name);
         reply.send({ bundle });
       } catch (error) {
         logger.error('Failed to enable bundle:', error);
-        reply.code(500).send({ error: 'Failed to enable bundle' });
+        reply.code(500).send({
+          error: error instanceof Error ? error.message : 'Failed to enable bundle',
+        });
       }
     }
   );
@@ -121,30 +100,48 @@ export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
         const { name } = request.params;
-        const bundle = await repos.bundle.disableByName(name);
-        reply.send({ bundle });
+        await bundleManager.disable(name);
+
+        reply.send({ success: true });
       } catch (error) {
         logger.error('Failed to disable bundle:', error);
-        reply.code(500).send({ error: 'Failed to disable bundle' });
+        reply.code(500).send({
+          error: error instanceof Error ? error.message : 'Failed to disable bundle',
+        });
       }
     }
   );
 
-  // Delete bundle
-  fastify.delete<{ Params: { name: string } }>(
-    '/:name',
+  // Reload bundle
+  fastify.post<{ Params: { name: string } }>(
+    '/:name/reload',
     {
-      preHandler: [authenticateToken, requireAdmin],
+      preHandler: [authenticateToken, requireOperator],
     },
     async (request, reply) => {
       try {
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
         const { name } = request.params;
-        await repos.bundle.deleteByName(name);
-        reply.send({ success: true });
+        const bundle = await bundleManager.reload(name);
+
+        reply.send({ bundle });
       } catch (error) {
-        logger.error('Failed to delete bundle:', error);
-        reply.code(500).send({ error: 'Failed to delete bundle' });
+        logger.error('Failed to reload bundle:', error);
+        reply.code(500).send({
+          error: error instanceof Error ? error.message : 'Failed to reload bundle',
+        });
       }
     }
   );
@@ -157,11 +154,63 @@ export async function bundleRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (_request, reply) => {
       try {
-        const stats = await repos.bundle.getStatistics();
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
+        const stats = await bundleManager.getStatistics();
         reply.send({ stats });
       } catch (error) {
         logger.error('Failed to get bundle statistics:', error);
         reply.code(500).send({ error: 'Failed to get bundle statistics' });
+      }
+    }
+  );
+
+  // Get dependency tree
+  fastify.get(
+    '/dependencies',
+    {
+      preHandler: [authenticateToken],
+    },
+    async (_request, reply) => {
+      try {
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
+        const tree = await bundleManager.getDependencyTree();
+        reply.send({ dependencies: tree });
+      } catch (error) {
+        logger.error('Failed to get dependency tree:', error);
+        reply.code(500).send({ error: 'Failed to get dependency tree' });
+      }
+    }
+  );
+
+  // Force rediscover bundles
+  fastify.post(
+    '/discover',
+    {
+      preHandler: [authenticateToken, requireOperator],
+    },
+    async (_request, reply) => {
+      try {
+        const bundleManager = getBundleManager();
+        if (!bundleManager) {
+          reply.code(503).send({ error: 'Bundle Manager not available' });
+          return;
+        }
+
+        const discovery = await bundleManager.discoverBundles();
+        reply.send({ discovery });
+      } catch (error) {
+        logger.error('Failed to discover bundles:', error);
+        reply.code(500).send({ error: 'Failed to discover bundles' });
       }
     }
   );

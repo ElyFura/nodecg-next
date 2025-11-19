@@ -28,7 +28,10 @@
     "lint": "eslint src/**/*.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:setup": "prisma generate && prisma db push",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset"
   },
   "keywords": [
     "nodecg",
