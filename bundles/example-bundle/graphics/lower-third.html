@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lower Third - Example Bundle</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    #lower-third {
+      position: absolute;
+      bottom: 100px;
+      left: 50px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px 40px;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      transform: translateX(-150%);
+      transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      max-width: 600px;
+    }
+
+    #lower-third.visible {
+      transform: translateX(0);
+    }
+
+    .name {
+      font-size: 42px;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 8px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .title {
+      font-size: 24px;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.8;
+      }
+    }
+
+    #connection-status {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border-radius: 5px;
+      font-size: 14px;
+      display: none;
+    }
+
+    #connection-status.connected {
+      background: rgba(46, 204, 113, 0.7);
+      display: block;
+    }
+
+    #connection-status.disconnected {
+      background: rgba(231, 76, 60, 0.7);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="connection-status">Disconnected</div>
+
+  <div id="lower-third">
+    <div class="name" id="name">John Doe</div>
+    <div class="title" id="title">Software Engineer</div>
+  </div>
+
+  <script>
+    // Mock NodeCG API for demonstration
+    // In production, this would be replaced with actual NodeCG client
+    const nodecg = window.nodecg || {
+      Replicant: function(name, opts = {}) {
+        const replicant = {
+          value: opts.defaultValue,
+          on: function(event, callback) {
+            console.log(`Listening to ${name}:${event}`);
+            // Store callbacks for later
+            if (!replicant._callbacks) replicant._callbacks = {};
+            if (!replicant._callbacks[event]) replicant._callbacks[event] = [];
+            replicant._callbacks[event].push(callback);
+          }
+        };
+        return replicant;
+      }
+    };
+
+    // Get replicants
+    const currentName = nodecg.Replicant('currentName', { defaultValue: 'John Doe' });
+    const currentTitle = nodecg.Replicant('currentTitle', { defaultValue: 'Software Engineer' });
+    const isVisible = nodecg.Replicant('isVisible', { defaultValue: false });
+
+    // DOM elements
+    const nameElement = document.getElementById('name');
+    const titleElement = document.getElementById('title');
+    const lowerThirdElement = document.getElementById('lower-third');
+    const statusElement = document.getElementById('connection-status');
+
+    // Update name
+    currentName.on('change', (newValue) => {
+      nameElement.textContent = newValue;
+      nameElement.classList.add('pulse');
+      setTimeout(() => nameElement.classList.remove('pulse'), 2000);
+    });
+
+    // Update title
+    currentTitle.on('change', (newValue) => {
+      titleElement.textContent = newValue;
+    });
+
+    // Update visibility
+    isVisible.on('change', (newValue) => {
+      if (newValue) {
+        lowerThirdElement.classList.add('visible');
+      } else {
+        lowerThirdElement.classList.remove('visible');
+      }
+    });
+
+    // Connection status
+    statusElement.textContent = 'Connected';
+    statusElement.className = 'connected';
+
+    // Demo mode: cycle through visibility every 5 seconds
+    let demoMode = true;
+    if (demoMode) {
+      setInterval(() => {
+        isVisible.value = !isVisible.value;
+        // Trigger change event manually for demo
+        if (isVisible._callbacks && isVisible._callbacks.change) {
+          isVisible._callbacks.change.forEach(cb => cb(isVisible.value));
+        }
+      }, 5000);
+
+      // Update values for demo
+      setTimeout(() => {
+        currentName.value = 'Jane Smith';
+        if (currentName._callbacks && currentName._callbacks.change) {
+          currentName._callbacks.change.forEach(cb => cb(currentName.value));
+        }
+      }, 10000);
+
+      setTimeout(() => {
+        currentTitle.value = 'Lead Developer';
+        if (currentTitle._callbacks && currentTitle._callbacks.change) {
+          currentTitle._callbacks.change.forEach(cb => cb(currentTitle.value));
+        }
+      }, 15000);
+    }
+
+    console.log('Lower third graphic loaded');
+    console.log('Replicants initialized:', { currentName, currentTitle, isVisible });
+  </script>
+</body>
+</html>

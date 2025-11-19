@@ -1,0 +1,35 @@
+{
+  "name": "example-bundle",
+  "version": "1.0.0",
+  "description": "Example NodeCG Next bundle demonstrating core features",
+  "author": "NodeCG Team",
+  "license": "MIT",
+  "nodecg": {
+    "compatibleRange": "^3.0.0",
+    "dashboardPanels": [
+      {
+        "name": "control",
+        "title": "Example Control Panel",
+        "width": 2,
+        "file": "control.html"
+      }
+    ],
+    "graphics": [
+      {
+        "file": "lower-third.html",
+        "width": 1920,
+        "height": 1080
+      }
+    ],
+    "assetCategories": [
+      {
+        "name": "images",
+        "title": "Images",
+        "allowedTypes": ["jpg", "jpeg", "png", "gif", "webp"]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "echo 'No build needed for vanilla JS bundle'"
+  }
+}

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Panel - Example Bundle</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background: #5568d3;
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    button.success {
+      background: #28a745;
+    }
+
+    button.success:hover {
+      background: #218838;
+    }
+
+    button.danger {
+      background: #dc3545;
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .status.visible {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.hidden {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    #message-log {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px;
+    }
+
+    .log-entry {
+      padding: 8px;
+      margin-bottom: 5px;
+      background: white;
+      border-left: 3px solid #667eea;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    .log-entry .timestamp {
+      color: #999;
+      font-size: 11px;
+    }
+
+    .log-entry .action {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .preview {
+      background: #000;
+      padding: 10px;
+      border-radius: 4px;
+      color: white;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .connection-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .connection-indicator.connected {
+      background: #28a745;
+    }
+
+    .connection-indicator.disconnected {
+      background: #dc3545;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>
+      <span class="connection-indicator connected"></span>
+      Connection Status
+    </h2>
+    <div id="connection-info">
+      <p>Connected to NodeCG Next</p>
+      <p class="preview">Bundle: example-bundle v1.0.0</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Lower Third Control <span class="status hidden" id="visibility-status">Hidden</span></h2>
+
+    <div class="form-group">
+      <label for="name-input">Name</label>
+      <input type="text" id="name-input" placeholder="Enter name" value="John Doe">
+    </div>
+
+    <div class="form-group">
+      <label for="title-input">Title</label>
+      <input type="text" id="title-input" placeholder="Enter title" value="Software Engineer">
+    </div>
+
+    <div class="button-group">
+      <button id="update-btn" class="success">Update</button>
+      <button id="show-btn" class="success">Show</button>
+      <button id="hide-btn" class="danger">Hide</button>
+      <button id="clear-btn" class="secondary">Clear</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Quick Presets</h2>
+    <div class="button-group">
+      <button onclick="applyPreset('John Doe', 'Software Engineer')">Preset 1</button>
+      <button onclick="applyPreset('Jane Smith', 'Lead Developer')">Preset 2</button>
+      <button onclick="applyPreset('Alex Johnson', 'Product Manager')">Preset 3</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Message Log</h2>
+    <div id="message-log">
+      <p style="color: #999; font-size: 12px;">No messages yet...</p>
+    </div>
+  </div>
+
+  <script>
+    // Mock NodeCG API for demonstration
+    const nodecg = window.nodecg || {
+      Replicant: function(name, opts = {}) {
+        const replicant = {
+          value: opts.defaultValue,
+          on: function(event, callback) {
+            console.log(`Listening to ${name}:${event}`);
+          }
+        };
+        return replicant;
+      }
+    };
+
+    // Get replicants
+    const currentName = nodecg.Replicant('currentName', { defaultValue: 'John Doe' });
+    const currentTitle = nodecg.Replicant('currentTitle', { defaultValue: 'Software Engineer' });
+    const isVisible = nodecg.Replicant('isVisible', { defaultValue: false });
+    const messageLog = nodecg.Replicant('messageLog', { defaultValue: [] });
+
+    // DOM elements
+    const nameInput = document.getElementById('name-input');
+    const titleInput = document.getElementById('title-input');
+    const updateBtn = document.getElementById('update-btn');
+    const showBtn = document.getElementById('show-btn');
+    const hideBtn = document.getElementById('hide-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const visibilityStatus = document.getElementById('visibility-status');
+    const messageLogElement = document.getElementById('message-log');
+
+    // Update inputs from replicants
+    currentName.on('change', (newValue) => {
+      nameInput.value = newValue;
+    });
+
+    currentTitle.on('change', (newValue) => {
+      titleInput.value = newValue;
+    });
+
+    isVisible.on('change', (newValue) => {
+      visibilityStatus.textContent = newValue ? 'Visible' : 'Hidden';
+      visibilityStatus.className = newValue ? 'status visible' : 'status hidden';
+    });
+
+    messageLog.on('change', (newValue) => {
+      updateMessageLog(newValue);
+    });
+
+    // Button handlers
+    updateBtn.addEventListener('click', () => {
+      currentName.value = nameInput.value;
+      currentTitle.value = titleInput.value;
+      addLogMessage('Updated name and title');
+    });
+
+    showBtn.addEventListener('click', () => {
+      isVisible.value = true;
+      addLogMessage('Showed lower third');
+    });
+
+    hideBtn.addEventListener('click', () => {
+      isVisible.value = false;
+      addLogMessage('Hid lower third');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      nameInput.value = '';
+      titleInput.value = '';
+      currentName.value = '';
+      currentTitle.value = '';
+      addLogMessage('Cleared fields');
+    });
+
+    // Preset function
+    function applyPreset(name, title) {
+      nameInput.value = name;
+      titleInput.value = title;
+      currentName.value = name;
+      currentTitle.value = title;
+      addLogMessage(`Applied preset: ${name}`);
+    }
+
+    // Log helpers
+    function addLogMessage(message) {
+      const log = messageLog.value || [];
+      log.push({
+        timestamp: new Date().toISOString(),
+        action: message,
+      });
+
+      if (log.length > 20) {
+        log.shift();
+      }
+
+      messageLog.value = log;
+      updateMessageLog(log);
+    }
+
+    function updateMessageLog(log) {
+      if (!log || log.length === 0) {
+        messageLogElement.innerHTML = '<p style="color: #999; font-size: 12px;">No messages yet...</p>';
+        return;
+      }
+
+      messageLogElement.innerHTML = log.slice().reverse().map(entry => `
+        <div class="log-entry">
+          <span class="timestamp">${new Date(entry.timestamp).toLocaleTimeString()}</span>
+          <span class="action">${entry.action}</span>
+          ${entry.from ? `<br><small>From: "${entry.from}" → To: "${entry.to}"</small>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Initialize
+    console.log('Control panel loaded');
+    console.log('Replicants initialized:', { currentName, currentTitle, isVisible, messageLog });
+
+    // Show initial status
+    addLogMessage('Dashboard loaded');
+  </script>
+</body>
+</html>
