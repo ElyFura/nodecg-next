@@ -213,10 +213,16 @@
       }
 
       subscribe() {
-        this.socket.emit('subscribe', {
+        const data = {
           namespace: this.namespace,
           name: this.name,
-        });
+        };
+        console.log('=== CLIENT SENDING SUBSCRIBE ===');
+        console.log('Data:', data);
+        console.log('Namespace:', this.namespace);
+        console.log('Name:', this.name);
+        console.log('================================');
+        this.socket.emit('subscribe', data);
       }
 
       get value() {
@@ -227,11 +233,18 @@
         const oldValue = this._value;
         this._value = newValue;
 
-        this.socket.emit('set', {
+        const data = {
           namespace: this.namespace,
           name: this.name,
           value: newValue,
-        });
+        };
+        console.log('=== CLIENT SENDING SET ===');
+        console.log('Data:', data);
+        console.log('Namespace:', this.namespace);
+        console.log('Name:', this.name);
+        console.log('Value:', newValue);
+        console.log('===========================');
+        this.socket.emit('set', data);
 
         this.notifyListeners(newValue, oldValue);
       }

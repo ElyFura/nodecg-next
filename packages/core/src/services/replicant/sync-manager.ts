@@ -58,6 +58,15 @@ export class SyncManager {
 
       // Handle subscribe requests
       socket.on('subscribe', async (data: { namespace: string; name: string }) => {
+        // Debug logging - see exactly what we receive
+        console.log('=== SUBSCRIBE EVENT DEBUG ===');
+        console.log('Raw data:', data);
+        console.log('Data type:', typeof data);
+        console.log('Data constructor:', data?.constructor?.name);
+        console.log('Data keys:', data ? Object.keys(data) : 'null/undefined');
+        console.log('Data JSON:', JSON.stringify(data));
+        console.log('============================');
+
         try {
           // Validate data
           if (!data || typeof data !== 'object') {
@@ -112,6 +121,15 @@ export class SyncManager {
 
       // Handle set requests (client wants to update replicant)
       socket.on('set', async (data: { namespace: string; name: string; value: unknown }) => {
+        // Debug logging - see exactly what we receive
+        console.log('=== SET EVENT DEBUG ===');
+        console.log('Raw data:', data);
+        console.log('Data type:', typeof data);
+        console.log('Data constructor:', data?.constructor?.name);
+        console.log('Data keys:', data ? Object.keys(data) : 'null/undefined');
+        console.log('Data JSON:', JSON.stringify(data));
+        console.log('=======================');
+
         try {
           // Validate data
           if (!data || typeof data !== 'object') {
