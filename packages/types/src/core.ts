@@ -48,6 +48,11 @@ export interface NodeCGConfig {
     accessKeyId?: string;
     secretAccessKey?: string;
   };
+  /** Bundle configuration */
+  bundles?: {
+    dir?: string;
+    hotReload?: boolean;
+  };
 }
 
 export interface NodeCGServer {

@@ -30,11 +30,18 @@ export class BundleManager extends BaseService implements IBundleManager {
   private bundlesDir: string;
   private enableHotReload: boolean;
   private repository: BundleRepository;
+  // eslint-disable-next-line no-undef
   private watchers: Map<string, AbortController> = new Map();
 
   constructor(options: BundleManagerOptions = {}) {
     super('BundleManager', options);
-    this.bundlesDir = options.bundlesDir || join(process.cwd(), 'bundles');
+
+    // Find the project root (go up from packages/core to project root)
+    const projectRoot = process.cwd().includes('/packages/')
+      ? join(process.cwd(), '../..')
+      : process.cwd();
+
+    this.bundlesDir = options.bundlesDir || join(projectRoot, 'bundles');
     this.enableHotReload = options.enableHotReload ?? true;
     this.repository = getRepositories(this.logger).bundle;
   }
@@ -44,11 +51,20 @@ export class BundleManager extends BaseService implements IBundleManager {
    */
   protected async onInitialize(): Promise<void> {
     this.logger.info(`Bundle directory: ${this.bundlesDir}`);
+    this.logger.info(`Current working directory: ${process.cwd()}`);
     this.logger.info(`Hot reload: ${this.enableHotReload ? 'enabled' : 'disabled'}`);
 
     // Discover and load bundles
-    await this.discoverBundles();
-    await this.loadEnabledBundles();
+    const discovered = await this.discoverBundles();
+
+    // Load all discovered bundles
+    for (const bundleName of discovered) {
+      try {
+        await this.load(bundleName);
+      } catch (error) {
+        this.logger.error(`Failed to load bundle ${bundleName}:`, error);
+      }
+    }
 
     // Start hot reload watchers if enabled
     if (this.enableHotReload) {
@@ -84,8 +100,6 @@ export class BundleManager extends BaseService implements IBundleManager {
    * Discover bundles in the bundles directory
    */
   async discoverBundles(): Promise<string[]> {
-    this.assertInitialized();
-
     try {
       const entries = await readdir(this.bundlesDir, { withFileTypes: true });
       const discovered: string[] = [];
@@ -123,6 +137,7 @@ export class BundleManager extends BaseService implements IBundleManager {
 
       return discovered;
     } catch (error) {
+      // eslint-disable-next-line no-undef
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         this.logger.warn(`Bundles directory does not exist: ${this.bundlesDir}`);
         return [];
@@ -150,10 +165,7 @@ export class BundleManager extends BaseService implements IBundleManager {
     }
 
     if (!packageJson.nodecg) {
-      throw new NodeCGError(
-        ErrorCodes.BUNDLE_INVALID_CONFIG,
-        'NodeCG configuration is required'
-      );
+      throw new NodeCGError(ErrorCodes.BUNDLE_INVALID_CONFIG, 'NodeCG configuration is required');
     }
 
     return {
@@ -187,8 +199,6 @@ export class BundleManager extends BaseService implements IBundleManager {
    * Load a bundle
    */
   async load(bundleName: string): Promise<Bundle> {
-    this.assertInitialized();
-
     // Check if already loaded
     if (this.bundles.has(bundleName)) {
       this.logger.warn(`Bundle ${bundleName} is already loaded`);
@@ -196,21 +206,27 @@ export class BundleManager extends BaseService implements IBundleManager {
     }
 
     try {
-      // Get bundle from database
-      const dbBundle = await this.repository.findByName(bundleName);
-      if (!dbBundle) {
-        throw new NodeCGError(ErrorCodes.BUNDLE_NOT_FOUND, `Bundle ${bundleName} not found`);
-      }
-
-      if (!dbBundle.enabled) {
-        throw new NodeCGError(
-          ErrorCodes.BUNDLE_DISABLED,
-          `Bundle ${bundleName} is disabled`
-        );
-      }
-
-      const config = JSON.parse(dbBundle.config) as BundleConfig;
       const bundleDir = join(this.bundlesDir, bundleName);
+
+      // Try to get bundle config from database, fallback to filesystem
+      let config: BundleConfig;
+      try {
+        const dbBundle = await this.repository.findByName(bundleName);
+        if (dbBundle && !dbBundle.enabled) {
+          throw new NodeCGError(ErrorCodes.BUNDLE_DISABLED, `Bundle ${bundleName} is disabled`);
+        }
+        if (dbBundle) {
+          config = JSON.parse(dbBundle.config) as BundleConfig;
+        } else {
+          // Fallback: read directly from filesystem
+          this.logger.debug(`Bundle ${bundleName} not in database, loading from filesystem`);
+          config = await this.readBundleConfig(join(bundleDir, 'package.json'));
+        }
+      } catch (error) {
+        // If database error, fallback to filesystem
+        this.logger.debug(`Database error for ${bundleName}, loading from filesystem:`, error);
+        config = await this.readBundleConfig(join(bundleDir, 'package.json'));
+      }
 
       // Check dependencies
       const dependencies = await this.resolveDependencies(config);
@@ -230,7 +246,7 @@ export class BundleManager extends BaseService implements IBundleManager {
         // Dynamic import for extension
         extension = await import(extensionPath);
         this.logger.debug(`Loaded extension for bundle: ${bundleName}`);
-      } catch (error) {
+      } catch {
         // Extension is optional
         this.logger.debug(`No extension found for bundle: ${bundleName}`);
       }
@@ -288,8 +304,8 @@ export class BundleManager extends BaseService implements IBundleManager {
       // Cleanup extension if exists
       if (bundle.extension) {
         // Call cleanup function if available
-        if (typeof (bundle.extension as any).stop === 'function') {
-          await (bundle.extension as any).stop();
+        if (typeof (bundle.extension as Record<string, unknown>).stop === 'function') {
+          await (bundle.extension as Record<string, () => Promise<void>>).stop();
         }
       }
 
@@ -428,6 +444,7 @@ export class BundleManager extends BaseService implements IBundleManager {
    * Watch a bundle for changes
    */
   private async watchBundle(bundleName: string, bundleDir: string): Promise<void> {
+    // eslint-disable-next-line no-undef
     const controller = new AbortController();
     this.watchers.set(bundleName, controller);
 
@@ -444,6 +461,7 @@ export class BundleManager extends BaseService implements IBundleManager {
             this.logger.debug(`File changed in ${bundleName}: ${event.filename}`);
 
             // Debounce reload (wait 500ms for more changes)
+            // eslint-disable-next-line no-undef
             setTimeout(() => {
               this.reload(bundleName).catch((error) => {
                 this.logger.error(`Hot reload failed for ${bundleName}:`, error);

@@ -12,6 +12,8 @@ import { registerMiddleware } from './middleware';
 import { registerRoutes } from './routes';
 import { setupWebSocket, closeWebSocket } from './websocket';
 import { getEventBus, Events } from '../utils/event-bus';
+import { BundleManager } from '../services/bundle';
+import { ServiceRegistry } from '../services/base.service';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
@@ -19,6 +21,8 @@ export class NodeCGServerImpl implements NodeCGServer {
   private logger: Logger;
   private started: boolean = false;
   private eventBus = getEventBus();
+  private serviceRegistry: ServiceRegistry;
+  private bundleManager: BundleManager;
 
   constructor(config: NodeCGConfig) {
     this.config = config;
@@ -40,6 +44,23 @@ export class NodeCGServerImpl implements NodeCGServer {
       trustProxy: true,
       disableRequestLogging: false,
     });
+
+    // Initialize service registry
+    this.serviceRegistry = new ServiceRegistry(this.logger);
+
+    // Initialize Bundle Manager
+    this.bundleManager = new BundleManager({
+      bundlesDir: config.bundles?.dir, // Let constructor handle default
+      enableHotReload: config.bundles?.hotReload !== false,
+      logger: this.logger,
+      config: this.config,
+    });
+
+    // Register Bundle Manager in service registry
+    this.serviceRegistry.register(this.bundleManager);
+
+    // Make bundle manager available to routes via fastify decorator
+    this.fastify.decorate('bundleManager', this.bundleManager);
   }
 
   async start(): Promise<void> {
@@ -49,6 +70,10 @@ export class NodeCGServerImpl implements NodeCGServer {
 
     try {
       this.logger.info('Starting NodeCG Next server...');
+
+      // Initialize services first
+      this.logger.info('Initializing services...');
+      await this.serviceRegistry.initializeAll();
 
       // Register plugins and middleware
       await this.registerPlugins();
@@ -65,9 +90,12 @@ export class NodeCGServerImpl implements NodeCGServer {
       await setupWebSocket(this.fastify, this.config);
 
       this.started = true;
+
+      const stats = this.bundleManager.getStatistics();
       this.logger.info(
         `NodeCG Next server started on http://${this.config.host}:${this.config.port}`
       );
+      this.logger.info(`Loaded ${stats.loaded} bundle(s)`);
 
       // Emit server started event
       this.eventBus.emit(Events.SERVER_STARTED, {
@@ -95,7 +123,11 @@ export class NodeCGServerImpl implements NodeCGServer {
         timestamp: new Date().toISOString(),
       });
 
-      // Close WebSocket connections first
+      // Shutdown services first
+      this.logger.info('Shutting down services...');
+      await this.serviceRegistry.shutdownAll();
+
+      // Close WebSocket connections
       await closeWebSocket();
 
       // Then close Fastify server
@@ -120,6 +152,10 @@ export class NodeCGServerImpl implements NodeCGServer {
 
   getFastify(): FastifyInstance {
     return this.fastify;
+  }
+
+  getBundleManager(): BundleManager {
+    return this.bundleManager;
   }
 
   private async registerPlugins(): Promise<void> {
