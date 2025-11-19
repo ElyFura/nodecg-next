@@ -10,6 +10,7 @@ import { setupNamespaces } from '../gateway/websocket/namespaces';
 import { RoomManager } from '../gateway/websocket/rooms';
 import { createLogger } from '../utils/logger';
 import { ReplicantService, SyncManager } from '../services/replicant';
+import { BundleManager } from '../services/bundle';
 import { getEventBus } from '../utils/event-bus';
 import { getPrismaClient } from '../database/client';
 
@@ -19,6 +20,7 @@ let io: SocketIOServer | null = null;
 let roomManager: RoomManager | null = null;
 let replicantService: ReplicantService | null = null;
 let syncManager: SyncManager | null = null;
+let bundleManager: BundleManager | null = null;
 
 /**
  * Setup WebSocket server with Socket.IO
@@ -51,11 +53,12 @@ export async function setupWebSocket(
   // Setup all namespaces (dashboard, graphics, extension)
   roomManager = setupNamespaces(io);
 
-  // Initialize Replicant Service
+  // Initialize core services
   try {
     const prisma = getPrismaClient(logger);
     const eventBus = getEventBus();
 
+    // Initialize Replicant Service
     replicantService = new ReplicantService(prisma, config, logger, eventBus);
     await replicantService.initialize();
 
@@ -65,8 +68,14 @@ export async function setupWebSocket(
     syncManager = new SyncManager(replicantService, io, logger, eventBus);
 
     logger.info('Replicant Sync Manager initialized');
+
+    // Initialize Bundle Manager
+    bundleManager = new BundleManager(prisma, config, logger, eventBus);
+    await bundleManager.initialize();
+
+    logger.info('Bundle Manager initialized');
   } catch (error) {
-    logger.error('Failed to initialize Replicant services:', error);
+    logger.error('Failed to initialize services:', error);
     throw error;
   }
 
@@ -115,11 +124,27 @@ export function getSyncManager(): SyncManager | null {
 }
 
 /**
+ * Get Bundle Manager instance
+ */
+export function getBundleManager(): BundleManager | null {
+  return bundleManager;
+}
+
+/**
  * Close WebSocket server
  */
 export async function closeWebSocket(): Promise<void> {
   if (io) {
     logger.info('Closing WebSocket server...');
+
+    // Shutdown services in reverse order of initialization
+
+    // Shutdown Bundle Manager
+    if (bundleManager) {
+      await bundleManager.shutdown();
+      bundleManager = null;
+      logger.info('Bundle Manager shut down');
+    }
 
     // Shutdown Replicant services
     if (syncManager) {
