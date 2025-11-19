@@ -183,21 +183,6 @@ export class BundleManager extends BaseService implements IBundleManager {
   }
 
   /**
-   * Load all enabled bundles
-   */
-  private async loadEnabledBundles(): Promise<void> {
-    const enabledBundles = await this.repository.findEnabled();
-
-    for (const dbBundle of enabledBundles) {
-      try {
-        await this.load(dbBundle.name);
-      } catch (error) {
-        this.logger.error(`Failed to load bundle ${dbBundle.name}:`, error);
-      }
-    }
-  }
-
-  /**
    * Load a bundle
    */
   async load(bundleName: string): Promise<Bundle> {
@@ -306,8 +291,9 @@ export class BundleManager extends BaseService implements IBundleManager {
       // Cleanup extension if exists
       if (bundle.extension) {
         // Call cleanup function if available
-        if (typeof (bundle.extension as Record<string, unknown>).stop === 'function') {
-          await (bundle.extension as Record<string, () => Promise<void>>).stop();
+        const ext = bundle.extension as Record<string, unknown>;
+        if (typeof ext.stop === 'function') {
+          await (ext.stop as () => Promise<void>)();
         }
       }
 

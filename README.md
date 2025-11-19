@@ -7,7 +7,7 @@
 
 ## 🚀 Project Status
 
-**Current Phase:** Phase 2 - Replicant System V2 (In Progress)
+**Current Phase:** Phase 3 Complete - Preparing for Phase 4  
 **Completed Phases:** Phase 1 ✅ Core Foundation | Phase 3 ✅ Bundle System
 
 NodeCG Next is a complete ground-up rewrite of NodeCG, designed for modern web standards and professional broadcast workflows. Phases 1 and 3 are complete with full implementation, tests, and documentation.
@@ -17,12 +17,13 @@ NodeCG Next is a complete ground-up rewrite of NodeCG, designed for modern web s
 - 🎯 **100% TypeScript** - Complete type safety across the entire stack
 - ⚡ **Lightning Fast** - Fastify server with <3s startup time
 - 🔄 **Real-time Sync** - Socket.IO with <10ms replicant updates
-- 🎨 **Modern UI** - React 18 dashboard with shadcn/ui components
+- 🎨 **Modern Dashboard** - Beautiful web interface displaying all bundle panels
+- 📦 **Bundle System** - Full bundle lifecycle with hot reload support
 - 🐳 **Cloud Native** - Docker and Kubernetes ready out of the box
-- 🔒 **Enterprise Security** - OAuth2, RBAC, and audit logging
-- 📊 **GraphQL API** - Flexible queries and real-time subscriptions
-- 🔌 **Plugin System** - Extend functionality without touching core
-- 📈 **Observable** - OpenTelemetry, Prometheus, and Grafana integration
+- 🔒 **Enterprise Security** - OAuth2, RBAC, and audit logging (planned)
+- 📊 **GraphQL API** - Flexible queries and real-time subscriptions (planned)
+- 🔌 **Plugin System** - Extend functionality without touching core (planned)
+- 📈 **Observable** - OpenTelemetry, Prometheus, and Grafana integration (planned)
 
 ## 📋 Architecture
 
@@ -33,19 +34,19 @@ NodeCG Next is built as a monorepo using modern tooling:
 - **Database:** PostgreSQL (production) / SQLite (development)
 - **Cache:** Redis 7
 - **Message Queue:** RabbitMQ
-- **Frontend:** React 18 + Vite + TanStack
+- **Frontend:** React 18 + Vite + TanStack (Phase 5)
 - **Testing:** Vitest + Playwright
 
 ### Package Structure
 
-```
+\`\`\`
 packages/
-├── core/          # Core server implementation
-├── types/         # Shared TypeScript types
-├── client/        # Client library for graphics/dashboard
-├── cli/           # CLI tools for bundle development
-└── dashboard/     # React dashboard UI
-```
+├── core/ # Core server implementation
+├── types/ # Shared TypeScript types
+├── client/ # Client library for graphics/dashboard
+├── cli/ # CLI tools for bundle development
+└── dashboard/ # React dashboard UI (Phase 5)
+\`\`\`
 
 ## 🛠️ Development Setup
 
@@ -59,95 +60,145 @@ packages/
 
 1. **Clone the repository:**
 
-```bash
+\`\`\`bash
 git clone https://github.com/ElyFura/nodecg-next.git
 cd nodecg-next
-```
+\`\`\`
 
 2. **Install dependencies:**
 
-```bash
+\`\`\`bash
 pnpm install
-```
+\`\`\`
 
 3. **Set up environment variables:**
 
-```bash
+\`\`\`bash
 cp .env.example .env
+
 # Edit .env with your configuration
-```
+
+\`\`\`
 
 4. **Start with Docker (recommended):**
 
-```bash
+\`\`\`bash
 docker-compose up -d
-```
+\`\`\`
 
 Or **start development services manually:**
 
-```bash
+\`\`\`bash
+
 # Terminal 1: Start PostgreSQL, Redis, RabbitMQ
+
 docker-compose up -d postgres redis rabbitmq
 
 # Terminal 2: Run Prisma migrations
+
 cd packages/core
 pnpm prisma:generate
 pnpm prisma migrate dev
 
 # Terminal 3: Start development server
-pnpm dev
-```
+
+pnpm --filter @nodecg/core dev
+\`\`\`
 
 5. **Access the application:**
 
-- NodeCG Server: http://localhost:3000
-- Health Check: http://localhost:3000/health
-- RabbitMQ Management: http://localhost:15672 (nodecg/nodecg)
-- MinIO Console: http://localhost:9001 (nodecg/nodecg123)
+- **NodeCG Dashboard:** http://localhost:3000 (displays all bundle panels)
+- **System Status:** http://localhost:3000/status
+- **Bundle Panels API:** http://localhost:3000/bundles/panels
+- **Bundle Graphics API:** http://localhost:3000/bundles/graphics
+- **Health Check:** http://localhost:3000/health
+- **RabbitMQ Management:** http://localhost:15672 (nodecg/nodecg)
+- **MinIO Console:** http://localhost:9001 (nodecg/nodecg123)
+
+### Creating Your First Bundle
+
+\`\`\`bash
+
+# Using the CLI (after building)
+
+pnpm build
+cd packages/cli
+node dist/cli.js create my-bundle --template react
+
+# Or manually create a bundle
+
+mkdir -p bundles/my-bundle
+cd bundles/my-bundle
+
+# Add package.json with nodecg configuration
+
+\`\`\`
+
+Example bundle structure:
+\`\`\`
+bundles/my-bundle/
+├── package.json # Bundle configuration
+├── extension/ # Server-side logic
+│ └── index.js
+├── dashboard/ # Control panels
+│ └── panel.html
+└── graphics/ # Graphics overlays
+└── graphic.html
+\`\`\`
 
 ## 📦 Available Scripts
 
-```bash
+\`\`\`bash
+
 # Development
-pnpm dev              # Start all packages in watch mode
-pnpm build            # Build all packages
-pnpm test             # Run all tests
-pnpm test:watch       # Run tests in watch mode
+
+pnpm dev # Start all packages in watch mode
+pnpm build # Build all packages
+pnpm test # Run all tests
+pnpm test:watch # Run tests in watch mode
 
 # Code Quality
-pnpm lint             # Run ESLint
-pnpm format           # Format code with Prettier
-pnpm format:check     # Check code formatting
-pnpm typecheck        # Run TypeScript type checking
+
+pnpm lint # Run ESLint
+pnpm format # Format code with Prettier
+pnpm format:check # Check code formatting
+pnpm typecheck # Run TypeScript type checking
 
 # Database
-pnpm prisma:generate  # Generate Prisma client
-pnpm prisma:migrate   # Run database migrations
-pnpm prisma:studio    # Open Prisma Studio
+
+pnpm prisma:generate # Generate Prisma client
+pnpm prisma:migrate # Run database migrations
+pnpm prisma:studio # Open Prisma Studio
 
 # Cleanup
-pnpm clean            # Remove all build artifacts
-```
+
+pnpm clean # Remove all build artifacts
+\`\`\`
 
 ## 🧪 Testing
 
-```bash
+\`\`\`bash
+
 # Run all tests
+
 pnpm test
 
 # Run tests in watch mode
+
 pnpm test:watch
 
 # Run tests with coverage
+
 pnpm test:coverage
 
 # Run specific package tests
+
 pnpm --filter @nodecg/core test
-```
+\`\`\`
 
 ## 📚 Documentation
 
-Full documentation is available in the `/docs` directory:
+Full documentation is available in the \`/docs\` directory:
 
 - [Architecture Design](docs/01_ARCHITECTURE_DESIGN.md)
 - [Development Phases](docs/02_DEVELOPMENT_PHASES.md)
@@ -159,36 +210,98 @@ Full documentation is available in the `/docs` directory:
 ### Phase 1: Core Foundation ✅ (Completed)
 
 - ✅ Monorepo setup with Turborepo
-- ✅ TypeScript configuration
-- ✅ Fastify server with health checks
+- ✅ TypeScript configuration (strict mode)
+- ✅ Fastify server with middleware pipeline
 - ✅ Prisma ORM with PostgreSQL schema
-- ✅ Socket.IO WebSocket server
+- ✅ Socket.IO WebSocket server (3 namespaces: dashboard, graphics, extension)
 - ✅ Docker development environment
 - ✅ Event Bus implementation
-- ✅ Configuration loader
-- ✅ Error handling system
+- ✅ Configuration loader with Zod validation
+- ✅ Error handling system with custom error classes
 - ✅ Validation middleware
-- ✅ Base service architecture
+- ✅ Base service architecture with lifecycle management
+- ✅ Health check endpoints
+- ✅ Logger with Pino
 
-### Phase 2: Replicant System V2 (In Progress - Months 2-4)
+### Phase 2: Replicant System V2 (Planned - Months 2-4)
 
 - ⏳ Type-safe Replicant API
-- ⏳ Client-server synchronization
+- ⏳ Client-server synchronization with delta updates
 - ⏳ Schema validation with Zod
+- ⏳ Persistence layer with versioning
 - ⏳ React/Vue/Svelte hooks
+- ⏳ Performance optimization (<10ms latency)
 
 ### Phase 3: Bundle System ✅ (Completed)
 
+#### 3.1 Bundle Manager ✅
+
 - ✅ Bundle Manager Service with lifecycle management
-- ✅ Bundle discovery and dependency resolution
-- ✅ Hot Module Replacement
-- ✅ CLI tool (create, dev, build commands)
-- ✅ Bundle templates (React, Vue, Minimal TS/JS)
-- ✅ Asset Upload Handler with S3/MinIO integration
+- ✅ Bundle discovery from filesystem
+- ✅ Dependency resolution
+- ✅ Hot Module Replacement with file watching
+- ✅ Bundle enable/disable functionality
+- ✅ Extension loading support
+- ✅ Windows and Unix path support
+
+#### 3.2 CLI Tool ✅
+
+- ✅ \`create\` command with interactive prompts
+- ✅ 4 bundle templates:
+  - React + TypeScript
+  - Vue + TypeScript
+  - Minimal TypeScript
+  - Minimal JavaScript
+- ✅ \`dev\` command with Vite HMR
+- ✅ \`build\` command for production
+
+#### 3.3 Asset Management ✅
+
+- ✅ Asset Upload Handler
+- ✅ S3/MinIO integration
 - ✅ Image processing with Sharp
+- ✅ Thumbnail generation
+- ✅ Multiple storage backends
+
+#### 3.4 Dashboard Interface ✅
+
+- ✅ Modern web dashboard at root (/)
+- ✅ Displays all bundle panels in grid layout
+- ✅ Panel iframes with proper sandboxing
+- ✅ System status page at /status
+- ✅ Bundle content serving routes
+- ✅ Responsive design with panel width support
+- ✅ Auto-refresh for new bundles
+
+#### 3.5 Testing & Documentation ✅
+
 - ✅ Comprehensive test suite (>80% coverage)
+- ✅ Unit tests for Bundle Manager
+- ✅ Integration tests
+- ✅ Example bundle demonstrating features
+- ✅ TypeScript strict mode compliance
 
 ### Phase 4-10: See [Development Phases](docs/02_DEVELOPMENT_PHASES.md)
+
+**Next Up:** Phase 4 - Authentication & Authorization
+
+- JWT token system
+- OAuth2 provider integration
+- RBAC implementation
+- Audit logging
+
+## 🎮 Example Bundle
+
+An example bundle is included in \`bundles/example-bundle/\` demonstrating:
+
+- Server-side extension with replicants
+- Dashboard control panel
+- Animated graphic overlay (1920x1080)
+- Replicant usage for state management
+- Message logging system
+- Demo mode for standalone testing
+
+Start the server and visit http://localhost:3000 to see the example bundle's control panel in action!
 
 ## 🤝 Contributing
 
@@ -197,12 +310,24 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Workflow
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a feature branch (\`git checkout -b feature/amazing-feature\`)
 3. Make your changes
-4. Run tests and linting (`pnpm test && pnpm lint`)
-5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
+4. Run tests and linting (\`pnpm test && pnpm lint\`)
+5. Commit your changes (\`git commit -m 'feat: add amazing feature'\`)
+6. Push to the branch (\`git push origin feature/amazing-feature\`)
 7. Open a Pull Request
+
+### Commit Convention
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+- \`feat:\` - New features
+- \`fix:\` - Bug fixes
+- \`docs:\` - Documentation changes
+- \`style:\` - Code style changes (formatting, etc.)
+- \`refactor:\` - Code refactoring
+- \`test:\` - Test additions or changes
+- \`chore:\` - Build process or auxiliary tool changes
 
 ## 📝 License
 
