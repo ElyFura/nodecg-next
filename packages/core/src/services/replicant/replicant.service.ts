@@ -4,9 +4,16 @@
  */
 
 import { EventEmitter } from 'events';
-import type { Redis } from 'ioredis';
 import type { ZodSchema } from 'zod';
 import { ReplicantRepository } from '../../database/repositories/replicant.repository.js';
+
+// Redis-like interface for caching (supports both ioredis and mock implementations)
+export interface RedisLike {
+  get(key: string): Promise<string | null>;
+  setex(key: string, seconds: number, value: string): Promise<'OK'>;
+  del(...keys: string[]): Promise<number>;
+  keys(pattern: string): Promise<string[]>;
+}
 
 export interface ReplicantOptions<T = unknown> {
   defaultValue?: T;
@@ -27,11 +34,11 @@ export interface ReplicantValue<T = unknown> {
  */
 export class ReplicantService extends EventEmitter {
   private repository: ReplicantRepository;
-  private redis: Redis;
+  private redis: RedisLike;
   private schemas: Map<string, ZodSchema> = new Map();
   private subscriptions: Map<string, Set<string>> = new Map(); // key -> Set<clientId>
 
-  constructor(repository: ReplicantRepository, redis: Redis) {
+  constructor(repository: ReplicantRepository, redis: RedisLike) {
     super();
     this.repository = repository;
     this.redis = redis;
@@ -121,12 +128,12 @@ export class ReplicantService extends EventEmitter {
       replicant = await this.repository.create({
         namespace,
         name,
-        value: validatedValue as any,
+        value: validatedValue as unknown,
       });
     } else {
       // Update existing replicant (we know replicant is not null here)
       replicant = await this.repository.update(replicant!.id, {
-        value: validatedValue as any,
+        value: validatedValue as unknown,
       });
     }
 
