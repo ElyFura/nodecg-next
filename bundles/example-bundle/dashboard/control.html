@@ -73,14 +73,6 @@
       background: #5568d3;
     }
 
-    button.secondary {
-      background: #6c757d;
-    }
-
-    button.secondary:hover {
-      background: #5a6268;
-    }
-
     button.success {
       background: #28a745;
     }
@@ -122,50 +114,12 @@
       color: #721c24;
     }
 
-    #message-log {
-      max-height: 200px;
-      overflow-y: auto;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
-      padding: 10px;
-    }
-
-    .log-entry {
-      padding: 8px;
-      margin-bottom: 5px;
-      background: white;
-      border-left: 3px solid #667eea;
-      border-radius: 3px;
-      font-size: 12px;
-    }
-
-    .log-entry .timestamp {
-      color: #999;
-      font-size: 11px;
-    }
-
-    .log-entry .action {
-      font-weight: 600;
-      color: #667eea;
-    }
-
-    .preview {
-      background: #000;
-      padding: 10px;
-      border-radius: 4px;
-      color: white;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-
     .connection-indicator {
       display: inline-block;
       width: 10px;
       height: 10px;
       border-radius: 50%;
       margin-right: 8px;
-      animation: pulse 2s ease-in-out infinite;
     }
 
     .connection-indicator.connected {
@@ -175,23 +129,14 @@
     .connection-indicator.disconnected {
       background: #dc3545;
     }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
   </style>
 </head>
 <body>
   <div class="panel">
     <h2>
-      <span class="connection-indicator connected"></span>
-      Connection Status
+      <span class="connection-indicator" id="connection-indicator"></span>
+      <span id="connection-text">Connecting...</span>
     </h2>
-    <div id="connection-info">
-      <p>Connected to NodeCG Next</p>
-      <p class="preview">Bundle: example-bundle v1.0.0</p>
-    </div>
   </div>
 
   <div class="panel">
@@ -199,57 +144,128 @@
 
     <div class="form-group">
       <label for="name-input">Name</label>
-      <input type="text" id="name-input" placeholder="Enter name" value="John Doe">
+      <input type="text" id="name-input" placeholder="Enter name" value="">
     </div>
 
     <div class="form-group">
       <label for="title-input">Title</label>
-      <input type="text" id="title-input" placeholder="Enter title" value="Software Engineer">
+      <input type="text" id="title-input" placeholder="Enter title" value="">
     </div>
 
     <div class="button-group">
       <button id="update-btn" class="success">Update</button>
       <button id="show-btn" class="success">Show</button>
       <button id="hide-btn" class="danger">Hide</button>
-      <button id="clear-btn" class="secondary">Clear</button>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Quick Presets</h2>
-    <div class="button-group">
-      <button onclick="applyPreset('John Doe', 'Software Engineer')">Preset 1</button>
-      <button onclick="applyPreset('Jane Smith', 'Lead Developer')">Preset 2</button>
-      <button onclick="applyPreset('Alex Johnson', 'Product Manager')">Preset 3</button>
-    </div>
-  </div>
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
-  <div class="panel">
-    <h2>Message Log</h2>
-    <div id="message-log">
-      <p style="color: #999; font-size: 12px;">No messages yet...</p>
-    </div>
-  </div>
+  <script type="module">
+    // Simple Replicant Client (inline for now)
+    class Replicant {
+      constructor(name, options = {}) {
+        this.name = name;
+        this.namespace = options.namespace || 'default';
+        this.defaultValue = options.defaultValue;
+        this._value = this.defaultValue;
+        this.listeners = new Set();
+        this.socket = io('/replicants', {
+          path: '/socket.io',
+          transports: ['websocket', 'polling'],
+        });
 
-  <script>
-    // Mock NodeCG API for demonstration
-    const nodecg = window.nodecg || {
-      Replicant: function(name, opts = {}) {
-        const replicant = {
-          value: opts.defaultValue,
-          on: function(event, callback) {
-            console.log(`Listening to ${name}:${event}`);
-          }
-        };
-        return replicant;
+        this.setupSocket();
+        this.subscribe();
       }
-    };
 
-    // Get replicants
-    const currentName = nodecg.Replicant('currentName', { defaultValue: 'John Doe' });
-    const currentTitle = nodecg.Replicant('currentTitle', { defaultValue: 'Software Engineer' });
-    const isVisible = nodecg.Replicant('isVisible', { defaultValue: false });
-    const messageLog = nodecg.Replicant('messageLog', { defaultValue: [] });
+      setupSocket() {
+        this.socket.on('initial', (data) => {
+          if (data.namespace === this.namespace && data.name === this.name) {
+            const newValue = data.value ?? this.defaultValue;
+            const oldValue = this._value;
+            this._value = newValue;
+            this.notifyListeners(newValue, oldValue);
+          }
+        });
+
+        this.socket.on('change', (data) => {
+          if (data.namespace === this.namespace && data.name === this.name) {
+            const oldValue = this._value;
+            this._value = data.value ?? this.defaultValue;
+            this.notifyListeners(this._value, oldValue);
+          }
+        });
+
+        this.socket.on('connect', () => {
+          console.log('Connected to replicants namespace');
+          document.getElementById('connection-indicator').className = 'connection-indicator connected';
+          document.getElementById('connection-text').textContent = 'Connected';
+          this.subscribe();
+        });
+
+        this.socket.on('disconnect', () => {
+          console.log('Disconnected from replicants namespace');
+          document.getElementById('connection-indicator').className = 'connection-indicator disconnected';
+          document.getElementById('connection-text').textContent = 'Disconnected';
+        });
+      }
+
+      subscribe() {
+        this.socket.emit('subscribe', {
+          namespace: this.namespace,
+          name: this.name,
+        });
+      }
+
+      get value() {
+        return this._value ?? this.defaultValue;
+      }
+
+      set value(newValue) {
+        const oldValue = this._value;
+        this._value = newValue;
+
+        this.socket.emit('set', {
+          namespace: this.namespace,
+          name: this.name,
+          value: newValue,
+        });
+
+        this.notifyListeners(newValue, oldValue);
+      }
+
+      on(callback) {
+        this.listeners.add(callback);
+      }
+
+      notifyListeners(newValue, oldValue) {
+        for (const listener of this.listeners) {
+          try {
+            listener(newValue, oldValue);
+          } catch (error) {
+            console.error('Error in replicant listener:', error);
+          }
+        }
+      }
+    }
+
+    // Initialize replicants
+    const currentName = new Replicant('currentName', {
+      namespace: 'example-bundle',
+      defaultValue: 'John Doe'
+    });
+
+    const currentTitle = new Replicant('currentTitle', {
+      namespace: 'example-bundle',
+      defaultValue: 'Software Engineer'
+    });
+
+    const isVisible = new Replicant('isVisible', {
+      namespace: 'example-bundle',
+      defaultValue: false
+    });
 
     // DOM elements
     const nameInput = document.getElementById('name-input');
@@ -257,99 +273,40 @@
     const updateBtn = document.getElementById('update-btn');
     const showBtn = document.getElementById('show-btn');
     const hideBtn = document.getElementById('hide-btn');
-    const clearBtn = document.getElementById('clear-btn');
     const visibilityStatus = document.getElementById('visibility-status');
-    const messageLogElement = document.getElementById('message-log');
 
     // Update inputs from replicants
-    currentName.on('change', (newValue) => {
-      nameInput.value = newValue;
+    currentName.on((newValue) => {
+      nameInput.value = newValue || '';
     });
 
-    currentTitle.on('change', (newValue) => {
-      titleInput.value = newValue;
+    currentTitle.on((newValue) => {
+      titleInput.value = newValue || '';
     });
 
-    isVisible.on('change', (newValue) => {
+    isVisible.on((newValue) => {
       visibilityStatus.textContent = newValue ? 'Visible' : 'Hidden';
       visibilityStatus.className = newValue ? 'status visible' : 'status hidden';
-    });
-
-    messageLog.on('change', (newValue) => {
-      updateMessageLog(newValue);
     });
 
     // Button handlers
     updateBtn.addEventListener('click', () => {
       currentName.value = nameInput.value;
       currentTitle.value = titleInput.value;
-      addLogMessage('Updated name and title');
+      console.log('Updated name and title');
     });
 
     showBtn.addEventListener('click', () => {
       isVisible.value = true;
-      addLogMessage('Showed lower third');
+      console.log('Showed lower third');
     });
 
     hideBtn.addEventListener('click', () => {
       isVisible.value = false;
-      addLogMessage('Hid lower third');
+      console.log('Hid lower third');
     });
 
-    clearBtn.addEventListener('click', () => {
-      nameInput.value = '';
-      titleInput.value = '';
-      currentName.value = '';
-      currentTitle.value = '';
-      addLogMessage('Cleared fields');
-    });
-
-    // Preset function
-    function applyPreset(name, title) {
-      nameInput.value = name;
-      titleInput.value = title;
-      currentName.value = name;
-      currentTitle.value = title;
-      addLogMessage(`Applied preset: ${name}`);
-    }
-
-    // Log helpers
-    function addLogMessage(message) {
-      const log = messageLog.value || [];
-      log.push({
-        timestamp: new Date().toISOString(),
-        action: message,
-      });
-
-      if (log.length > 20) {
-        log.shift();
-      }
-
-      messageLog.value = log;
-      updateMessageLog(log);
-    }
-
-    function updateMessageLog(log) {
-      if (!log || log.length === 0) {
-        messageLogElement.innerHTML = '<p style="color: #999; font-size: 12px;">No messages yet...</p>';
-        return;
-      }
-
-      messageLogElement.innerHTML = log.slice().reverse().map(entry => `
-        <div class="log-entry">
-          <span class="timestamp">${new Date(entry.timestamp).toLocaleTimeString()}</span>
-          <span class="action">${entry.action}</span>
-          ${entry.from ? `<br><small>From: "${entry.from}" → To: "${entry.to}"</small>` : ''}
-        </div>
-      `).join('');
-    }
-
-    // Initialize
-    console.log('Control panel loaded');
-    console.log('Replicants initialized:', { currentName, currentTitle, isVisible, messageLog });
-
-    // Show initial status
-    addLogMessage('Dashboard loaded');
+    console.log('Control panel loaded with real-time replicants');
   </script>
 </body>
 </html>

@@ -9,11 +9,16 @@ import { NodeCGConfig } from '@nodecg/types';
 import { setupNamespaces } from '../gateway/websocket/namespaces';
 import { RoomManager } from '../gateway/websocket/rooms';
 import { createLogger } from '../utils/logger';
+import { ReplicantService, SyncManager } from '../services/replicant';
+import { getRepositories } from '../database/client';
+import { getRedisClient } from '../database/redis';
 
 const logger = createLogger({ level: 'info' });
 
 let io: SocketIOServer | null = null;
 let roomManager: RoomManager | null = null;
+let replicantService: ReplicantService | null = null;
+let syncManager: SyncManager | null = null;
 
 /**
  * Setup WebSocket server with Socket.IO
@@ -46,6 +51,16 @@ export async function setupWebSocket(
   // Setup all namespaces (dashboard, graphics, extension)
   roomManager = setupNamespaces(io);
 
+  // Initialize Replicant Service and SyncManager
+  logger.info('Initializing Replicant Service and SyncManager...');
+  const repositories = getRepositories(logger);
+  const redis = getRedisClient(logger);
+
+  replicantService = new ReplicantService(repositories.replicant, redis);
+  syncManager = new SyncManager(io, replicantService);
+
+  logger.info('Replicant Service and SyncManager initialized');
+
   // Global error handler
   io.engine.on('connection_error', (err) => {
     logger.error('Socket.IO connection error:', err);
@@ -57,7 +72,7 @@ export async function setupWebSocket(
   });
 
   logger.info('WebSocket server initialized');
-  logger.info('Available namespaces: /dashboard, /graphics, /extension');
+  logger.info('Available namespaces: /dashboard, /graphics, /extension, /replicants');
 
   return io;
 }
@@ -77,6 +92,20 @@ export function getRoomManager(): RoomManager | null {
 }
 
 /**
+ * Get Replicant Service instance
+ */
+export function getReplicantService(): ReplicantService | null {
+  return replicantService;
+}
+
+/**
+ * Get Sync Manager instance
+ */
+export function getSyncManager(): SyncManager | null {
+  return syncManager;
+}
+
+/**
  * Close WebSocket server
  */
 export async function closeWebSocket(): Promise<void> {
@@ -90,5 +119,7 @@ export async function closeWebSocket(): Promise<void> {
     });
     io = null;
     roomManager = null;
+    replicantService = null;
+    syncManager = null;
   }
 }
