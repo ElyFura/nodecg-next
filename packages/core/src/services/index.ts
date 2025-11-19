@@ -6,3 +6,4 @@
 
 export * from './base.service';
 export * from './replicant';
+export * from './bundle';
