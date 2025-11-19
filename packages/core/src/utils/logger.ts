@@ -5,6 +5,9 @@
 import pino from 'pino';
 import { Logger } from '@nodecg/types';
 
+// Re-export Logger type for convenience
+export type { Logger } from '@nodecg/types';
+
 export function createLogger(config?: {
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   file?: string;
