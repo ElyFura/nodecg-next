@@ -11,7 +11,9 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
@@ -35,13 +37,13 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@nodecg/types": "workspace:*",
     "@fastify/cors": "^10.0.1",
     "@fastify/helmet": "^12.0.1",
     "@fastify/jwt": "^9.0.1",
     "@fastify/multipart": "^9.0.1",
     "@fastify/rate-limit": "^10.1.1",
     "@fastify/static": "^8.0.2",
+    "@nodecg/types": "workspace:*",
     "@prisma/client": "^6.0.1",
     "fastify": "^5.1.0",
     "pino": "^9.5.0",
@@ -51,9 +53,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.8.6",
+    "@vitest/coverage-v8": "^4.0.10",
     "prisma": "^6.0.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.3"
+    "vitest": "^4.0.10"
   }
 }

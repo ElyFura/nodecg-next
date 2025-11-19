@@ -20,6 +20,11 @@ export interface NodeCGConfig {
     level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
     file?: string;
   };
+  /** CORS configuration */
+  cors?: {
+    origin?: string | string[] | boolean;
+    credentials?: boolean;
+  };
   /** Database configuration */
   database?: {
     url: string;

@@ -1,62 +1,42 @@
 /**
- * NodeCG Next - Main entry point
+ * NodeCG Next - Main Entry Point
+ * Starts the NodeCG server with default configuration
  */
 
-import { NodeCGConfig } from '@nodecg/types';
-import { NodeCGServerImpl } from './server';
+import { NodeCGServerImpl } from './server/index';
+import { loadConfig } from './config/loader';
 import { createLogger } from './utils/logger';
 
-// Default configuration
-const defaultConfig: NodeCGConfig = {
-  host: process.env.HOST || '0.0.0.0',
-  port: parseInt(process.env.PORT || '3000', 10),
-  baseURL: process.env.BASE_URL,
-  logging: {
-    level: (process.env.LOG_LEVEL as any) || 'info',
-  },
-};
+const logger = createLogger({ level: 'info' });
 
-export async function createServer(config?: Partial<NodeCGConfig>) {
-  const finalConfig: NodeCGConfig = {
-    ...defaultConfig,
-    ...config,
-    logging: {
-      level: 'info',
-      ...defaultConfig.logging,
-      ...config?.logging,
-    },
-  };
+async function main() {
+  try {
+    // Load configuration
+    const config = loadConfig();
 
-  return new NodeCGServerImpl(finalConfig);
+    // Create and start server
+    const server = new NodeCGServerImpl(config);
+    await server.start();
+
+    // Handle graceful shutdown
+    const shutdown = async (signal: string) => {
+      logger.info(`Received ${signal}, shutting down gracefully...`);
+      try {
+        await server.stop();
+        process.exit(0);
+      } catch (error) {
+        logger.error('Error during shutdown:', error);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+  } catch (error) {
+    logger.error('Failed to start NodeCG server:', error);
+    process.exit(1);
+  }
 }
 
-export { NodeCGServerImpl } from './server';
-export { createLogger } from './utils/logger';
-
-// Export types
-export * from '@nodecg/types';
-
-// If running directly, start the server
-if (require.main === module) {
-  const logger = createLogger();
-
-  createServer()
-    .then(async (server) => {
-      await server.start();
-    })
-    .catch((error) => {
-      logger.fatal('Failed to start NodeCG Next:', error);
-      process.exit(1);
-    });
-
-  // Graceful shutdown
-  process.on('SIGINT', async () => {
-    logger.info('Received SIGINT, shutting down gracefully...');
-    process.exit(0);
-  });
-
-  process.on('SIGTERM', async () => {
-    logger.info('Received SIGTERM, shutting down gracefully...');
-    process.exit(0);
-  });
-}
+// Start the server
+main();

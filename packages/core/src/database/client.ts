@@ -4,8 +4,10 @@
 
 import { PrismaClient } from './generated/client';
 import { Logger } from '@nodecg/types';
+import { Repositories, createRepositories } from './repositories';
 
 let prisma: PrismaClient | undefined;
+let repositories: Repositories | undefined;
 
 export function getPrismaClient(logger?: Logger): PrismaClient {
   if (!prisma) {
@@ -41,7 +43,22 @@ export async function disconnectPrisma(): Promise<void> {
   if (prisma) {
     await prisma.$disconnect();
     prisma = undefined;
+    repositories = undefined;
   }
+}
+
+/**
+ * Get repository container (singleton)
+ * Provides access to all database repositories
+ */
+export function getRepositories(logger?: Logger): Repositories {
+  const client = getPrismaClient(logger);
+
+  if (!repositories) {
+    repositories = createRepositories(client);
+  }
+
+  return repositories;
 }
 
 // Graceful shutdown

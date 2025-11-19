@@ -1,45 +1,39 @@
-# Node modules
+# Dependencies
 node_modules
-*/node_modules
+.pnpm-store
 
-# Build artifacts
+# Build outputs
 dist
-build
-.turbo
-coverage
+*.log
 
-# Git
+# Development
 .git
 .github
+.husky
+.vscode
 
 # Documentation
 docs
 *.md
 !README.md
 
-# IDE
-.vscode
-.idea
+# Tests
+**/*.test.ts
+**/*.spec.ts
+coverage
 
-# Environment
+# Environment files
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
 
-# Logs
-*.log
-logs
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Test files
-*.test.ts
-*.spec.ts
-__tests__
-
-# Docker
-Dockerfile
-docker-compose*.yml
-.dockerignore
+# Temporary files
+tmp
+temp
+*.swp
+*.swo
+*~

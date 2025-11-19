@@ -10,12 +10,15 @@ import { NodeCGConfig, NodeCGServer, Logger } from '@nodecg/types';
 import { createLogger } from '../utils/logger';
 import { registerMiddleware } from './middleware';
 import { registerRoutes } from './routes';
+import { setupWebSocket, closeWebSocket } from './websocket';
+import { getEventBus, Events } from '../utils/event-bus';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
   private config: NodeCGConfig;
   private logger: Logger;
   private started: boolean = false;
+  private eventBus = getEventBus();
 
   constructor(config: NodeCGConfig) {
     this.config = config;
@@ -58,12 +61,23 @@ export class NodeCGServerImpl implements NodeCGServer {
         host: this.config.host,
       });
 
+      // Setup WebSocket after HTTP server is ready
+      await setupWebSocket(this.fastify, this.config);
+
       this.started = true;
       this.logger.info(
         `NodeCG Next server started on http://${this.config.host}:${this.config.port}`
       );
+
+      // Emit server started event
+      this.eventBus.emit(Events.SERVER_STARTED, {
+        host: this.config.host,
+        port: this.config.port,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       this.logger.error('Failed to start server:', error);
+      this.eventBus.emit(Events.SERVER_ERROR, error);
       throw error;
     }
   }
@@ -75,11 +89,27 @@ export class NodeCGServerImpl implements NodeCGServer {
 
     try {
       this.logger.info('Stopping NodeCG Next server...');
+
+      // Emit shutdown event
+      this.eventBus.emit(Events.SYSTEM_SHUTDOWN, {
+        timestamp: new Date().toISOString(),
+      });
+
+      // Close WebSocket connections first
+      await closeWebSocket();
+
+      // Then close Fastify server
       await this.fastify.close();
       this.started = false;
       this.logger.info('NodeCG Next server stopped');
+
+      // Emit server stopped event
+      this.eventBus.emit(Events.SERVER_STOPPED, {
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       this.logger.error('Failed to stop server:', error);
+      this.eventBus.emit(Events.SERVER_ERROR, error);
       throw error;
     }
   }
@@ -95,8 +125,8 @@ export class NodeCGServerImpl implements NodeCGServer {
   private async registerPlugins(): Promise<void> {
     // CORS
     await this.fastify.register(cors, {
-      origin: true, // TODO: Configure based on config
-      credentials: true,
+      origin: this.config.cors?.origin ?? true,
+      credentials: this.config.cors?.credentials ?? true,
     });
 
     // Security headers
