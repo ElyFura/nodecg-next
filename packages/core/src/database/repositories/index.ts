@@ -5,13 +5,25 @@
 
 import { PrismaClient } from '../generated/client';
 import { ReplicantRepository } from './replicant.repository';
-import { UserRepository } from './user.repository';
+import {
+  UserRepository,
+  RoleRepository,
+  PermissionRepository,
+  SessionRepository,
+  OAuthProviderRepository,
+} from './user.repository';
 import { BundleRepository } from './bundle.repository';
 import { AssetRepository } from './asset.repository';
 
 // Export repository classes
 export { ReplicantRepository } from './replicant.repository';
-export { UserRepository } from './user.repository';
+export {
+  UserRepository,
+  RoleRepository,
+  PermissionRepository,
+  SessionRepository,
+  OAuthProviderRepository,
+} from './user.repository';
 export { BundleRepository } from './bundle.repository';
 export { AssetRepository } from './asset.repository';
 export { BaseRepository } from './base.repository';
@@ -52,12 +64,20 @@ export type {
 export class Repositories {
   public readonly replicant: ReplicantRepository;
   public readonly user: UserRepository;
+  public readonly role: RoleRepository;
+  public readonly permission: PermissionRepository;
+  public readonly session: SessionRepository;
+  public readonly oauthProvider: OAuthProviderRepository;
   public readonly bundle: BundleRepository;
   public readonly asset: AssetRepository;
 
   constructor(prisma: PrismaClient) {
     this.replicant = new ReplicantRepository(prisma);
     this.user = new UserRepository(prisma);
+    this.role = new RoleRepository(prisma);
+    this.permission = new PermissionRepository(prisma);
+    this.session = new SessionRepository(prisma);
+    this.oauthProvider = new OAuthProviderRepository(prisma);
     this.bundle = new BundleRepository(prisma);
     this.asset = new AssetRepository(prisma);
   }
