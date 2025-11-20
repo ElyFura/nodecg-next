@@ -166,8 +166,8 @@ export class UserRepository
   /**
    * Delete a user
    */
-  async delete(id: string): Promise<User> {
-    return this.prisma.user.delete({
+  async delete(id: string): Promise<void> {
+    await this.prisma.user.delete({
       where: { id },
     });
   }
@@ -175,7 +175,7 @@ export class UserRepository
   /**
    * Count users with optional filters
    */
-  async count(filter?: { roleId?: string }): Promise<number> {
+  async count(filter?: { username?: string }): Promise<number> {
     return this.prisma.user.count({
       where: filter,
     });
@@ -197,6 +197,33 @@ export class UserRepository
   async emailExists(email: string): Promise<boolean> {
     const count = await this.prisma.user.count({
       where: { email },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Find many users with optional filtering
+   */
+  async findMany(options?: UserFindOptions): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        ...(options?.username && { username: options.username }),
+        ...(options?.email && { email: options.email }),
+        ...(options?.roleId && { roleId: options.roleId }),
+      },
+      include: {
+        role: options?.includeRole !== false,
+        providers: options?.includeProviders === true,
+      },
+    });
+  }
+
+  /**
+   * Check if a user exists by ID
+   */
+  async exists(id: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
+      where: { id },
     });
     return count > 0;
   }

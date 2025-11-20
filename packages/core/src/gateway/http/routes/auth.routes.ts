@@ -22,7 +22,7 @@ export interface AuthRoutesOptions {
  */
 export async function registerAuthRoutes(
   fastify: FastifyInstance,
-  { authService, auditService, sessionRepository }: AuthRoutesOptions,
+  { authService, auditService, sessionRepository }: AuthRoutesOptions
 ) {
   const optionalAuth = createOptionalAuthMiddleware(sessionRepository);
 
@@ -90,7 +90,7 @@ export async function registerAuthRoutes(
         const result = await authService.register(
           { username, email, password },
           ipAddress,
-          userAgent,
+          userAgent
         );
 
         await auditService.logAuth('register', result.user.id, ipAddress, userAgent);
@@ -115,7 +115,7 @@ export async function registerAuthRoutes(
           message: 'Registration failed',
         });
       }
-    },
+    }
   );
 
   /**
@@ -193,7 +193,7 @@ export async function registerAuthRoutes(
           message: 'Login failed',
         });
       }
-    },
+    }
   );
 
   /**
@@ -229,18 +229,18 @@ export async function registerAuthRoutes(
           }
         }
 
-        return reply.code(200).send({
+        return reply.status(200).send({
           message: 'Logged out successfully',
         });
       } catch (error) {
         logger.error('Logout error:', error);
 
-        return reply.code(500).send({
+        return (reply as any).status(500).send({
           error: 'Internal Server Error',
           message: 'Logout failed',
         });
       }
-    },
+    }
   );
 
   /**
@@ -295,7 +295,7 @@ export async function registerAuthRoutes(
           message: 'Token refresh failed',
         });
       }
-    },
+    }
   );
 
   /**
@@ -321,18 +321,18 @@ export async function registerAuthRoutes(
     },
     async (request, reply) => {
       if (!request.user) {
-        return reply.code(401).send({
+        return (reply as any).status(401).send({
           error: 'Unauthorized',
           message: 'Not authenticated',
         });
       }
 
-      return reply.code(200).send({
+      return reply.status(200).send({
         userId: request.user.userId,
         username: request.user.username,
         roleId: request.user.roleId || null,
       });
-    },
+    }
   );
 
   /**
@@ -405,7 +405,7 @@ export async function registerAuthRoutes(
           message: 'Password change failed',
         });
       }
-    },
+    }
   );
 
   logger.info('Authentication routes registered');

@@ -3,6 +3,7 @@
  * Handles permission checking and authorization
  */
 
+/* global setTimeout */
 import type { Logger } from '@nodecg/types';
 import { createLogger } from '../../utils/logger.js';
 import type {
@@ -36,7 +37,7 @@ export class RBACService {
     userRepository: UserRepository,
     roleRepository: RoleRepository,
     permissionRepository: PermissionRepository,
-    customLogger?: Logger,
+    customLogger?: Logger
   ) {
     this.userRepository = userRepository;
     this.roleRepository = roleRepository;
@@ -56,17 +57,16 @@ export class RBACService {
     }
 
     // Get user with role and permissions
-    const user = await this.userRepository.findById(userId);
+    const user = (await this.userRepository.findById(userId)) as any;
     if (!user || !user.role) {
       return false;
     }
 
     // Check if user's role has the required permission
-    const hasPermission = user.role.permissions.some((rp) => {
+    const hasPermission = user.role.permissions.some((rp: any) => {
       const perm = rp.permission;
       return (
-        perm.resource === resource &&
-        (perm.action === action || perm.action === 'manage') // 'manage' grants all actions
+        perm.resource === resource && (perm.action === action || perm.action === 'manage') // 'manage' grants all actions
       );
     });
 
@@ -105,19 +105,21 @@ export class RBACService {
    * Get all permissions for a user
    */
   async getUserPermissions(userId: string): Promise<string[]> {
-    const user = await this.userRepository.findById(userId);
+    const user = (await this.userRepository.findById(userId)) as any;
     if (!user || !user.role) {
       return [];
     }
 
-    return user.role.permissions.map((rp) => `${rp.permission.resource}:${rp.permission.action}`);
+    return user.role.permissions.map(
+      (rp: any) => `${rp.permission.resource}:${rp.permission.action}`
+    );
   }
 
   /**
    * Check if a user has a specific role
    */
   async hasRole(userId: string, roleName: string): Promise<boolean> {
-    const user = await this.userRepository.findById(userId);
+    const user = (await this.userRepository.findById(userId)) as any;
     if (!user || !user.role) {
       return false;
     }
@@ -148,16 +150,51 @@ export class RBACService {
     // Define default permissions
     const defaultPermissions = [
       // Replicant permissions
-      { name: 'replicant:read', resource: 'replicant', action: 'read', description: 'Read replicants' },
-      { name: 'replicant:write', resource: 'replicant', action: 'write', description: 'Write replicants' },
-      { name: 'replicant:delete', resource: 'replicant', action: 'delete', description: 'Delete replicants' },
-      { name: 'replicant:manage', resource: 'replicant', action: 'manage', description: 'Manage all replicants' },
+      {
+        name: 'replicant:read',
+        resource: 'replicant',
+        action: 'read',
+        description: 'Read replicants',
+      },
+      {
+        name: 'replicant:write',
+        resource: 'replicant',
+        action: 'write',
+        description: 'Write replicants',
+      },
+      {
+        name: 'replicant:delete',
+        resource: 'replicant',
+        action: 'delete',
+        description: 'Delete replicants',
+      },
+      {
+        name: 'replicant:manage',
+        resource: 'replicant',
+        action: 'manage',
+        description: 'Manage all replicants',
+      },
 
       // Bundle permissions
       { name: 'bundle:read', resource: 'bundle', action: 'read', description: 'View bundles' },
-      { name: 'bundle:write', resource: 'bundle', action: 'write', description: 'Upload/modify bundles' },
-      { name: 'bundle:delete', resource: 'bundle', action: 'delete', description: 'Delete bundles' },
-      { name: 'bundle:manage', resource: 'bundle', action: 'manage', description: 'Manage all bundles' },
+      {
+        name: 'bundle:write',
+        resource: 'bundle',
+        action: 'write',
+        description: 'Upload/modify bundles',
+      },
+      {
+        name: 'bundle:delete',
+        resource: 'bundle',
+        action: 'delete',
+        description: 'Delete bundles',
+      },
+      {
+        name: 'bundle:manage',
+        resource: 'bundle',
+        action: 'manage',
+        description: 'Manage all bundles',
+      },
 
       // User permissions
       { name: 'user:read', resource: 'user', action: 'read', description: 'View users' },
@@ -167,9 +204,19 @@ export class RBACService {
 
       // Asset permissions
       { name: 'asset:read', resource: 'asset', action: 'read', description: 'View assets' },
-      { name: 'asset:write', resource: 'asset', action: 'write', description: 'Upload/modify assets' },
+      {
+        name: 'asset:write',
+        resource: 'asset',
+        action: 'write',
+        description: 'Upload/modify assets',
+      },
       { name: 'asset:delete', resource: 'asset', action: 'delete', description: 'Delete assets' },
-      { name: 'asset:manage', resource: 'asset', action: 'manage', description: 'Manage all assets' },
+      {
+        name: 'asset:manage',
+        resource: 'asset',
+        action: 'manage',
+        description: 'Manage all assets',
+      },
     ];
 
     // Create permissions if they don't exist
@@ -191,12 +238,7 @@ export class RBACService {
         name: 'admin',
         displayName: 'Administrator',
         description: 'Full system access',
-        permissions: [
-          'replicant:manage',
-          'bundle:manage',
-          'user:manage',
-          'asset:manage',
-        ],
+        permissions: ['replicant:manage', 'bundle:manage', 'user:manage', 'asset:manage'],
       },
       {
         name: 'operator',
@@ -214,11 +256,7 @@ export class RBACService {
         name: 'viewer',
         displayName: 'Viewer',
         description: 'Read-only access',
-        permissions: [
-          'replicant:read',
-          'bundle:read',
-          'asset:read',
-        ],
+        permissions: ['replicant:read', 'bundle:read', 'asset:read'],
       },
     ];
 
@@ -240,7 +278,9 @@ export class RBACService {
           }
         }
 
-        this.log.info(`Created role: ${roleData.name} with ${roleData.permissions.length} permissions`);
+        this.log.info(
+          `Created role: ${roleData.name} with ${roleData.permissions.length} permissions`
+        );
       } else {
         this.log.debug(`Role already exists: ${roleData.name}`);
       }

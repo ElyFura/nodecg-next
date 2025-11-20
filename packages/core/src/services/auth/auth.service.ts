@@ -12,7 +12,7 @@ import type {
   SessionRepository,
 } from '../../database/repositories/index.js';
 import { hashPassword, verifyPassword } from './utils/password.js';
-import { generateTokenPair, verifyToken, type JWTPayload } from './utils/jwt.js';
+import { generateTokenPair, verifyToken } from './utils/jwt.js';
 
 const logger = createLogger({ level: 'info' });
 
@@ -61,7 +61,7 @@ export class AuthService extends EventEmitter {
     userRepository: UserRepository,
     roleRepository: RoleRepository,
     sessionRepository: SessionRepository,
-    customLogger?: Logger,
+    customLogger?: Logger
   ) {
     super();
     this.userRepository = userRepository;
@@ -73,7 +73,11 @@ export class AuthService extends EventEmitter {
   /**
    * Register a new user
    */
-  async register(input: RegisterInput, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
+  async register(
+    input: RegisterInput,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<AuthResult> {
     // Check if username already exists
     const existingUser = await this.userRepository.findByUsername(input.username);
     if (existingUser) {

@@ -5,7 +5,11 @@
 
 import type { Logger } from '@nodecg/types';
 import { createLogger } from '../../utils/logger.js';
-import type { UserRepository, OAuthProviderRepository, SessionRepository } from '../../database/repositories/index.js';
+import type {
+  UserRepository,
+  OAuthProviderRepository,
+  SessionRepository,
+} from '../../database/repositories/index.js';
 import { generateTokenPair } from './utils/jwt.js';
 
 const logger = createLogger({ level: 'info' });
@@ -68,9 +72,7 @@ export class OAuthService {
       await this.oauthProviderRepository.updateTokens(oauthProvider.id, {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresIn
-          ? new Date(Date.now() + tokens.expiresIn * 1000)
-          : undefined,
+        expiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : undefined,
       });
 
       user = oauthProvider.user;
@@ -86,7 +88,7 @@ export class OAuthService {
         user = await this.userRepository.create({
           username: userInfo.username,
           email: userInfo.email,
-          password: null, // OAuth users don't have password
+          password: undefined, // OAuth users don't have password
         });
 
         this.log.info(`New user created via ${provider}: ${user.username} (${user.id})`);
@@ -99,9 +101,7 @@ export class OAuthService {
         providerId: userInfo.providerId,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresIn
-          ? new Date(Date.now() + tokens.expiresIn * 1000)
-          : undefined,
+        expiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : undefined,
       });
 
       this.log.info(`OAuth provider ${provider} linked to user ${user.username}`);
@@ -160,9 +160,7 @@ export class OAuthService {
       await this.oauthProviderRepository.updateTokens(existing.id, {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresIn
-          ? new Date(Date.now() + tokens.expiresIn * 1000)
-          : undefined,
+        expiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : undefined,
       });
       return;
     }
@@ -174,9 +172,7 @@ export class OAuthService {
       providerId: userInfo.providerId,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      expiresAt: tokens.expiresIn
-        ? new Date(Date.now() + tokens.expiresIn * 1000)
-        : undefined,
+      expiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : undefined,
     });
 
     this.log.info(`OAuth provider ${provider} linked to user ${userId}`);
@@ -186,7 +182,7 @@ export class OAuthService {
    * Unlink OAuth provider from user
    */
   async unlinkProvider(userId: string, provider: string) {
-    const user = await this.userRepository.findById(userId);
+    const user = (await this.userRepository.findById(userId)) as any;
     if (!user) {
       throw new Error('User not found');
     }
@@ -199,7 +195,7 @@ export class OAuthService {
     }
 
     // Find and delete the provider
-    const providers = user.providers.filter((p) => p.provider === provider);
+    const providers = user.providers.filter((p: any) => p.provider === provider);
     for (const p of providers) {
       await this.oauthProviderRepository.delete(p.id);
     }

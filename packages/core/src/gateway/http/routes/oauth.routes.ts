@@ -3,8 +3,9 @@
  * Handles OAuth2 authentication with Twitch, Discord, and GitHub
  */
 
+/* global fetch */
 import type { FastifyInstance } from 'fastify';
-import fastifyOAuth2, { type OAuth2Namespace } from '@fastify/oauth2';
+import fastifyOAuth2 from '@fastify/oauth2';
 import type { OAuthService, AuditService } from '../../../services/auth/index.js';
 import { createLogger } from '../../../utils/logger.js';
 
@@ -41,8 +42,9 @@ export async function registerOAuthRoutes(
 
     fastify.get('/auth/twitch/callback', async (request, reply) => {
       try {
-        const { token } =
-          await (fastify as any).twitchOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
+        const { token } = await (
+          fastify as any
+        ).twitchOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
 
         // Fetch user info from Twitch API
         const userResponse = await fetch('https://api.twitch.tv/helix/users', {
@@ -52,7 +54,7 @@ export async function registerOAuthRoutes(
           },
         });
 
-        const userData = await userResponse.json();
+        const userData = (await userResponse.json()) as any;
         const twitchUser = userData.data[0];
 
         const result = await oauthService.handleOAuthCallback(
@@ -72,7 +74,12 @@ export async function registerOAuthRoutes(
           request.headers['user-agent']
         );
 
-        await auditService.logAuth('login', result.user.id, request.ip, request.headers['user-agent']);
+        await auditService.logAuth(
+          'login',
+          result.user.id,
+          request.ip,
+          request.headers['user-agent']
+        );
 
         // Redirect to frontend with tokens
         return reply.redirect(
@@ -105,8 +112,9 @@ export async function registerOAuthRoutes(
 
     fastify.get('/auth/discord/callback', async (request, reply) => {
       try {
-        const { token } =
-          await (fastify as any).discordOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
+        const { token } = await (
+          fastify as any
+        ).discordOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
 
         // Fetch user info from Discord API
         const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -115,7 +123,7 @@ export async function registerOAuthRoutes(
           },
         });
 
-        const discordUser = await userResponse.json();
+        const discordUser = (await userResponse.json()) as any;
 
         const result = await oauthService.handleOAuthCallback(
           'discord',
@@ -136,7 +144,12 @@ export async function registerOAuthRoutes(
           request.headers['user-agent']
         );
 
-        await auditService.logAuth('login', result.user.id, request.ip, request.headers['user-agent']);
+        await auditService.logAuth(
+          'login',
+          result.user.id,
+          request.ip,
+          request.headers['user-agent']
+        );
 
         // Redirect to frontend with tokens
         return reply.redirect(
@@ -169,8 +182,9 @@ export async function registerOAuthRoutes(
 
     fastify.get('/auth/github/callback', async (request, reply) => {
       try {
-        const { token } =
-          await (fastify as any).githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
+        const { token } = await (
+          fastify as any
+        ).githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
 
         // Fetch user info from GitHub API
         const [userResponse, emailsResponse] = await Promise.all([
@@ -188,8 +202,8 @@ export async function registerOAuthRoutes(
           }),
         ]);
 
-        const githubUser = await userResponse.json();
-        const emails = await emailsResponse.json();
+        const githubUser = (await userResponse.json()) as any;
+        const emails = (await emailsResponse.json()) as any;
         const primaryEmail = emails.find((e: any) => e.primary)?.email || githubUser.email;
 
         const result = await oauthService.handleOAuthCallback(
@@ -209,7 +223,12 @@ export async function registerOAuthRoutes(
           request.headers['user-agent']
         );
 
-        await auditService.logAuth('login', result.user.id, request.ip, request.headers['user-agent']);
+        await auditService.logAuth(
+          'login',
+          result.user.id,
+          request.ip,
+          request.headers['user-agent']
+        );
 
         // Redirect to frontend with tokens
         return reply.redirect(

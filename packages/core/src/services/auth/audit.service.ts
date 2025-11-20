@@ -34,12 +34,12 @@ export interface AuditLogQuery {
  */
 export class AuditService {
   private prisma: PrismaClient;
-  private log: Logger;
+  private logger: Logger;
   private retentionDays: number;
 
   constructor(prisma: PrismaClient, customLogger?: Logger, retentionDays = 90) {
     this.prisma = prisma;
-    this.log = customLogger || logger;
+    this.logger = customLogger || logger;
     this.retentionDays = retentionDays;
   }
 
@@ -59,9 +59,11 @@ export class AuditService {
         },
       });
 
-      this.log.debug(`Audit log: ${entry.action} on ${entry.resource} by ${entry.userId || 'anonymous'}`);
+      this.logger.debug(
+        `Audit log: ${entry.action} on ${entry.resource} by ${entry.userId || 'anonymous'}`
+      );
     } catch (error) {
-      this.log.error('Failed to create audit log:', error);
+      this.logger.error('Failed to create audit log:', error);
     }
   }
 
@@ -125,7 +127,7 @@ export class AuditService {
     action: 'login' | 'logout' | 'register' | 'password-change',
     userId: string,
     ipAddress?: string,
-    userAgent?: string,
+    userAgent?: string
   ): Promise<void> {
     await this.log({
       userId,
@@ -144,7 +146,7 @@ export class AuditService {
     namespace: string,
     name: string,
     userId?: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId,
@@ -161,7 +163,7 @@ export class AuditService {
     action: 'load' | 'unload' | 'enable' | 'disable' | 'install' | 'uninstall',
     bundleName: string,
     userId?: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId,
@@ -178,7 +180,7 @@ export class AuditService {
     action: 'create' | 'update' | 'delete' | 'role-change',
     targetUserId: string,
     performedBy?: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId: performedBy,
@@ -195,7 +197,7 @@ export class AuditService {
     action: 'upload' | 'delete' | 'update',
     assetId: string,
     userId?: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.log({
       userId,
@@ -220,7 +222,7 @@ export class AuditService {
       },
     });
 
-    this.log.info(`Cleaned up ${result.count} audit logs older than ${this.retentionDays} days`);
+    this.logger.info(`Cleaned up ${result.count} audit logs older than ${this.retentionDays} days`);
     return result.count;
   }
 

@@ -38,7 +38,7 @@ export function generateToken(payload: Omit<JWTPayload, 'type'>, expiresIn?: str
   };
 
   const options: jwt.SignOptions = {
-    expiresIn: expiresIn || JWT_EXPIRY,
+    expiresIn: (expiresIn || JWT_EXPIRY) as any,
     issuer: 'nodecg-next',
     audience: 'nodecg-next',
   };
@@ -58,7 +58,7 @@ export function generateRefreshToken(payload: Omit<JWTPayload, 'type'>): string 
   };
 
   const options: jwt.SignOptions = {
-    expiresIn: JWT_REFRESH_EXPIRY,
+    expiresIn: JWT_REFRESH_EXPIRY as any,
     issuer: 'nodecg-next',
     audience: 'nodecg-next',
   };

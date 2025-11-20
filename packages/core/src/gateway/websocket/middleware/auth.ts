@@ -42,9 +42,9 @@ export function socketAuth(socket: AuthenticatedSocket, next: (err?: ExtendedErr
   // Verify token with session repository
   const repos = getRepositories(logger);
 
-  repos.user
+  repos.session
     .findActiveSessionByToken(token)
-    .then((session) => {
+    .then((session: any) => {
       if (!session || !session.user) {
         const error = new Error('Invalid or expired token') as ExtendedError;
         error.data = { code: 'INVALID_TOKEN' };
@@ -55,13 +55,13 @@ export function socketAuth(socket: AuthenticatedSocket, next: (err?: ExtendedErr
       socket.user = {
         id: session.user.id,
         username: session.user.username,
-        role: session.user.role,
+        role: session.user.role?.name || 'viewer',
       };
 
       logger.info(`WebSocket authenticated: ${session.user.username} (${socket.id})`);
       next();
     })
-    .catch((error) => {
+    .catch((error: any) => {
       logger.error('WebSocket authentication error:', error);
       const err = new Error('Authentication failed') as ExtendedError;
       err.data = { code: 'AUTH_ERROR' };
@@ -91,20 +91,20 @@ export function socketOptionalAuth(
   // Try to verify token
   const repos = getRepositories(logger);
 
-  repos.user
+  repos.session
     .findActiveSessionByToken(token)
-    .then((session) => {
+    .then((session: any) => {
       if (session?.user) {
         socket.user = {
           id: session.user.id,
           username: session.user.username,
-          role: session.user.role,
+          role: session.user.role?.name || 'viewer',
         };
         logger.info(`WebSocket authenticated (optional): ${session.user.username} (${socket.id})`);
       }
       next();
     })
-    .catch((error) => {
+    .catch((error: any) => {
       logger.warn('Optional WebSocket auth failed, continuing without user:', error);
       next();
     });
