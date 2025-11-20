@@ -101,7 +101,15 @@ export class SyncManager {
 
           socket.emit('subscribed', { namespace, name });
         } catch (error) {
-          logger.error('Error handling subscribe:', error);
+          console.error('=== SUBSCRIBE ERROR ===');
+          console.error('Error:', error);
+          console.error('Error message:', error instanceof Error ? error.message : String(error));
+          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+          console.error('=======================');
+          logger.error(
+            'Error handling subscribe:',
+            error instanceof Error ? error.message : String(error)
+          );
           socket.emit('error', { message: 'Failed to subscribe' });
         }
       });
@@ -164,7 +172,15 @@ export class SyncManager {
             success: true,
           });
         } catch (error) {
-          logger.error('Error handling set:', error);
+          console.error('=== SET ERROR ===');
+          console.error('Error:', error);
+          console.error('Error message:', error instanceof Error ? error.message : String(error));
+          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+          console.error('=================');
+          logger.error(
+            'Error handling set:',
+            error instanceof Error ? error.message : String(error)
+          );
           socket.emit('set-ack', {
             namespace: data?.namespace,
             name: data?.name,
