@@ -412,14 +412,13 @@ export class OAuthProviderRepository {
 
   async updateTokens(
     id: string,
-    data: { accessToken?: string; refreshToken?: string; expiresAt?: Date },
+    data: { accessToken?: string; refreshToken?: string; expiresAt?: Date }
   ): Promise<any> {
     return this.prisma.oAuthProvider.update({
       where: { id },
       data,
     });
   }
-}
 
   async delete(id: string): Promise<void> {
     await this.prisma.oAuthProvider.delete({
