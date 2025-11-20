@@ -14,6 +14,7 @@ import { setupWebSocket, closeWebSocket } from './websocket';
 import { getEventBus, Events } from '../utils/event-bus';
 import { BundleManager } from '../services/bundle';
 import { ServiceRegistry } from '../services/base.service';
+import { initializeDatabase, seedDefaultRoles } from '../database/init';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
@@ -71,7 +72,14 @@ export class NodeCGServerImpl implements NodeCGServer {
     try {
       this.logger.info('Starting NodeCG Next server...');
 
-      // Initialize services first
+      // Initialize database first (create /db directory and schema)
+      this.logger.info('Initializing database...');
+      await initializeDatabase(this.logger);
+
+      // Seed default roles and permissions if needed
+      await seedDefaultRoles(this.logger);
+
+      // Initialize services
       this.logger.info('Initializing services...');
       await this.serviceRegistry.initializeAll();
 
