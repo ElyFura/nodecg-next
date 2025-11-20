@@ -12,6 +12,9 @@ export type { PermissionCheck } from './rbac.service.js';
 export { AuditService } from './audit.service.js';
 export type { AuditLogEntry, AuditLogQuery } from './audit.service.js';
 
+export { OAuthService } from './oauth.service.js';
+export type { OAuthUserInfo, OAuthTokens } from './oauth.service.js';
+
 export { hashPassword, verifyPassword, needsRehash } from './utils/password.js';
 export {
   generateToken,

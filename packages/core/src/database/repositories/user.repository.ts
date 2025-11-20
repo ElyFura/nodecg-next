@@ -420,3 +420,10 @@ export class OAuthProviderRepository {
     });
   }
 }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.oAuthProvider.delete({
+      where: { id },
+    });
+  }
+}
