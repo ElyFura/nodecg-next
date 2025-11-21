@@ -59,6 +59,10 @@ export async function setupWebSocket(
   replicantService = new ReplicantService(repositories.replicant, redis);
   syncManager = new SyncManager(io, replicantService);
 
+  // Make replicantService available on Fastify instance
+  (fastify as FastifyInstance & { replicantService: ReplicantService }).replicantService =
+    replicantService;
+
   logger.info('Replicant Service and SyncManager initialized');
 
   // Global error handler

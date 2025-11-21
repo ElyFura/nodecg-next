@@ -17,6 +17,7 @@ import { BundleManager } from '../services/bundle';
 import { ServiceRegistry } from '../services/base.service';
 import { initializeDatabase, seedDefaultRoles } from '../database/init';
 import { PluginManagerService } from '../services/plugin';
+import { getPrismaClient } from '../database/client';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
@@ -70,9 +71,15 @@ export class NodeCGServerImpl implements NodeCGServer {
       config: this.config,
     });
 
-    // Make bundle manager available to routes via fastify decorator
+    // Make services available to routes via fastify decorators
     this.fastify.decorate('bundleManager', this.bundleManager);
     this.fastify.decorate('pluginManager', this.pluginManager);
+
+    // Decorate with prisma (will be available immediately)
+    this.fastify.decorate('prisma', getPrismaClient(this.logger));
+
+    // Decorate with replicantService placeholder (will be set in setupWebSocket)
+    this.fastify.decorate('replicantService', null);
   }
 
   async start(): Promise<void> {
