@@ -150,3 +150,8 @@ export const requireOperator = requireRole('operator', 'admin');
  * Require viewer, operator, or admin role (any authenticated user)
  */
 export const requireViewer = requireRole('viewer', 'operator', 'admin');
+
+/**
+ * Alias for authenticateToken - require authentication
+ */
+export const requireAuth = authenticateToken;
