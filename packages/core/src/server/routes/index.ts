@@ -10,6 +10,7 @@ import { dashboardRoutes } from '../../gateway/http/routes/dashboard';
 import { bundleContentRoutes } from '../../gateway/http/routes/bundle-content';
 import { registerAuthRoutes } from '../../gateway/http/routes/auth.routes';
 import { registerOAuthRoutes } from '../../gateway/http/routes/oauth.routes';
+import { graphqlRoutes } from '../../gateway/graphql/routes';
 import { getRepositories } from '../../database/client';
 import { AuthService } from '../../services/auth/auth.service';
 import { OAuthService } from '../../services/auth/oauth.service';
@@ -53,6 +54,9 @@ export async function registerRoutes(
 
   // API routes
   await fastify.register(apiRoutes, { prefix: '/api' });
+
+  // GraphQL API
+  await fastify.register(graphqlRoutes);
 
   // Bundle content routes (dashboard panels, graphics)
   await fastify.register(bundleContentRoutes);
