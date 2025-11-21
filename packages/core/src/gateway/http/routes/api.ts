@@ -17,7 +17,8 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/stats', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const bundleManager = (fastify as any).bundleManager;
-      const bundles = bundleManager?.getAllBundles?.() || [];
+      const bundleStats = bundleManager?.getStatistics?.();
+      const bundles = bundleStats?.bundles || [];
 
       // Get replicant count from in-memory store
       const replicantService = (fastify as any).replicantService;
@@ -69,19 +70,22 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const bundles = bundleManager.getAllBundles?.() || [];
+      // Get bundle data from BundleManager's internal map
+      const bundlesMap = (bundleManager as any).bundles as Map<string, any>;
+      const bundles = Array.from(bundlesMap.values());
+
       const bundleList = bundles.map((bundle: any) => ({
-        name: bundle.name,
-        version: bundle.version,
-        description: bundle.description,
-        authors: bundle.authors || [],
-        homepage: bundle.homepage,
-        license: bundle.license,
-        git: bundle.git,
+        name: bundle.config.name,
+        version: bundle.config.version,
+        description: bundle.config.description || '',
+        authors: bundle.config.authors || [],
+        homepage: bundle.config.homepage,
+        license: bundle.config.license,
+        git: bundle.config.git,
         status: 'loaded' as const,
         hasExtension: !!bundle.extension,
-        hasDashboard: Array.isArray(bundle.dashboard) && bundle.dashboard.length > 0,
-        hasGraphics: Array.isArray(bundle.graphics) && bundle.graphics.length > 0,
+        hasDashboard: Array.isArray(bundle.config.dashboard) && bundle.config.dashboard.length > 0,
+        hasGraphics: Array.isArray(bundle.config.graphics) && bundle.config.graphics.length > 0,
       }));
 
       return reply.status(200).send({ bundles: bundleList });

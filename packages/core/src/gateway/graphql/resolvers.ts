@@ -41,21 +41,24 @@ export const resolvers = {
         });
       }
 
-      const bundles = bundleManager.getAllBundles?.() || [];
+      // Get bundle data from BundleManager's internal map
+      const bundlesMap = (bundleManager as any).bundles as Map<string, any>;
+      const bundles = Array.from(bundlesMap.values());
+
       return bundles.map((bundle: any) => ({
-        name: bundle.name,
-        version: bundle.version,
-        description: bundle.description || '',
-        authors: bundle.authors || [],
-        homepage: bundle.homepage,
-        license: bundle.license,
-        git: bundle.git,
+        name: bundle.config.name,
+        version: bundle.config.version,
+        description: bundle.config.description || '',
+        authors: bundle.config.authors || [],
+        homepage: bundle.config.homepage,
+        license: bundle.config.license,
+        git: bundle.config.git,
         status: 'LOADED',
         hasExtension: !!bundle.extension,
-        hasDashboard: Array.isArray(bundle.dashboard) && bundle.dashboard.length > 0,
-        hasGraphics: Array.isArray(bundle.graphics) && bundle.graphics.length > 0,
-        dashboardPanels: bundle.dashboard || [],
-        graphics: bundle.graphics || [],
+        hasDashboard: Array.isArray(bundle.config.dashboard) && bundle.config.dashboard.length > 0,
+        hasGraphics: Array.isArray(bundle.config.graphics) && bundle.config.graphics.length > 0,
+        dashboardPanels: bundle.config.dashboard || [],
+        graphics: bundle.config.graphics || [],
         replicants: [],
       }));
     },
@@ -68,8 +71,9 @@ export const resolvers = {
         });
       }
 
-      const bundles = bundleManager.getAllBundles?.() || [];
-      const bundle = bundles.find((b: any) => b.name === name);
+      // Get bundle from internal map
+      const bundlesMap = (bundleManager as any).bundles as Map<string, any>;
+      const bundle = bundlesMap.get(name);
 
       if (!bundle) {
         throw new GraphQLError(`Bundle '${name}' not found`, {
@@ -78,27 +82,28 @@ export const resolvers = {
       }
 
       return {
-        name: bundle.name,
-        version: bundle.version,
-        description: bundle.description || '',
-        authors: bundle.authors || [],
-        homepage: bundle.homepage,
-        license: bundle.license,
-        git: bundle.git,
+        name: bundle.config.name,
+        version: bundle.config.version,
+        description: bundle.config.description || '',
+        authors: bundle.config.authors || [],
+        homepage: bundle.config.homepage,
+        license: bundle.config.license,
+        git: bundle.config.git,
         status: 'LOADED',
         hasExtension: !!bundle.extension,
-        hasDashboard: Array.isArray(bundle.dashboard) && bundle.dashboard.length > 0,
-        hasGraphics: Array.isArray(bundle.graphics) && bundle.graphics.length > 0,
-        dashboardPanels: bundle.dashboard || [],
-        graphics: bundle.graphics || [],
+        hasDashboard: Array.isArray(bundle.config.dashboard) && bundle.config.dashboard.length > 0,
+        hasGraphics: Array.isArray(bundle.config.graphics) && bundle.config.graphics.length > 0,
+        dashboardPanels: bundle.config.dashboard || [],
+        graphics: bundle.config.graphics || [],
         replicants: [],
       };
     },
 
     bundleCount: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       const bundleManager = (context.fastify as any).bundleManager;
-      const bundles = bundleManager?.getAllBundles?.() || [];
-      return bundles.length;
+      if (!bundleManager) return 0;
+      const bundlesMap = (bundleManager as any).bundles as Map<string, any>;
+      return bundlesMap.size;
     },
 
     // Replicant Queries
@@ -383,7 +388,10 @@ export const resolvers = {
     // System Queries
     systemStats: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       const bundleManager = (context.fastify as any).bundleManager;
-      const bundles = bundleManager?.getAllBundles?.() || [];
+      const bundlesMap = bundleManager
+        ? ((bundleManager as any).bundles as Map<string, any>)
+        : new Map();
+      const bundles = Array.from(bundlesMap.values());
 
       const replicantService = (context.fastify as any).replicantService;
       let replicantCount = 0;
