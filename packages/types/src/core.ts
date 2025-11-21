@@ -53,6 +53,10 @@ export interface NodeCGConfig {
     dir?: string;
     hotReload?: boolean;
   };
+  /** Plugin configuration */
+  plugins?: {
+    [pluginId: string]: Record<string, unknown>;
+  };
 }
 
 export interface NodeCGServer {

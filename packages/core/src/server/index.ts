@@ -7,6 +7,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { NodeCGConfig, NodeCGServer, Logger } from '@nodecg/types';
+import type { Logger as PinoLogger } from 'pino';
 import { createLogger } from '../utils/logger';
 import { registerMiddleware } from './middleware';
 import { registerRoutes } from './routes';
@@ -15,6 +16,7 @@ import { getEventBus, Events } from '../utils/event-bus';
 import { BundleManager } from '../services/bundle';
 import { ServiceRegistry } from '../services/base.service';
 import { initializeDatabase, seedDefaultRoles } from '../database/init';
+import { PluginManagerService } from '../services/plugin';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
@@ -24,6 +26,7 @@ export class NodeCGServerImpl implements NodeCGServer {
   private eventBus = getEventBus();
   private serviceRegistry: ServiceRegistry;
   private bundleManager: BundleManager;
+  private pluginManager: PluginManagerService;
 
   constructor(config: NodeCGConfig) {
     this.config = config;
@@ -60,8 +63,16 @@ export class NodeCGServerImpl implements NodeCGServer {
     // Register Bundle Manager in service registry
     this.serviceRegistry.register(this.bundleManager);
 
+    // Initialize Plugin Manager
+    this.pluginManager = new PluginManagerService({
+      logger: this.fastify.log as PinoLogger, // Use Fastify's pino logger
+      eventBus: this.eventBus,
+      config: this.config,
+    });
+
     // Make bundle manager available to routes via fastify decorator
     this.fastify.decorate('bundleManager', this.bundleManager);
+    this.fastify.decorate('pluginManager', this.pluginManager);
   }
 
   async start(): Promise<void> {
@@ -82,6 +93,11 @@ export class NodeCGServerImpl implements NodeCGServer {
       // Initialize services
       this.logger.info('Initializing services...');
       await this.serviceRegistry.initializeAll();
+
+      // Discover and start plugins
+      this.logger.info('Discovering plugins...');
+      await this.pluginManager.discoverPlugins();
+      await this.pluginManager.startAll();
 
       // Register plugins and middleware
       await this.registerPlugins();
@@ -131,7 +147,11 @@ export class NodeCGServerImpl implements NodeCGServer {
         timestamp: new Date().toISOString(),
       });
 
-      // Shutdown services first
+      // Stop plugins first
+      this.logger.info('Stopping plugins...');
+      await this.pluginManager.stopAll();
+
+      // Shutdown services
       this.logger.info('Shutting down services...');
       await this.serviceRegistry.shutdownAll();
 
@@ -164,6 +184,10 @@ export class NodeCGServerImpl implements NodeCGServer {
 
   getBundleManager(): BundleManager {
     return this.bundleManager;
+  }
+
+  getPluginManager(): PluginManagerService {
+    return this.pluginManager;
   }
 
   private async registerPlugins(): Promise<void> {
