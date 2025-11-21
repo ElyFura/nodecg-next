@@ -134,29 +134,27 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.get('/replicants', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const replicantService = (fastify as any).replicantService;
-      if (!replicantService) {
+      const prisma = (fastify as any).prisma;
+      if (!prisma) {
         return reply.status(503).send({
           error: 'Service Unavailable',
-          message: 'Replicant service not initialized',
+          message: 'Database not initialized',
         });
       }
 
-      // Get all replicants from the service
-      const replicants: any[] = [];
-      const replicantMap = (replicantService as any).replicants;
+      // Get all replicants from database
+      const dbReplicants = await prisma.replicant.findMany({
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
 
-      if (replicantMap instanceof Map) {
-        for (const [key, replicant] of replicantMap.entries()) {
-          const [namespace, name] = key.split(':');
-          replicants.push({
-            namespace,
-            name,
-            value: replicant.value,
-            revision: replicant.revision || 0,
-          });
-        }
-      }
+      const replicants = dbReplicants.map((rep: any) => ({
+        namespace: rep.namespace,
+        name: rep.name,
+        value: JSON.parse(rep.value),
+        revision: rep.revision,
+      }));
 
       return reply.status(200).send({ replicants });
     } catch (error) {

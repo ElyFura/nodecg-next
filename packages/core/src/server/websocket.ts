@@ -63,6 +63,12 @@ export async function setupWebSocket(
   (fastify as FastifyInstance & { replicantService: ReplicantService }).replicantService =
     replicantService;
 
+  // Set replicantService on BundleManager to enable extension execution
+  const bundleManager = (fastify as any).bundleManager;
+  if (bundleManager && typeof bundleManager.setReplicantService === 'function') {
+    bundleManager.setReplicantService(replicantService);
+  }
+
   logger.info('Replicant Service and SyncManager initialized');
 
   // Global error handler

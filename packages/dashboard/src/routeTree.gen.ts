@@ -8,114 +8,114 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root';
-import { Route as UsersRouteImport } from './routes/users';
-import { Route as SettingsRouteImport } from './routes/settings';
-import { Route as ReplicantsRouteImport } from './routes/replicants';
-import { Route as BundlesRouteImport } from './routes/bundles';
-import { Route as IndexRouteImport } from './routes/index';
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReplicantsRouteImport } from './routes/replicants'
+import { Route as BundlesRouteImport } from './routes/bundles'
+import { Route as IndexRouteImport } from './routes/index'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ReplicantsRoute = ReplicantsRouteImport.update({
   id: '/replicants',
   path: '/replicants',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const BundlesRoute = BundlesRouteImport.update({
   id: '/bundles',
   path: '/bundles',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
-  '/bundles': typeof BundlesRoute;
-  '/replicants': typeof ReplicantsRoute;
-  '/settings': typeof SettingsRoute;
-  '/users': typeof UsersRoute;
+  '/': typeof IndexRoute
+  '/bundles': typeof BundlesRoute
+  '/replicants': typeof ReplicantsRoute
+  '/settings': typeof SettingsRoute
+  '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
-  '/bundles': typeof BundlesRoute;
-  '/replicants': typeof ReplicantsRoute;
-  '/settings': typeof SettingsRoute;
-  '/users': typeof UsersRoute;
+  '/': typeof IndexRoute
+  '/bundles': typeof BundlesRoute
+  '/replicants': typeof ReplicantsRoute
+  '/settings': typeof SettingsRoute
+  '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  '/': typeof IndexRoute;
-  '/bundles': typeof BundlesRoute;
-  '/replicants': typeof ReplicantsRoute;
-  '/settings': typeof SettingsRoute;
-  '/users': typeof UsersRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/bundles': typeof BundlesRoute
+  '/replicants': typeof ReplicantsRoute
+  '/settings': typeof SettingsRoute
+  '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/bundles' | '/replicants' | '/settings' | '/users';
-  fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/bundles' | '/replicants' | '/settings' | '/users';
-  id: '__root__' | '/' | '/bundles' | '/replicants' | '/settings' | '/users';
-  fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/' | '/bundles' | '/replicants' | '/settings' | '/users'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/bundles' | '/replicants' | '/settings' | '/users'
+  id: '__root__' | '/' | '/bundles' | '/replicants' | '/settings' | '/users'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  BundlesRoute: typeof BundlesRoute;
-  ReplicantsRoute: typeof ReplicantsRoute;
-  SettingsRoute: typeof SettingsRoute;
-  UsersRoute: typeof UsersRoute;
+  IndexRoute: typeof IndexRoute
+  BundlesRoute: typeof BundlesRoute
+  ReplicantsRoute: typeof ReplicantsRoute
+  SettingsRoute: typeof SettingsRoute
+  UsersRoute: typeof UsersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/users': {
-      id: '/users';
-      path: '/users';
-      fullPath: '/users';
-      preLoaderRoute: typeof UsersRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
-      id: '/settings';
-      path: '/settings';
-      fullPath: '/settings';
-      preLoaderRoute: typeof SettingsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/replicants': {
-      id: '/replicants';
-      path: '/replicants';
-      fullPath: '/replicants';
-      preLoaderRoute: typeof ReplicantsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/replicants'
+      path: '/replicants'
+      fullPath: '/replicants'
+      preLoaderRoute: typeof ReplicantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bundles': {
-      id: '/bundles';
-      path: '/bundles';
-      fullPath: '/bundles';
-      preLoaderRoute: typeof BundlesRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/bundles'
+      path: '/bundles'
+      fullPath: '/bundles'
+      preLoaderRoute: typeof BundlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
-      id: '/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,7 +125,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReplicantsRoute: ReplicantsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

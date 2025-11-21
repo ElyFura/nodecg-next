@@ -10,6 +10,8 @@ import { Bundle, BundleConfig, BundleManager as IBundleManager } from '@nodecg/t
 import { BundleRepository } from '../../database/repositories/bundle.repository';
 import { getRepositories } from '../../database/client';
 import { NodeCGError, ErrorCodes } from '../../utils/errors';
+import type { ReplicantService } from '../replicant';
+import { createNodeCGContext } from './extension-context';
 
 export interface BundleManagerOptions extends ServiceOptions {
   bundlesDir?: string;
@@ -32,6 +34,7 @@ export class BundleManager extends BaseService implements IBundleManager {
   private repository: BundleRepository;
   // eslint-disable-next-line no-undef
   private watchers: Map<string, AbortController> = new Map();
+  private replicantService: ReplicantService | null = null;
 
   constructor(options: BundleManagerOptions = {}) {
     super('BundleManager', options);
@@ -45,6 +48,66 @@ export class BundleManager extends BaseService implements IBundleManager {
     this.bundlesDir = options.bundlesDir || join(projectRoot, 'bundles');
     this.enableHotReload = options.enableHotReload ?? true;
     this.repository = getRepositories(this.logger).bundle;
+  }
+
+  /**
+   * Set the replicant service
+   * This is called after the service is created during server initialization
+   */
+  setReplicantService(replicantService: ReplicantService): void {
+    this.replicantService = replicantService;
+    this.logger.info('ReplicantService set on BundleManager');
+
+    // Execute any extensions that were loaded before replicantService was available
+    this.executeLoadedExtensions();
+  }
+
+  /**
+   * Execute extensions for all loaded bundles
+   * This is called when replicantService becomes available
+   */
+  private executeLoadedExtensions(): void {
+    for (const [bundleName, bundle] of this.bundles) {
+      if (bundle.extension) {
+        this.executeExtension(bundleName, bundle.extension);
+      }
+    }
+  }
+
+  /**
+   * Execute a bundle extension with NodeCG context
+   */
+  private executeExtension(bundleName: string, extension: unknown): void {
+    if (!this.replicantService) {
+      this.logger.debug(
+        `ReplicantService not available yet, deferring extension execution for ${bundleName}`
+      );
+      return;
+    }
+
+    try {
+      // Create NodeCG context for the extension
+      const nodecgContext = createNodeCGContext(bundleName, this.logger, this.replicantService);
+
+      // Execute the extension function
+      // Handle both CommonJS (module.exports) and ES6 (export default) patterns
+      const ext = extension as Record<string, unknown>;
+      if (typeof extension === 'function') {
+        // Direct function export
+        extension(nodecgContext);
+        this.logger.info(`Executed extension for bundle: ${bundleName}`);
+      } else if (ext.default && typeof ext.default === 'function') {
+        // ES6 default export
+        (ext.default as (ctx: unknown) => void)(nodecgContext);
+        this.logger.info(`Executed extension for bundle: ${bundleName}`);
+      } else {
+        this.logger.warn(`Extension for ${bundleName} does not export a function`);
+        this.logger.debug(`Extension structure: ${JSON.stringify(Object.keys(ext))}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to execute extension for ${bundleName}:`);
+      this.logger.error(error instanceof Error ? error.stack || error.message : String(error));
+    }
   }
 
   /**
@@ -251,6 +314,11 @@ export class BundleManager extends BaseService implements IBundleManager {
       this.bundles.set(bundleName, bundle);
       this.logger.info(`Loaded bundle: ${bundleName} v${config.version}`);
       this.emitEvent('bundle:loaded', bundleName, bundle);
+
+      // Execute extension if it exists and replicantService is available
+      if (extension) {
+        this.executeExtension(bundleName, extension);
+      }
 
       return bundle;
     } catch (error) {
