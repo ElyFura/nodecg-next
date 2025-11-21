@@ -1,5 +1,14 @@
+/* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
-import { Users as UsersIcon, UserPlus, MoreHorizontal, Edit, Trash2, Shield } from 'lucide-react';
+import {
+  Users as UsersIcon,
+  UserPlus,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Shield,
+  Loader2,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,33 +20,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useUsers, useDeleteUser } from '@/lib/queries';
 
 export const Route = createFileRoute('/users')({
   component: Users,
 });
 
-interface User {
-  id: string;
-  username: string;
-  email: string | null;
-  role: string;
-  createdAt: string;
-}
-
 function Users() {
-  // Mock data - will be replaced with API calls
-  const users: User[] = [
-    {
-      id: '1',
-      username: 'admin',
-      email: 'admin@nodecg.dev',
-      role: 'admin',
-      createdAt: '2025-01-15T10:00:00Z',
-    },
-  ];
+  const { data, isLoading, error } = useUsers();
+  const deleteMutation = useDeleteUser();
 
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
+  const users = data?.users || [];
+
+  const handleDelete = (id: string, username: string) => {
+    if (confirm(`Delete user ${username}?`)) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const getRoleBadgeVariant = (roleName: string) => {
+    switch (roleName) {
       case 'admin':
         return 'default';
       case 'operator':
@@ -57,6 +59,42 @@ function Users() {
       day: 'numeric',
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+            <p className="text-muted-foreground">Manage user accounts and permissions</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+            <p className="text-muted-foreground">Manage user accounts and permissions</p>
+          </div>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <p className="text-destructive">Failed to load users</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -110,9 +148,9 @@ function Users() {
                       {user.email || <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                      <Badge variant={getRoleBadgeVariant(user.role?.name || 'viewer')}>
                         <Shield className="mr-1 h-3 w-3" />
-                        {user.role}
+                        {user.role?.name || 'viewer'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -120,13 +158,19 @@ function Users() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" title="Edit user">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Delete user"
+                          onClick={() => handleDelete(user.id, user.username)}
+                          disabled={deleteMutation.isPending}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" title="More options">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </div>
@@ -147,7 +191,7 @@ function Users() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter((u) => u.role === 'admin').length}
+              {users.filter((u) => u.role?.name === 'admin').length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Can manage all users, bundles, and settings
@@ -162,7 +206,7 @@ function Users() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter((u) => u.role === 'operator').length}
+              {users.filter((u) => u.role?.name === 'operator').length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Can manage replicants and assets</p>
           </CardContent>
@@ -175,7 +219,7 @@ function Users() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter((u) => u.role === 'viewer').length}
+              {users.filter((u) => u.role?.name === 'viewer').length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Can view dashboard and graphics</p>
           </CardContent>

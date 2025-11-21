@@ -1,58 +1,59 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Package, Play, Square, RefreshCw, Settings as SettingsIcon } from 'lucide-react';
+import { Package, Play, Square, RefreshCw, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useBundles, useReloadBundles } from '@/lib/queries';
 
 export const Route = createFileRoute('/bundles')({
   component: Bundles,
 });
 
-interface Bundle {
-  name: string;
-  version: string;
-  description: string;
-  status: 'loaded' | 'error' | 'disabled';
-  author: string;
-}
-
 function Bundles() {
-  // Mock data - will be replaced with API calls
-  const bundles: Bundle[] = [
-    {
-      name: 'example-bundle',
-      version: '1.0.0',
-      description: 'Example bundle demonstrating NodeCG Next features',
-      status: 'loaded',
-      author: 'NodeCG Team',
-    },
-  ];
+  const { data, isLoading, error } = useBundles();
+  const reloadMutation = useReloadBundles();
 
-  const getStatusColor = (status: Bundle['status']) => {
-    switch (status) {
-      case 'loaded':
-        return 'default';
-      case 'error':
-        return 'destructive';
-      case 'disabled':
-        return 'secondary';
-      default:
-        return 'default';
-    }
+  const bundles = data?.bundles || [];
+
+  const handleReload = () => {
+    reloadMutation.mutate();
   };
 
-  const getStatusText = (status: Bundle['status']) => {
-    switch (status) {
-      case 'loaded':
-        return 'Loaded';
-      case 'error':
-        return 'Error';
-      case 'disabled':
-        return 'Disabled';
-      default:
-        return 'Unknown';
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Bundles</h1>
+            <p className="text-muted-foreground">Manage your NodeCG bundles</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Bundles</h1>
+            <p className="text-muted-foreground">Manage your NodeCG bundles</p>
+          </div>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <p className="text-destructive">Failed to load bundles</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -61,8 +62,8 @@ function Bundles() {
           <h1 className="text-3xl font-bold tracking-tight">Bundles</h1>
           <p className="text-muted-foreground">Manage your NodeCG bundles</p>
         </div>
-        <Button>
-          <RefreshCw className="mr-2 h-4 w-4" />
+        <Button onClick={handleReload} disabled={reloadMutation.isPending}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${reloadMutation.isPending ? 'animate-spin' : ''}`} />
           Reload Bundles
         </Button>
       </div>
@@ -75,8 +76,10 @@ function Bundles() {
             <p className="text-sm text-muted-foreground text-center mb-4">
               Place bundles in your bundles directory and reload to get started.
             </p>
-            <Button>
-              <RefreshCw className="mr-2 h-4 w-4" />
+            <Button onClick={handleReload} disabled={reloadMutation.isPending}>
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${reloadMutation.isPending ? 'animate-spin' : ''}`}
+              />
               Reload Bundles
             </Button>
           </CardContent>
@@ -91,9 +94,7 @@ function Bundles() {
                     <Package className="h-5 w-5 text-primary" />
                     <CardTitle className="text-lg">{bundle.name}</CardTitle>
                   </div>
-                  <Badge variant={getStatusColor(bundle.status)}>
-                    {getStatusText(bundle.status)}
-                  </Badge>
+                  <Badge variant="default">Loaded</Badge>
                 </div>
                 <CardDescription>{bundle.description}</CardDescription>
               </CardHeader>
@@ -105,6 +106,14 @@ function Bundles() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Author</span>
                   <span className="font-medium">{bundle.author}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Panels</span>
+                  <span className="font-medium">{bundle.panelCount}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Graphics</span>
+                  <span className="font-medium">{bundle.graphicCount}</span>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button size="sm" variant="outline" className="flex-1">

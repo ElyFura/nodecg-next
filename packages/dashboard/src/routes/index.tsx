@@ -1,38 +1,63 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Package, Radio, Users, Activity } from 'lucide-react';
+import { Package, Radio, Users, Activity, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useStats } from '@/lib/queries';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
 });
 
 function Dashboard() {
-  const stats = [
+  const { data: stats, isLoading, error } = useStats();
+
+  const statsCards = [
     {
       title: 'Bundles',
-      value: '0',
+      value: stats?.bundles.toString() || '0',
       description: 'Loaded bundles',
       icon: Package,
     },
     {
       title: 'Replicants',
-      value: '0',
+      value: stats?.replicants.toString() || '0',
       description: 'Active replicants',
       icon: Radio,
     },
     {
       title: 'Users',
-      value: '0',
+      value: stats?.users.toString() || '0',
       description: 'Registered users',
       icon: Users,
     },
     {
       title: 'Status',
-      value: 'Online',
+      value: stats?.status === 'online' ? 'Online' : 'Offline',
       description: 'Server status',
       icon: Activity,
     },
   ];
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to NodeCG Next</p>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-destructive">
+              <Activity className="h-5 w-5" />
+              <p className="font-medium">Failed to connect to server</p>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Make sure the NodeCG server is running on port 3000
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -42,7 +67,7 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
+        {statsCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title}>
@@ -51,8 +76,17 @@ function Dashboard() {
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="text-sm text-muted-foreground">Loading...</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground">{stat.description}</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           );
@@ -78,9 +112,7 @@ function Dashboard() {
             <Radio className="h-5 w-5 text-primary" />
             <div>
               <p className="font-medium">Inspect Replicants</p>
-              <p className="text-sm text-muted-foreground">
-                View and edit replicants in real-time
-              </p>
+              <p className="text-sm text-muted-foreground">View and edit replicants in real-time</p>
             </div>
           </div>
           <div className="flex items-center gap-2 p-3 border rounded-lg">

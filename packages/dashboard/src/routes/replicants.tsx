@@ -1,40 +1,26 @@
+/* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
-import { Radio, Copy, Edit, RefreshCw, Trash2 } from 'lucide-react';
+import { Radio, Copy, Edit, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useReplicants, useDeleteReplicant } from '@/lib/queries';
 
 export const Route = createFileRoute('/replicants')({
   component: Replicants,
 });
 
-interface Replicant {
-  namespace: string;
-  name: string;
-  value: unknown;
-  schema?: string;
-  revision: number;
-  updatedAt: string;
-}
-
 function Replicants() {
-  // Mock data - will be replaced with API calls and real-time updates
-  const replicants: Replicant[] = [
-    {
-      namespace: 'example-bundle',
-      name: 'currentScene',
-      value: 'intro',
-      revision: 5,
-      updatedAt: '2025-01-20T15:30:00Z',
-    },
-    {
-      namespace: 'example-bundle',
-      name: 'score',
-      value: { team1: 0, team2: 0 },
-      revision: 12,
-      updatedAt: '2025-01-20T15:45:00Z',
-    },
-  ];
+  const { data, isLoading, error, refetch } = useReplicants();
+  const deleteMutation = useDeleteReplicant();
+
+  const replicants = data?.replicants || [];
+
+  const handleDelete = (namespace: string, name: string) => {
+    if (confirm(`Delete replicant ${namespace}:${name}?`)) {
+      deleteMutation.mutate({ namespace, name });
+    }
+  };
 
   const formatValue = (value: unknown): string => {
     if (typeof value === 'string') return `"${value}"`;
@@ -55,6 +41,46 @@ function Replicants() {
     return date.toLocaleDateString();
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Replicants</h1>
+            <p className="text-muted-foreground">
+              View and manage synchronized state across your NodeCG instance
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Replicants</h1>
+            <p className="text-muted-foreground">
+              View and manage synchronized state across your NodeCG instance
+            </p>
+          </div>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <p className="text-destructive">Failed to load replicants</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -64,7 +90,7 @@ function Replicants() {
             View and manage synchronized state across your NodeCG instance
           </p>
         </div>
-        <Button>
+        <Button onClick={() => refetch()}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
@@ -99,13 +125,19 @@ function Replicants() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost">
+                    <Button size="sm" variant="ghost" title="Copy value">
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost">
+                    <Button size="sm" variant="ghost" title="Edit value">
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Delete replicant"
+                      onClick={() => handleDelete(replicant.namespace, replicant.name)}
+                      disabled={deleteMutation.isPending}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
