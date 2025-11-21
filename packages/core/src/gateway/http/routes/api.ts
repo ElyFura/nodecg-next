@@ -16,7 +16,7 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.get('/stats', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const bundleManager = (fastify as any).services?.get('BundleManager');
+      const bundleManager = (fastify as any).bundleManager;
       const bundles = bundleManager?.getAllBundles?.() || [];
 
       // Get replicant count from in-memory store
@@ -61,7 +61,7 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.get('/bundles', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const bundleManager = (fastify as any).services?.get('BundleManager');
+      const bundleManager = (fastify as any).bundleManager;
       if (!bundleManager) {
         return reply.status(503).send({
           error: 'Service Unavailable',
@@ -100,7 +100,7 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.post('/bundles/reload', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const bundleManager = (fastify as any).services?.get('BundleManager');
+      const bundleManager = (fastify as any).bundleManager;
       if (!bundleManager) {
         return reply.status(503).send({
           error: 'Service Unavailable',

@@ -34,7 +34,7 @@ export const resolvers = {
   Query: {
     // Bundle Queries
     bundles: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
-      const bundleManager = (context.fastify as any).services?.get('BundleManager');
+      const bundleManager = (context.fastify as any).bundleManager;
       if (!bundleManager) {
         throw new GraphQLError('Bundle manager not available', {
           extensions: { code: 'SERVICE_UNAVAILABLE' },
@@ -61,7 +61,7 @@ export const resolvers = {
     },
 
     bundle: async (_parent: unknown, { name }: { name: string }, context: GraphQLContext) => {
-      const bundleManager = (context.fastify as any).services?.get('BundleManager');
+      const bundleManager = (context.fastify as any).bundleManager;
       if (!bundleManager) {
         throw new GraphQLError('Bundle manager not available', {
           extensions: { code: 'SERVICE_UNAVAILABLE' },
@@ -96,7 +96,7 @@ export const resolvers = {
     },
 
     bundleCount: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
-      const bundleManager = (context.fastify as any).services?.get('BundleManager');
+      const bundleManager = (context.fastify as any).bundleManager;
       const bundles = bundleManager?.getAllBundles?.() || [];
       return bundles.length;
     },
@@ -382,7 +382,7 @@ export const resolvers = {
 
     // System Queries
     systemStats: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
-      const bundleManager = (context.fastify as any).services?.get('BundleManager');
+      const bundleManager = (context.fastify as any).bundleManager;
       const bundles = bundleManager?.getAllBundles?.() || [];
 
       const replicantService = (context.fastify as any).replicantService;
@@ -427,7 +427,7 @@ export const resolvers = {
   Mutation: {
     // Bundle Mutations
     reloadBundles: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
-      const bundleManager = (context.fastify as any).services?.get('BundleManager');
+      const bundleManager = (context.fastify as any).bundleManager;
       if (!bundleManager) {
         throw new GraphQLError('Bundle manager not available', {
           extensions: { code: 'SERVICE_UNAVAILABLE' },
@@ -448,7 +448,7 @@ export const resolvers = {
     },
 
     reloadBundle: async (_parent: unknown, _args: { name: string }, context: GraphQLContext) => {
-      const bundleManager = (context.fastify as any).services?.get('BundleManager');
+      const bundleManager = (context.fastify as any).bundleManager;
       if (!bundleManager) {
         throw new GraphQLError('Bundle manager not available', {
           extensions: { code: 'SERVICE_UNAVAILABLE' },
