@@ -415,11 +415,17 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
           });
         }
 
-        // Find role (default to viewer if not specified or not found)
+        // Find role by ID or name (default to viewer if not specified or not found)
         let role = null;
         if (roleId) {
+          // Try to find by ID first
           role = await prisma.role.findUnique({ where: { id: roleId } });
+          // If not found, try to find by name (for backward compatibility)
+          if (!role) {
+            role = await prisma.role.findUnique({ where: { name: roleId } });
+          }
         }
+        // Default to viewer role if still not found
         if (!role) {
           role = await prisma.role.findUnique({ where: { name: 'viewer' } });
         }
@@ -535,7 +541,21 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
         }
 
         if (roleId !== undefined) {
-          updateData.roleId = roleId || null;
+          // Find role by ID or name (default to viewer if not found)
+          let role = null;
+          if (roleId) {
+            // Try to find by ID first
+            role = await prisma.role.findUnique({ where: { id: roleId } });
+            // If not found, try to find by name (for backward compatibility)
+            if (!role) {
+              role = await prisma.role.findUnique({ where: { name: roleId } });
+            }
+          }
+          // Default to viewer role if still not found
+          if (!role) {
+            role = await prisma.role.findUnique({ where: { name: 'viewer' } });
+          }
+          updateData.roleId = role?.id || null;
         }
 
         // Update user
