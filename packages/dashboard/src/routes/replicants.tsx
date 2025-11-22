@@ -1,9 +1,20 @@
 /* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 import { Radio, Copy, Edit, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useReplicants, useDeleteReplicant, useUpdateReplicant } from '@/lib/queries';
 
 export const Route = createFileRoute('/replicants')({
@@ -16,6 +27,16 @@ function Replicants() {
   const updateMutation = useUpdateReplicant();
 
   const replicants = data?.replicants || [];
+
+  // Modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingReplicant, setEditingReplicant] = useState<{
+    namespace: string;
+    name: string;
+    value: unknown;
+  } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [jsonError, setJsonError] = useState('');
 
   const handleDelete = (namespace: string, name: string) => {
     if (confirm(`Delete replicant ${namespace}:${name}?`)) {
@@ -30,24 +51,45 @@ function Replicants() {
     });
   };
 
-  const handleEdit = (namespace: string, name: string, currentValue: unknown) => {
+  const openEditModal = (namespace: string, name: string, currentValue: unknown) => {
+    setEditingReplicant({ namespace, name, value: currentValue });
     const valueStr =
       typeof currentValue === 'string' ? currentValue : JSON.stringify(currentValue, null, 2);
-    const newValueStr = prompt(`Edit value for ${namespace}:${name}:`, valueStr);
+    setEditValue(valueStr);
+    setJsonError('');
+    setIsEditModalOpen(true);
+  };
 
-    if (newValueStr !== null && newValueStr !== valueStr) {
-      try {
-        // Try to parse as JSON if it looks like JSON
-        const newValue =
-          newValueStr.startsWith('{') || newValueStr.startsWith('[') || newValueStr.startsWith('"')
-            ? JSON.parse(newValueStr)
-            : newValueStr;
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReplicant) return;
 
-        updateMutation.mutate({ namespace, name, value: newValue });
-      } catch {
-        // If JSON parse fails, use as string
-        updateMutation.mutate({ namespace, name, value: newValueStr });
-      }
+    try {
+      // Try to parse as JSON if it looks like JSON
+      const newValue =
+        editValue.trim().startsWith('{') ||
+        editValue.trim().startsWith('[') ||
+        editValue.trim().startsWith('"')
+          ? JSON.parse(editValue)
+          : editValue;
+
+      updateMutation.mutate(
+        {
+          namespace: editingReplicant.namespace,
+          name: editingReplicant.name,
+          value: newValue,
+        },
+        {
+          onSuccess: () => {
+            setIsEditModalOpen(false);
+            setEditingReplicant(null);
+            setEditValue('');
+            setJsonError('');
+          },
+        }
+      );
+    } catch {
+      setJsonError('Invalid JSON format. Please check your syntax.');
     }
   };
 
@@ -167,7 +209,7 @@ function Replicants() {
                       variant="ghost"
                       title="Edit value"
                       onClick={() =>
-                        handleEdit(replicant.namespace, replicant.name, replicant.value)
+                        openEditModal(replicant.namespace, replicant.name, replicant.value)
                       }
                       disabled={updateMutation.isPending}
                     >
@@ -225,6 +267,53 @@ function Replicants() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Replicant Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <form onSubmit={handleEditSubmit}>
+            <DialogHeader>
+              <DialogTitle>
+                Edit Replicant:{' '}
+                {editingReplicant && `${editingReplicant.namespace}:${editingReplicant.name}`}
+              </DialogTitle>
+              <DialogDescription>
+                Modify the replicant value. For objects/arrays, use valid JSON format.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="replicant-value">Value</Label>
+                <Textarea
+                  id="replicant-value"
+                  value={editValue}
+                  onChange={(e) => {
+                    setEditValue(e.target.value);
+                    setJsonError('');
+                  }}
+                  rows={15}
+                  className="font-mono text-sm"
+                  placeholder='Enter value or JSON: {"key": "value"}'
+                />
+                {jsonError && <p className="text-sm text-destructive">{jsonError}</p>}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditModalOpen(false)}
+                disabled={updateMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

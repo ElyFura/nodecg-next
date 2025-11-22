@@ -1,9 +1,20 @@
 /* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Edit, Trash2, Shield, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -18,6 +29,13 @@ export const Route = createFileRoute('/users')({
   component: Users,
 });
 
+interface UserFormData {
+  username: string;
+  email: string;
+  password: string;
+  roleId: string;
+}
+
 function Users() {
   const { data, isLoading, error } = useUsers();
   const deleteMutation = useDeleteUser();
@@ -26,37 +44,101 @@ function Users() {
 
   const users = data?.users || [];
 
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<{
+    id: string;
+    username: string;
+    email: string | null;
+    role?: { id: string; name: string };
+  } | null>(null);
+  const [formData, setFormData] = useState<UserFormData>({
+    username: '',
+    email: '',
+    password: '',
+    roleId: 'viewer',
+  });
+
   const handleDelete = (id: string, username: string) => {
     if (confirm(`Delete user ${username}?`)) {
       deleteMutation.mutate(id);
     }
   };
 
-  const handleAddUser = () => {
-    const username = prompt('Enter username:');
-    if (!username) return;
-
-    const password = prompt('Enter password:');
-    if (!password) return;
-
-    const email = prompt('Enter email (optional):');
-
-    createMutation.mutate({
-      username,
-      password,
-      email: email || undefined,
-      roleId: 'viewer', // Default role
-    });
+  const openAddModal = () => {
+    setFormData({ username: '', email: '', password: '', roleId: 'viewer' });
+    setIsAddModalOpen(true);
   };
 
-  const handleEditUser = (user: { id: string; username: string; email: string | null }) => {
-    const newEmail = prompt(`Edit email for ${user.username}:`, user.email || '');
-    if (newEmail !== null && newEmail !== user.email) {
-      updateMutation.mutate({
-        id: user.id,
-        data: { email: newEmail || null },
-      });
+  const openEditModal = (user: {
+    id: string;
+    username: string;
+    email: string | null;
+    role?: { id: string; name: string };
+  }) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email || '',
+      password: '',
+      roleId: user.role?.id || 'viewer',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate(
+      {
+        username: formData.username,
+        password: formData.password,
+        email: formData.email || undefined,
+        roleId: formData.roleId,
+      },
+      {
+        onSuccess: () => {
+          setIsAddModalOpen(false);
+          setFormData({ username: '', email: '', password: '', roleId: 'viewer' });
+        },
+      }
+    );
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const updateData: {
+      email: string | null;
+      roleId: string;
+      username?: string;
+      password?: string;
+    } = {
+      email: formData.email || null,
+      roleId: formData.roleId,
+    };
+
+    // Only include username if it changed
+    if (formData.username !== editingUser.username) {
+      updateData.username = formData.username;
     }
+
+    // Only include password if it was provided
+    if (formData.password) {
+      updateData.password = formData.password;
+    }
+
+    updateMutation.mutate(
+      { id: editingUser.id, data: updateData },
+      {
+        onSuccess: () => {
+          setIsEditModalOpen(false);
+          setEditingUser(null);
+          setFormData({ username: '', email: '', password: '', roleId: 'viewer' });
+        },
+      }
+    );
   };
 
   const getRoleBadgeVariant = (roleName: string) => {
@@ -124,7 +206,7 @@ function Users() {
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
           <p className="text-muted-foreground">Manage user accounts and permissions</p>
         </div>
-        <Button onClick={handleAddUser} disabled={createMutation.isPending}>
+        <Button onClick={openAddModal} disabled={createMutation.isPending}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add User
         </Button>
@@ -145,7 +227,7 @@ function Users() {
               <p className="text-sm text-muted-foreground text-center mb-4">
                 Get started by creating your first user account.
               </p>
-              <Button onClick={handleAddUser} disabled={createMutation.isPending}>
+              <Button onClick={openAddModal} disabled={createMutation.isPending}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Add User
               </Button>
@@ -183,7 +265,7 @@ function Users() {
                           size="sm"
                           variant="ghost"
                           title="Edit user"
-                          onClick={() => handleEditUser(user)}
+                          onClick={() => openEditModal(user)}
                           disabled={updateMutation.isPending}
                         >
                           <Edit className="h-4 w-4" />
@@ -249,6 +331,146 @@ function Users() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add User Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent>
+          <form onSubmit={handleAddSubmit}>
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>
+                Create a new user account with access credentials.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="add-username">Username *</Label>
+                <Input
+                  id="add-username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-password">Password *</Label>
+                <Input
+                  id="add-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-email">Email</Label>
+                <Input
+                  id="add-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-role">Role *</Label>
+                <select
+                  id="add-role"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={formData.roleId}
+                  onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="operator">Operator</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddModalOpen(false)}
+                disabled={createMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Creating...' : 'Create User'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <form onSubmit={handleEditSubmit}>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information. Leave password empty to keep current password.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-username">Username *</Label>
+                <Input
+                  id="edit-username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-password">New Password (optional)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Leave empty to keep current password"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-role">Role *</Label>
+                <select
+                  id="edit-role"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={formData.roleId}
+                  onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="operator">Operator</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditModalOpen(false)}
+                disabled={updateMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
