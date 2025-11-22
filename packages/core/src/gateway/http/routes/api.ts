@@ -65,33 +65,44 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
       const bundlesMap = (bundleManager as any).bundles as Map<string, any>;
       const bundles = Array.from(bundlesMap.values());
 
-      const bundleList = bundles.map((bundle: any) => ({
-        name: bundle.config.name,
-        version: bundle.config.version,
-        description: bundle.config.description || '',
-        author: bundle.config.author || '',
-        authors: bundle.config.authors || [],
-        homepage: bundle.config.homepage,
-        license: bundle.config.license,
-        git: bundle.config.git,
-        compatibleRange: bundle.config.nodecg?.compatibleRange,
-        dependencies: bundle.dependencies || [],
-        bundleDependencies: bundle.config.bundleDependencies || bundle.config.dependencies || {},
-        status: 'loaded' as const,
-        hasExtension: !!bundle.extension,
-        hasDashboard:
-          Array.isArray(bundle.config.nodecg?.dashboardPanels) &&
-          bundle.config.nodecg.dashboardPanels.length > 0,
-        hasGraphics:
-          Array.isArray(bundle.config.nodecg?.graphics) && bundle.config.nodecg.graphics.length > 0,
-        panelCount: Array.isArray(bundle.config.nodecg?.dashboardPanels)
-          ? bundle.config.nodecg.dashboardPanels.length
-          : 0,
-        graphicCount: Array.isArray(bundle.config.nodecg?.graphics)
-          ? bundle.config.nodecg.graphics.length
-          : 0,
-        extensionPath: bundle.extension ? 'extension/index.js' : undefined,
-      }));
+      const bundleList = bundles.map((bundle: any) => {
+        const dashboardPanels = bundle.config.nodecg?.dashboardPanels || [];
+        const graphics = bundle.config.nodecg?.graphics || [];
+
+        return {
+          name: bundle.config.name,
+          version: bundle.config.version,
+          description: bundle.config.description || '',
+          author: bundle.config.author || '',
+          authors: bundle.config.authors || [],
+          homepage: bundle.config.homepage,
+          license: bundle.config.license,
+          git: bundle.config.git,
+          compatibleRange: bundle.config.nodecg?.compatibleRange,
+          dependencies: bundle.dependencies || [],
+          bundleDependencies: bundle.config.bundleDependencies || bundle.config.dependencies || {},
+          status: 'loaded' as const,
+          hasExtension: !!bundle.extension,
+          hasDashboard: dashboardPanels.length > 0,
+          hasGraphics: graphics.length > 0,
+          panelCount: dashboardPanels.length,
+          graphicCount: graphics.length,
+          extensionPath: bundle.extension ? 'extension/index.js' : undefined,
+          dashboardPanels: dashboardPanels.map((panel: any) => ({
+            name: panel.name,
+            title: panel.title,
+            file: panel.file,
+            width: panel.width,
+            url: `/bundles/${bundle.config.name}/dashboard/${panel.file}`,
+          })),
+          graphics: graphics.map((graphic: any) => ({
+            file: graphic.file,
+            width: graphic.width,
+            height: graphic.height,
+            url: `/bundles/${bundle.config.name}/graphics/${graphic.file}`,
+          })),
+        };
+      });
 
       return reply.status(200).send({ bundles: bundleList, total: bundleList.length });
     } catch (error) {

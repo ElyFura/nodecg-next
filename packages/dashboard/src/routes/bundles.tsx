@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useBundles, useReloadBundles } from '@/lib/queries';
+import type { Bundle } from '@/lib/api';
 
 export const Route = createFileRoute('/bundles')({
   component: Bundles,
@@ -18,6 +19,40 @@ function Bundles() {
 
   const handleReload = () => {
     reloadMutation.mutate();
+  };
+
+  const handleOpenDashboard = (bundle: Bundle) => {
+    if (bundle.dashboardPanels.length === 0) return;
+
+    // Open each panel in a new window
+    bundle.dashboardPanels.forEach((panel) => {
+      const width = (panel.width || 2) * 300; // Convert grid width to pixels (approx)
+      const height = 600;
+      const left = window.screenX + 50;
+      const top = window.screenY + 50;
+
+      const windowFeatures = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+      const fullUrl = `http://localhost:3000${panel.url}`;
+
+      window.open(fullUrl, `${bundle.name}-${panel.name}`, windowFeatures);
+    });
+  };
+
+  const handleOpenGraphics = (bundle: Bundle) => {
+    if (bundle.graphics.length === 0) return;
+
+    // Open each graphic in a new window
+    bundle.graphics.forEach((graphic, index) => {
+      const width = graphic.width || 1920;
+      const height = graphic.height || 1080;
+      const left = window.screenX + index * 50;
+      const top = window.screenY + index * 50;
+
+      const windowFeatures = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+      const fullUrl = `http://localhost:3000${graphic.url}`;
+
+      window.open(fullUrl, `${bundle.name}-graphic-${index}`, windowFeatures);
+    });
   };
 
   if (isLoading) {
@@ -122,17 +157,11 @@ function Bundles() {
                     variant="outline"
                     className="flex-1"
                     disabled={bundle.panelCount === 0}
-                    onClick={() => {
-                      if (bundle.panelCount > 0) {
-                        alert(
-                          `Opening dashboard panels for ${bundle.name}...\nThis feature will be implemented in a future phase.`
-                        );
-                      }
-                    }}
+                    onClick={() => handleOpenDashboard(bundle)}
                     title={
                       bundle.panelCount === 0
                         ? 'No dashboard panels available'
-                        : `${bundle.panelCount} panel(s) available`
+                        : bundle.dashboardPanels.map((p) => p.title).join(', ')
                     }
                   >
                     <Play className="mr-2 h-3 w-3" />
@@ -143,17 +172,11 @@ function Bundles() {
                     variant="outline"
                     className="flex-1"
                     disabled={bundle.graphicCount === 0}
-                    onClick={() => {
-                      if (bundle.graphicCount > 0) {
-                        alert(
-                          `Opening graphics for ${bundle.name}...\nThis feature will be implemented in a future phase.`
-                        );
-                      }
-                    }}
+                    onClick={() => handleOpenGraphics(bundle)}
                     title={
                       bundle.graphicCount === 0
                         ? 'No graphics available'
-                        : `${bundle.graphicCount} graphic(s) available`
+                        : `${bundle.graphicCount} graphic(s): ${bundle.graphics.map((g) => g.file).join(', ')}`
                     }
                   >
                     <Square className="mr-2 h-3 w-3" />

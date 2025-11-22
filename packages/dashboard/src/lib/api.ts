@@ -62,6 +62,21 @@ export async function getStats(): Promise<DashboardStats> {
 }
 
 // Bundles API
+export interface DashboardPanel {
+  name: string;
+  title: string;
+  file: string;
+  width: number;
+  url: string;
+}
+
+export interface BundleGraphic {
+  file: string;
+  width: number;
+  height: number;
+  url: string;
+}
+
 export interface Bundle {
   name: string;
   version: string;
@@ -78,6 +93,8 @@ export interface Bundle {
   panelCount: number;
   graphicCount: number;
   extensionPath?: string;
+  dashboardPanels: DashboardPanel[];
+  graphics: BundleGraphic[];
 }
 
 export interface BundlesResponse {
