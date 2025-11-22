@@ -4,7 +4,7 @@ import { Radio, Copy, Edit, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useReplicants, useDeleteReplicant } from '@/lib/queries';
+import { useReplicants, useDeleteReplicant, useUpdateReplicant } from '@/lib/queries';
 
 export const Route = createFileRoute('/replicants')({
   component: Replicants,

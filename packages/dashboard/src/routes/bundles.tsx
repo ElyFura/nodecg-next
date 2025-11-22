@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
 import { Package, Play, Square, RefreshCw, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,15 +117,49 @@ function Bundles() {
                   <span className="font-medium">{bundle.graphicCount}</span>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={bundle.panelCount === 0}
+                    onClick={() => {
+                      if (bundle.panelCount > 0) {
+                        alert(
+                          `Opening dashboard panels for ${bundle.name}...\nThis feature will be implemented in a future phase.`
+                        );
+                      }
+                    }}
+                    title={
+                      bundle.panelCount === 0
+                        ? 'No dashboard panels available'
+                        : `${bundle.panelCount} panel(s) available`
+                    }
+                  >
                     <Play className="mr-2 h-3 w-3" />
                     Dashboard
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={bundle.graphicCount === 0}
+                    onClick={() => {
+                      if (bundle.graphicCount > 0) {
+                        alert(
+                          `Opening graphics for ${bundle.name}...\nThis feature will be implemented in a future phase.`
+                        );
+                      }
+                    }}
+                    title={
+                      bundle.graphicCount === 0
+                        ? 'No graphics available'
+                        : `${bundle.graphicCount} graphic(s) available`
+                    }
+                  >
                     <Square className="mr-2 h-3 w-3" />
                     Graphics
                   </Button>
-                  <Button size="sm" variant="ghost">
+                  <Button size="sm" variant="ghost" disabled title="Bundle settings (coming soon)">
                     <SettingsIcon className="h-4 w-4" />
                   </Button>
                 </div>

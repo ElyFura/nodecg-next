@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useUsers, useDeleteUser } from '@/lib/queries';
+import { useUsers, useDeleteUser, useCreateUser, useUpdateUser } from '@/lib/queries';
 
 export const Route = createFileRoute('/users')({
   component: Users,
@@ -49,7 +49,7 @@ function Users() {
     });
   };
 
-  const handleEditUser = (user: any) => {
+  const handleEditUser = (user: { id: string; username: string; email: string | null }) => {
     const newEmail = prompt(`Edit email for ${user.username}:`, user.email || '');
     if (newEmail !== null && newEmail !== user.email) {
       updateMutation.mutate({
