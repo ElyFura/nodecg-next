@@ -1,14 +1,6 @@
 /* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
-import {
-  Users as UsersIcon,
-  UserPlus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Shield,
-  Loader2,
-} from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Edit, Trash2, Shield, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,12 +21,41 @@ export const Route = createFileRoute('/users')({
 function Users() {
   const { data, isLoading, error } = useUsers();
   const deleteMutation = useDeleteUser();
+  const createMutation = useCreateUser();
+  const updateMutation = useUpdateUser();
 
   const users = data?.users || [];
 
   const handleDelete = (id: string, username: string) => {
     if (confirm(`Delete user ${username}?`)) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleAddUser = () => {
+    const username = prompt('Enter username:');
+    if (!username) return;
+
+    const password = prompt('Enter password:');
+    if (!password) return;
+
+    const email = prompt('Enter email (optional):');
+
+    createMutation.mutate({
+      username,
+      password,
+      email: email || undefined,
+      roleId: 'viewer', // Default role
+    });
+  };
+
+  const handleEditUser = (user: any) => {
+    const newEmail = prompt(`Edit email for ${user.username}:`, user.email || '');
+    if (newEmail !== null && newEmail !== user.email) {
+      updateMutation.mutate({
+        id: user.id,
+        data: { email: newEmail || null },
+      });
     }
   };
 
@@ -103,7 +124,7 @@ function Users() {
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
           <p className="text-muted-foreground">Manage user accounts and permissions</p>
         </div>
-        <Button>
+        <Button onClick={handleAddUser} disabled={createMutation.isPending}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add User
         </Button>
@@ -124,7 +145,7 @@ function Users() {
               <p className="text-sm text-muted-foreground text-center mb-4">
                 Get started by creating your first user account.
               </p>
-              <Button>
+              <Button onClick={handleAddUser} disabled={createMutation.isPending}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Add User
               </Button>
@@ -158,7 +179,13 @@ function Users() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="ghost" title="Edit user">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Edit user"
+                          onClick={() => handleEditUser(user)}
+                          disabled={updateMutation.isPending}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -169,9 +196,6 @@ function Users() {
                           disabled={deleteMutation.isPending}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                        <Button size="sm" variant="ghost" title="More options">
-                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

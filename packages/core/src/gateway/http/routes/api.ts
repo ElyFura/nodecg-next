@@ -158,6 +158,51 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   /**
+   * PUT /api/replicants/:namespace/:name
+   * Update a replicant value
+   */
+  fastify.put<{
+    Params: { namespace: string; name: string };
+    Body: { value: unknown };
+  }>(
+    '/replicants/:namespace/:name',
+    async (
+      request: FastifyRequest<{
+        Params: { namespace: string; name: string };
+        Body: { value: unknown };
+      }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const { namespace, name } = request.params;
+        const { value } = request.body;
+        const replicantService = (fastify as any).replicantService;
+
+        if (!replicantService) {
+          return reply.status(503).send({
+            error: 'Service Unavailable',
+            message: 'Replicant service not initialized',
+          });
+        }
+
+        // Update replicant
+        await replicantService.set(namespace, name, value);
+
+        return reply.status(200).send({
+          success: true,
+          message: `Replicant ${namespace}:${name} updated successfully`,
+        });
+      } catch (error) {
+        fastify.log.error(error, 'Error updating replicant');
+        return reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to update replicant',
+        });
+      }
+    }
+  );
+
+  /**
    * DELETE /api/replicants/:namespace/:name
    * Delete a replicant
    */
@@ -180,12 +225,8 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
           });
         }
 
-        // Delete replicant
-        const replicantMap = (replicantService as any).replicants;
-        if (replicantMap instanceof Map) {
-          const key = `${namespace}:${name}`;
-          replicantMap.delete(key);
-        }
+        // Delete replicant using service
+        await replicantService.delete(namespace, name);
 
         return reply.status(200).send({
           success: true,

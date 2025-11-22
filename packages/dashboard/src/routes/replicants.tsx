@@ -13,12 +13,41 @@ export const Route = createFileRoute('/replicants')({
 function Replicants() {
   const { data, isLoading, error, refetch } = useReplicants();
   const deleteMutation = useDeleteReplicant();
+  const updateMutation = useUpdateReplicant();
 
   const replicants = data?.replicants || [];
 
   const handleDelete = (namespace: string, name: string) => {
     if (confirm(`Delete replicant ${namespace}:${name}?`)) {
       deleteMutation.mutate({ namespace, name });
+    }
+  };
+
+  const handleCopy = (value: unknown) => {
+    const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied to clipboard!');
+    });
+  };
+
+  const handleEdit = (namespace: string, name: string, currentValue: unknown) => {
+    const valueStr =
+      typeof currentValue === 'string' ? currentValue : JSON.stringify(currentValue, null, 2);
+    const newValueStr = prompt(`Edit value for ${namespace}:${name}:`, valueStr);
+
+    if (newValueStr !== null && newValueStr !== valueStr) {
+      try {
+        // Try to parse as JSON if it looks like JSON
+        const newValue =
+          newValueStr.startsWith('{') || newValueStr.startsWith('[') || newValueStr.startsWith('"')
+            ? JSON.parse(newValueStr)
+            : newValueStr;
+
+        updateMutation.mutate({ namespace, name, value: newValue });
+      } catch {
+        // If JSON parse fails, use as string
+        updateMutation.mutate({ namespace, name, value: newValueStr });
+      }
     }
   };
 
@@ -125,10 +154,23 @@ function Replicants() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" title="Copy value">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Copy value"
+                      onClick={() => handleCopy(replicant.value)}
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" title="Edit value">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Edit value"
+                      onClick={() =>
+                        handleEdit(replicant.namespace, replicant.name, replicant.value)
+                      }
+                      disabled={updateMutation.isPending}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
