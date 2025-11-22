@@ -20,21 +20,12 @@ export async function apiRoutes(fastify: FastifyInstance): Promise<void> {
       const bundleStats = bundleManager?.getStatistics?.();
       const bundles = bundleStats?.bundles || [];
 
-      // Get replicant count from in-memory store
-      const replicantService = (fastify as any).replicantService;
-      let replicantCount = 0;
-      if (replicantService) {
-        // Access internal replicants map if available
-        const replicants = (replicantService as any).replicants;
-        if (replicants instanceof Map) {
-          replicantCount = replicants.size;
-        }
-      }
-
-      // Get user count from database
+      // Get replicant count from database
       const prisma = (fastify as any).prisma;
+      let replicantCount = 0;
       let userCount = 0;
       if (prisma) {
+        replicantCount = await prisma.replicant.count();
         userCount = await prisma.user.count();
       }
 

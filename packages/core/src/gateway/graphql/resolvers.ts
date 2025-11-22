@@ -112,34 +112,34 @@ export const resolvers = {
       { namespace }: { namespace?: string },
       context: GraphQLContext
     ) => {
-      const replicantService = (context.fastify as any).replicantService;
-      if (!replicantService) {
-        throw new GraphQLError('Replicant service not available', {
+      const prisma = (context.fastify as any).prisma;
+      if (!prisma) {
+        throw new GraphQLError('Database not available', {
           extensions: { code: 'SERVICE_UNAVAILABLE' },
         });
       }
 
-      const replicants: any[] = [];
-      const replicantMap = (replicantService as any).replicants;
+      // Query replicants from database
+      const where = namespace ? { namespace } : {};
+      const dbReplicants = await prisma.replicant.findMany({
+        where,
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
 
-      if (replicantMap instanceof Map) {
-        for (const [key, replicant] of replicantMap.entries()) {
-          const [ns, name] = key.split(':');
-          if (!namespace || ns === namespace) {
-            replicants.push({
-              namespace: ns,
-              name,
-              value: replicant.value,
-              revision: replicant.revision || 0,
-              status: 'ACTIVE',
-              schema: replicant.schema || null,
-              defaultValue: replicant.defaultValue || null,
-              createdAt: replicant.createdAt || new Date(),
-              updatedAt: replicant.updatedAt || new Date(),
-            });
-          }
-        }
-      }
+      // Transform database records to GraphQL format
+      const replicants = dbReplicants.map((rep: any) => ({
+        namespace: rep.namespace,
+        name: rep.name,
+        value: JSON.parse(rep.value),
+        revision: rep.revision,
+        status: 'ACTIVE',
+        schema: null,
+        defaultValue: null,
+        createdAt: rep.createdAt,
+        updatedAt: rep.updatedAt,
+      }));
 
       return replicants;
     },
@@ -149,33 +149,37 @@ export const resolvers = {
       { namespace, name }: { namespace: string; name: string },
       context: GraphQLContext
     ) => {
-      const replicantService = (context.fastify as any).replicantService;
-      if (!replicantService) {
-        throw new GraphQLError('Replicant service not available', {
+      const prisma = (context.fastify as any).prisma;
+      if (!prisma) {
+        throw new GraphQLError('Database not available', {
           extensions: { code: 'SERVICE_UNAVAILABLE' },
         });
       }
 
-      const replicantMap = (replicantService as any).replicants;
-      const key = `${namespace}:${name}`;
-      const replicant = replicantMap?.get(key);
+      // Query single replicant from database
+      const dbReplicant = await prisma.replicant.findFirst({
+        where: {
+          namespace,
+          name,
+        },
+      });
 
-      if (!replicant) {
+      if (!dbReplicant) {
         throw new GraphQLError(`Replicant '${namespace}:${name}' not found`, {
           extensions: { code: 'NOT_FOUND' },
         });
       }
 
       return {
-        namespace,
-        name,
-        value: replicant.value,
-        revision: replicant.revision || 0,
+        namespace: dbReplicant.namespace,
+        name: dbReplicant.name,
+        value: JSON.parse(dbReplicant.value),
+        revision: dbReplicant.revision,
         status: 'ACTIVE',
-        schema: replicant.schema || null,
-        defaultValue: replicant.defaultValue || null,
-        createdAt: replicant.createdAt || new Date(),
-        updatedAt: replicant.updatedAt || new Date(),
+        schema: null,
+        defaultValue: null,
+        createdAt: dbReplicant.createdAt,
+        updatedAt: dbReplicant.updatedAt,
       };
     },
 
@@ -184,22 +188,11 @@ export const resolvers = {
       { namespace }: { namespace?: string },
       context: GraphQLContext
     ) => {
-      const replicantService = (context.fastify as any).replicantService;
-      if (!replicantService) return 0;
+      const prisma = (context.fastify as any).prisma;
+      if (!prisma) return 0;
 
-      const replicantMap = (replicantService as any).replicants;
-      if (!(replicantMap instanceof Map)) return 0;
-
-      if (!namespace) {
-        return replicantMap.size;
-      }
-
-      let count = 0;
-      for (const [key] of replicantMap.entries()) {
-        if (key.startsWith(`${namespace}:`)) {
-          count++;
-        }
-      }
+      const where = namespace ? { namespace } : {};
+      const count = await prisma.replicant.count({ where });
       return count;
     },
 
