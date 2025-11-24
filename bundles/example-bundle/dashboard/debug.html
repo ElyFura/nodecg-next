@@ -255,7 +255,7 @@
           this.defaultValue = options.defaultValue;
           this._value = this.defaultValue;
           this.listeners = new Set();
-          this.socket = io('/replicants', {
+          this.socket = io('/dashboard', {
             path: '/socket.io',
             transports: ['websocket', 'polling'],
             reconnection: true,
@@ -264,30 +264,38 @@
           this.subscribe();
         }
         setupSocket() {
-          this.socket.on('initial', (data) => {
+          this.socket.on('replicant:value', (data) => {
             if (data.namespace === this.namespace && data.name === this.name) {
-              const newValue = data.value ?? this.defaultValue;
+              const newValue = data.value ? JSON.parse(data.value) : this.defaultValue;
               const oldValue = this._value;
               this._value = newValue;
               this.notifyListeners(newValue, oldValue);
             }
           });
-          this.socket.on('change', (data) => {
+          this.socket.on('replicant:updated', (data) => {
             if (data.namespace === this.namespace && data.name === this.name) {
               const oldValue = this._value;
-              this._value = data.value ?? this.defaultValue;
+              this._value = data.value ? JSON.parse(data.value) : this.defaultValue;
               this.notifyListeners(this._value, oldValue);
             }
           });
           this.socket.on('connect', () => {
+            console.log('[NodeCG] Connected to dashboard namespace');
             this.subscribe();
+          });
+          this.socket.on('disconnect', () => {
+            console.log('[NodeCG] Disconnected from dashboard namespace');
+          });
+          this.socket.on('replicant:error', (error) => {
+            console.error('[NodeCG] Replicant error:', error);
           });
         }
         subscribe() {
-          this.socket.emit('subscribe', {
+          this.socket.emit('replicant:subscribe', {
             namespace: this.namespace,
             name: this.name,
           });
+          console.log('[NodeCG] Subscribed to replicant:', this.namespace, this.name);
         }
         get value() {
           return this._value ?? this.defaultValue;
@@ -295,10 +303,10 @@
         set value(newValue) {
           const oldValue = this._value;
           this._value = newValue;
-          this.socket.emit('set', {
+          this.socket.emit('replicant:update', {
             namespace: this.namespace,
             name: this.name,
-            value: newValue,
+            value: JSON.stringify(newValue),
           });
           this.notifyListeners(newValue, oldValue);
         }
@@ -336,7 +344,7 @@
         },
         sendMessage: function (msg, data) {
           console.log('[NodeCG] sendMessage:', msg, data);
-          const socket = io('/messages', {
+          const socket = io('/dashboard', {
             path: '/socket.io',
             transports: ['websocket', 'polling'],
           });
@@ -349,23 +357,10 @@
           });
           return Promise.resolve();
         },
-        listenFor: function (msg, callback) {
-          const socket = io('/messages', {
-            path: '/socket.io',
-            transports: ['websocket', 'polling'],
-          });
-          socket.on('message', function (data) {
-            if (
-              data.bundleName === window.nodecg.bundleName &&
-              data.messageName === msg
-            ) {
-              callback(data.data);
-            }
-          });
-        },
       };
       console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
     })();
+
   </script>
 
   <script>
