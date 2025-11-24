@@ -25,7 +25,13 @@
       {
         "name": "images",
         "title": "Images",
-        "allowedTypes": ["jpg", "jpeg", "png", "gif", "webp"]
+        "allowedTypes": [
+          "jpg",
+          "jpeg",
+          "png",
+          "gif",
+          "webp"
+        ]
       }
     ]
   },

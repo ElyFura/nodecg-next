@@ -12,7 +12,11 @@ const logger = createLogger({ level: 'info' });
 /**
  * Create authorization middleware that requires specific permission
  */
-export function createRequirePermission(rbacService: RBACService, resource: string, action: string) {
+export function createRequirePermission(
+  rbacService: RBACService,
+  resource: string,
+  action: string
+) {
   return async function requirePermission(request: FastifyRequest, reply: FastifyReply) {
     if (!request.user) {
       return reply.code(401).send({
@@ -26,7 +30,7 @@ export function createRequirePermission(rbacService: RBACService, resource: stri
 
       if (!hasPermission) {
         logger.warn(
-          `User ${request.user.username} (${request.user.userId}) attempted to access ${resource}:${action} without permission`,
+          `User ${request.user.username} (${request.user.userId}) attempted to access ${resource}:${action} without permission`
         );
 
         return reply.code(403).send({
@@ -47,7 +51,10 @@ export function createRequirePermission(rbacService: RBACService, resource: stri
 /**
  * Create authorization middleware that requires any of the specified permissions
  */
-export function createRequireAnyPermission(rbacService: RBACService, permissions: PermissionCheck[]) {
+export function createRequireAnyPermission(
+  rbacService: RBACService,
+  permissions: PermissionCheck[]
+) {
   return async function requireAnyPermission(request: FastifyRequest, reply: FastifyReply) {
     if (!request.user) {
       return reply.code(401).send({
@@ -61,7 +68,7 @@ export function createRequireAnyPermission(rbacService: RBACService, permissions
 
       if (!hasPermission) {
         logger.warn(
-          `User ${request.user.username} (${request.user.userId}) attempted to access resources without any required permissions`,
+          `User ${request.user.username} (${request.user.userId}) attempted to access resources without any required permissions`
         );
 
         return reply.code(403).send({
@@ -82,7 +89,10 @@ export function createRequireAnyPermission(rbacService: RBACService, permissions
 /**
  * Create authorization middleware that requires all of the specified permissions
  */
-export function createRequireAllPermissions(rbacService: RBACService, permissions: PermissionCheck[]) {
+export function createRequireAllPermissions(
+  rbacService: RBACService,
+  permissions: PermissionCheck[]
+) {
   return async function requireAllPermissions(request: FastifyRequest, reply: FastifyReply) {
     if (!request.user) {
       return reply.code(401).send({
@@ -96,7 +106,7 @@ export function createRequireAllPermissions(rbacService: RBACService, permission
 
       if (!hasPermissions) {
         logger.warn(
-          `User ${request.user.username} (${request.user.userId}) attempted to access resources without all required permissions`,
+          `User ${request.user.username} (${request.user.userId}) attempted to access resources without all required permissions`
         );
 
         return reply.code(403).send({
@@ -131,7 +141,7 @@ export function createRequireRole(rbacService: RBACService, roleName: string) {
 
       if (!hasRole) {
         logger.warn(
-          `User ${request.user.username} (${request.user.userId}) attempted to access resource requiring role: ${roleName}`,
+          `User ${request.user.username} (${request.user.userId}) attempted to access resource requiring role: ${roleName}`
         );
 
         return reply.code(403).send({
