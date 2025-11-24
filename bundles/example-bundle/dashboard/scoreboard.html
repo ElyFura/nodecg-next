@@ -232,9 +232,7 @@
     </div>
   </div>
 
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-  <!-- NodeCG Client (Inline) -->
+<!-- NodeCG Client (Inline) -->
   <script>
     (function () {
       'use strict';
@@ -245,7 +243,11 @@
           this.defaultValue = options.defaultValue;
           this._value = this.defaultValue;
           this.listeners = new Set();
-          this.socket = io('/replicants', { path: '/socket.io', transports: ['websocket', 'polling'], reconnection: true });
+          this.socket = io('/replicants', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
           this.setupSocket();
           this.subscribe();
         }
@@ -265,165 +267,92 @@
               this.notifyListeners(this._value, oldValue);
             }
           });
-          this.socket.on('connect', () => { this.subscribe(); });
+          this.socket.on('connect', () => {
+            this.subscribe();
+          });
         }
         subscribe() {
-          this.socket.emit('subscribe', { namespace: this.namespace, name: this.name });
+          this.socket.emit('subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
         }
-        get value() { return this._value ?? this.defaultValue; }
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
         set value(newValue) {
           const oldValue = this._value;
           this._value = newValue;
-          this.socket.emit('set', { namespace: this.namespace, name: this.name, value: newValue });
+          this.socket.emit('set', {
+            namespace: this.namespace,
+            name: this.name,
+            value: newValue,
+          });
           this.notifyListeners(newValue, oldValue);
         }
         on(callback) {
+          if (typeof callback !== 'function') {
+            console.error('[NodeCG] Replicant.on() requires a function');
+            return;
+          }
           this.listeners.add(callback);
-          if (this._value !== undefined) callback(this._value, undefined);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
         }
         notifyListeners(newValue, oldValue) {
-          for (const listener of this.listeners) {
-            try { listener(newValue, oldValue); } catch (error) { console.error('[NodeCG] Error:', error); }
-          }
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
         }
       }
       window.nodecg = {
         bundleName: 'example-bundle',
-        Replicant: (name, opts = {}) => { console.log(`[NodeCG] Replicant :change`); return new Replicant(name, window.nodecg.bundleName, opts); },
-        sendMessage: (msg, data) => { console.log(`[NodeCG] sendMessage: `, data); const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('connect', () => { s.emit('message', { bundleName: window.nodecg.bundleName, messageName: msg, data }); }); return Promise.resolve(); },
-        listenFor: (msg, cb) => { const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('message', (d) => { if (d.bundleName === window.nodecg.bundleName && d.messageName === msg) cb(d.data); }); }
+        Replicant: function (name, opts) {
+          console.log('[NodeCG] Creating Replicant:', name);
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+        sendMessage: function (msg, data) {
+          console.log('[NodeCG] sendMessage:', msg, data);
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('connect', function () {
+            socket.emit('message', {
+              bundleName: window.nodecg.bundleName,
+              messageName: msg,
+              data: data,
+            });
+          });
+          return Promise.resolve();
+        },
+        listenFor: function (msg, callback) {
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('message', function (data) {
+            if (
+              data.bundleName === window.nodecg.bundleName &&
+              data.messageName === msg
+            ) {
+              callback(data.data);
+            }
+          });
+        },
       };
-      console.log('[NodeCG] Client initialized');
+      console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
     })();
   </script>
-  <script>
-    const nodecg = window.nodecg;
 
-    // Elements
-    const toggleBtn = document.getElementById('toggleBtn');
-    const toggleText = document.getElementById('toggleText');
-    const statusIndicator = document.getElementById('statusIndicator');
-    const resetBtn = document.getElementById('resetBtn');
-
-    // Team A
-    const nameAInput = document.getElementById('nameA');
-    const colorPickerA = document.getElementById('colorPickerA');
-    const colorAIndicator = document.getElementById('colorA');
-    const scoreADisplay = document.getElementById('scoreA');
-    const incrementABtn = document.getElementById('incrementA');
-    const decrementABtn = document.getElementById('decrementA');
-
-    // Team B
-    const nameBInput = document.getElementById('nameB');
-    const colorPickerB = document.getElementById('colorPickerB');
-    const colorBIndicator = document.getElementById('colorB');
-    const scoreBDisplay = document.getElementById('scoreB');
-    const incrementBBtn = document.getElementById('incrementB');
-    const decrementBBtn = document.getElementById('decrementB');
-
-    // Replicant
-    const scoreboard = nodecg.Replicant('scoreboard');
-
-    // Update UI from replicant
-    scoreboard.on('change', (newValue) => {
-      if (!newValue) return;
-
-      // Visibility
-      if (newValue.visible) {
-        toggleText.textContent = 'Scoreboard ausblenden';
-        statusIndicator.classList.remove('status-hidden');
-        statusIndicator.classList.add('status-visible');
-      } else {
-        toggleText.textContent = 'Scoreboard anzeigen';
-        statusIndicator.classList.remove('status-visible');
-        statusIndicator.classList.add('status-hidden');
-      }
-
-      // Team A
-      nameAInput.value = newValue.teamA.name;
-      colorPickerA.value = newValue.teamA.color;
-      colorAIndicator.style.backgroundColor = newValue.teamA.color;
-      scoreADisplay.textContent = newValue.teamA.score;
-
-      // Team B
-      nameBInput.value = newValue.teamB.name;
-      colorPickerB.value = newValue.teamB.color;
-      colorBIndicator.style.backgroundColor = newValue.teamB.color;
-      scoreBDisplay.textContent = newValue.teamB.score;
-    });
-
-    // Toggle visibility
-    toggleBtn.addEventListener('click', () => {
-      scoreboard.value = {
-        ...(scoreboard.value || {}),
-        visible: !scoreboard.value.visible,
-      };
-    });
-
-    // Reset scores
-    resetBtn.addEventListener('click', () => {
-      if (confirm('Möchten Sie wirklich alle Scores zurücksetzen?')) {
-        nodecg.sendMessage('scoreboard:reset');
-      }
-    });
-
-    // Team A controls
-    incrementABtn.addEventListener('click', () => {
-      nodecg.sendMessage('scoreboard:incrementTeamA');
-    });
-
-    decrementABtn.addEventListener('click', () => {
-      nodecg.sendMessage('scoreboard:decrementTeamA');
-    });
-
-    nameAInput.addEventListener('change', () => {
-      scoreboard.value = {
-        ...(scoreboard.value || {}),
-        teamA: {
-          ...scoreboard.value.teamA,
-          name: nameAInput.value,
-        },
-      };
-    });
-
-    colorPickerA.addEventListener('change', () => {
-      scoreboard.value = {
-        ...(scoreboard.value || {}),
-        teamA: {
-          ...scoreboard.value.teamA,
-          color: colorPickerA.value,
-        },
-      };
-    });
-
-    // Team B controls
-    incrementBBtn.addEventListener('click', () => {
-      nodecg.sendMessage('scoreboard:incrementTeamB');
-    });
-
-    decrementBBtn.addEventListener('click', () => {
-      nodecg.sendMessage('scoreboard:decrementTeamB');
-    });
-
-    nameBInput.addEventListener('change', () => {
-      scoreboard.value = {
-        ...(scoreboard.value || {}),
-        teamB: {
-          ...scoreboard.value.teamB,
-          name: nameBInput.value,
-        },
-      };
-    });
-
-    colorPickerB.addEventListener('change', () => {
-      scoreboard.value = {
-        ...(scoreboard.value || {}),
-        teamB: {
-          ...scoreboard.value.teamB,
-          color: colorPickerB.value,
-        },
-      };
-    });
-  </script>
-</body>
-</html>

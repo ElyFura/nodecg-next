@@ -272,9 +272,7 @@
     </div>
   </div>
 
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-  <!-- NodeCG Client (Inline) -->
+<!-- NodeCG Client (Inline) -->
   <script>
     (function () {
       'use strict';
@@ -285,7 +283,11 @@
           this.defaultValue = options.defaultValue;
           this._value = this.defaultValue;
           this.listeners = new Set();
-          this.socket = io('/replicants', { path: '/socket.io', transports: ['websocket', 'polling'], reconnection: true });
+          this.socket = io('/replicants', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
           this.setupSocket();
           this.subscribe();
         }
@@ -305,212 +307,92 @@
               this.notifyListeners(this._value, oldValue);
             }
           });
-          this.socket.on('connect', () => { this.subscribe(); });
+          this.socket.on('connect', () => {
+            this.subscribe();
+          });
         }
         subscribe() {
-          this.socket.emit('subscribe', { namespace: this.namespace, name: this.name });
+          this.socket.emit('subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
         }
-        get value() { return this._value ?? this.defaultValue; }
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
         set value(newValue) {
           const oldValue = this._value;
           this._value = newValue;
-          this.socket.emit('set', { namespace: this.namespace, name: this.name, value: newValue });
+          this.socket.emit('set', {
+            namespace: this.namespace,
+            name: this.name,
+            value: newValue,
+          });
           this.notifyListeners(newValue, oldValue);
         }
         on(callback) {
+          if (typeof callback !== 'function') {
+            console.error('[NodeCG] Replicant.on() requires a function');
+            return;
+          }
           this.listeners.add(callback);
-          if (this._value !== undefined) callback(this._value, undefined);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
         }
         notifyListeners(newValue, oldValue) {
-          for (const listener of this.listeners) {
-            try { listener(newValue, oldValue); } catch (error) { console.error('[NodeCG] Error:', error); }
-          }
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
         }
       }
       window.nodecg = {
         bundleName: 'example-bundle',
-        Replicant: (name, opts = {}) => { console.log(`[NodeCG] Replicant :change`); return new Replicant(name, window.nodecg.bundleName, opts); },
-        sendMessage: (msg, data) => { console.log(`[NodeCG] sendMessage: `, data); const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('connect', () => { s.emit('message', { bundleName: window.nodecg.bundleName, messageName: msg, data }); }); return Promise.resolve(); },
-        listenFor: (msg, cb) => { const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('message', (d) => { if (d.bundleName === window.nodecg.bundleName && d.messageName === msg) cb(d.data); }); }
+        Replicant: function (name, opts) {
+          console.log('[NodeCG] Creating Replicant:', name);
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+        sendMessage: function (msg, data) {
+          console.log('[NodeCG] sendMessage:', msg, data);
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('connect', function () {
+            socket.emit('message', {
+              bundleName: window.nodecg.bundleName,
+              messageName: msg,
+              data: data,
+            });
+          });
+          return Promise.resolve();
+        },
+        listenFor: function (msg, callback) {
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('message', function (data) {
+            if (
+              data.bundleName === window.nodecg.bundleName &&
+              data.messageName === msg
+            ) {
+              callback(data.data);
+            }
+          });
+        },
       };
-      console.log('[NodeCG] Client initialized');
+      console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
     })();
   </script>
-  <script>
 
-    // Replicants
-    const currentName = nodecg.Replicant('currentName');
-    const currentTitle = nodecg.Replicant('currentTitle');
-    const lowerThirdVisible = nodecg.Replicant('isVisible');
-    const scoreboard = nodecg.Replicant('scoreboard');
-    const timer = nodecg.Replicant('timer');
-    const ticker = nodecg.Replicant('ticker');
-
-    // Elements
-    const nameInput = document.getElementById('nameInput');
-    const titleInput = document.getElementById('titleInput');
-    const lowerThirdStatus = document.getElementById('lowerThirdStatus');
-    const scoreboardStatus = document.getElementById('scoreboardStatus');
-    const timerStatus = document.getElementById('timerStatus');
-    const tickerStatus = document.getElementById('tickerStatus');
-    const tickerMessageInput = document.getElementById('tickerMessageInput');
-
-    // Update UI from replicants
-    currentName.on('change', (value) => {
-      if (value) nameInput.value = value;
-    });
-
-    currentTitle.on('change', (value) => {
-      if (value) titleInput.value = value;
-    });
-
-    lowerThirdVisible.on('change', (value) => {
-      if (value) {
-        lowerThirdStatus.textContent = 'Sichtbar';
-        lowerThirdStatus.className = 'status-badge status-visible';
-      } else {
-        lowerThirdStatus.textContent = 'Ausgeblendet';
-        lowerThirdStatus.className = 'status-badge status-hidden';
-      }
-    });
-
-    scoreboard.on('change', (value) => {
-      if (!value) return;
-      if (value.visible) {
-        scoreboardStatus.textContent = 'Sichtbar';
-        scoreboardStatus.className = 'status-badge status-visible';
-      } else {
-        scoreboardStatus.textContent = 'Ausgeblendet';
-        scoreboardStatus.className = 'status-badge status-hidden';
-      }
-    });
-
-    timer.on('change', (value) => {
-      if (!value) return;
-      if (value.running) {
-        timerStatus.textContent = 'Läuft';
-        timerStatus.className = 'status-badge status-visible';
-      } else {
-        timerStatus.textContent = 'Gestoppt';
-        timerStatus.className = 'status-badge status-hidden';
-      }
-    });
-
-    ticker.on('change', (value) => {
-      if (!value) return;
-      if (value.visible) {
-        tickerStatus.textContent = 'Sichtbar';
-        tickerStatus.className = 'status-badge status-visible';
-      } else {
-        tickerStatus.textContent = 'Ausgeblendet';
-        tickerStatus.className = 'status-badge status-hidden';
-      }
-    });
-
-    // Lower Third Controls
-    nameInput.addEventListener('change', () => {
-      currentName.value = nameInput.value;
-    });
-
-    titleInput.addEventListener('change', () => {
-      currentTitle.value = titleInput.value;
-    });
-
-    document.getElementById('showLowerThirdBtn').addEventListener('click', () => {
-      lowerThirdVisible.value = true;
-    });
-
-    document.getElementById('hideLowerThirdBtn').addEventListener('click', () => {
-      lowerThirdVisible.value = false;
-    });
-
-    // Scoreboard Controls
-    document.getElementById('toggleScoreboardBtn').addEventListener('click', () => {
-      const sbVal = scoreboard.value || {};
-      scoreboard.value = {
-        ...sbVal,
-        visible: !(sbVal.visible || false),
-      };
-    });
-
-    document.getElementById('resetScoreboardBtn').addEventListener('click', () => {
-      if (confirm('Alle Scores zurücksetzen?')) {
-        nodecg.sendMessage('scoreboard:reset');
-      }
-    });
-
-    // Timer Controls
-    document.getElementById('startTimerBtn').addEventListener('click', () => {
-      nodecg.sendMessage('timer:start');
-    });
-
-    document.getElementById('stopTimerBtn').addEventListener('click', () => {
-      nodecg.sendMessage('timer:stop');
-    });
-
-    document.getElementById('resetTimerBtn').addEventListener('click', () => {
-      nodecg.sendMessage('timer:reset');
-    });
-
-    // Ticker Controls
-    document.getElementById('toggleTickerBtn').addEventListener('click', () => {
-      const tVal = ticker.value || {};
-      ticker.value = {
-        ...tVal,
-        visible: !(tVal.visible || false),
-      };
-    });
-
-    document.getElementById('clearTickerBtn').addEventListener('click', () => {
-      if (confirm('Alle Ticker-Nachrichten löschen?')) {
-        nodecg.sendMessage('ticker:clearMessages');
-      }
-    });
-
-    document.getElementById('addTickerMessageBtn').addEventListener('click', () => {
-      const text = tickerMessageInput.value.trim();
-      if (text) {
-        nodecg.sendMessage('ticker:addMessage', { text, priority: 'normal' });
-        tickerMessageInput.value = '';
-      }
-    });
-
-    // Quick Actions
-    document.getElementById('showAllBtn').addEventListener('click', () => {
-      lowerThirdVisible.value = true;
-      scoreboard.value = { ...(scoreboard.value || {}), visible: true };
-      timer.value = { ...(timer.value || {}), visible: true };
-      ticker.value = { ...(ticker.value || {}), visible: true };
-    });
-
-    document.getElementById('hideAllBtn').addEventListener('click', () => {
-      lowerThirdVisible.value = false;
-      scoreboard.value = { ...(scoreboard.value || {}), visible: false };
-      timer.value = { ...(timer.value || {}), visible: false };
-      ticker.value = { ...(ticker.value || {}), visible: false };
-    });
-
-    document.getElementById('resetAllBtn').addEventListener('click', () => {
-      if (confirm('Wirklich alles zurücksetzen?')) {
-        nodecg.sendMessage('scoreboard:reset');
-        nodecg.sendMessage('timer:reset');
-        nodecg.sendMessage('ticker:clearMessages');
-      }
-    });
-
-    document.getElementById('testModeBtn').addEventListener('click', () => {
-      // Test mode: Fill with sample data
-      currentName.value = 'Test Spieler';
-      currentTitle.value = 'Pro Gamer';
-
-      nodecg.sendMessage('ticker:addMessage', { text: 'Test Nachricht 1', priority: 'normal' });
-      nodecg.sendMessage('ticker:addMessage', { text: 'Wichtige Ankündigung!', priority: 'high' });
-      nodecg.sendMessage('ticker:addMessage', { text: 'EILMELDUNG!', priority: 'urgent' });
-
-      alert('Test-Modus aktiviert! Beispieldaten wurden geladen.');
-    });
-
-    console.log('Hauptsteuerung geladen');
-  </script>
-</body>
-</html>

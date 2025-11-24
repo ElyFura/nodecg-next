@@ -243,9 +243,7 @@
     </div>
   </div>
 
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-  <!-- NodeCG Client (Inline) -->
+<!-- NodeCG Client (Inline) -->
   <script>
     (function () {
       'use strict';
@@ -256,7 +254,11 @@
           this.defaultValue = options.defaultValue;
           this._value = this.defaultValue;
           this.listeners = new Set();
-          this.socket = io('/replicants', { path: '/socket.io', transports: ['websocket', 'polling'], reconnection: true });
+          this.socket = io('/replicants', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
           this.setupSocket();
           this.subscribe();
         }
@@ -276,186 +278,92 @@
               this.notifyListeners(this._value, oldValue);
             }
           });
-          this.socket.on('connect', () => { this.subscribe(); });
+          this.socket.on('connect', () => {
+            this.subscribe();
+          });
         }
         subscribe() {
-          this.socket.emit('subscribe', { namespace: this.namespace, name: this.name });
+          this.socket.emit('subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
         }
-        get value() { return this._value ?? this.defaultValue; }
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
         set value(newValue) {
           const oldValue = this._value;
           this._value = newValue;
-          this.socket.emit('set', { namespace: this.namespace, name: this.name, value: newValue });
+          this.socket.emit('set', {
+            namespace: this.namespace,
+            name: this.name,
+            value: newValue,
+          });
           this.notifyListeners(newValue, oldValue);
         }
         on(callback) {
+          if (typeof callback !== 'function') {
+            console.error('[NodeCG] Replicant.on() requires a function');
+            return;
+          }
           this.listeners.add(callback);
-          if (this._value !== undefined) callback(this._value, undefined);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
         }
         notifyListeners(newValue, oldValue) {
-          for (const listener of this.listeners) {
-            try { listener(newValue, oldValue); } catch (error) { console.error('[NodeCG] Error:', error); }
-          }
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
         }
       }
       window.nodecg = {
         bundleName: 'example-bundle',
-        Replicant: (name, opts = {}) => { console.log(`[NodeCG] Replicant :change`); return new Replicant(name, window.nodecg.bundleName, opts); },
-        sendMessage: (msg, data) => { console.log(`[NodeCG] sendMessage: `, data); const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('connect', () => { s.emit('message', { bundleName: window.nodecg.bundleName, messageName: msg, data }); }); return Promise.resolve(); },
-        listenFor: (msg, cb) => { const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('message', (d) => { if (d.bundleName === window.nodecg.bundleName && d.messageName === msg) cb(d.data); }); }
+        Replicant: function (name, opts) {
+          console.log('[NodeCG] Creating Replicant:', name);
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+        sendMessage: function (msg, data) {
+          console.log('[NodeCG] sendMessage:', msg, data);
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('connect', function () {
+            socket.emit('message', {
+              bundleName: window.nodecg.bundleName,
+              messageName: msg,
+              data: data,
+            });
+          });
+          return Promise.resolve();
+        },
+        listenFor: function (msg, callback) {
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('message', function (data) {
+            if (
+              data.bundleName === window.nodecg.bundleName &&
+              data.messageName === msg
+            ) {
+              callback(data.data);
+            }
+          });
+        },
       };
-      console.log('[NodeCG] Client initialized');
+      console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
     })();
   </script>
-  <script>
-    const nodecg = window.nodecg;
 
-    // Elements
-    const uptimeEl = document.getElementById('uptime');
-    const replicantCountEl = document.getElementById('replicantCount');
-    const messageCountEl = document.getElementById('messageCount');
-    const lastUpdateEl = document.getElementById('lastUpdate');
-    const logContainer = document.getElementById('logContainer');
-    const autoScrollBtn = document.getElementById('autoScrollBtn');
-    const clearLogBtn = document.getElementById('clearLogBtn');
-    const replicantList = document.getElementById('replicantList');
-
-    let autoScroll = true;
-    let logEntries = [];
-
-    // Replicants
-    const systemStats = nodecg.Replicant('systemStats');
-    const messageLog = nodecg.Replicant('messageLog');
-
-    // Format uptime
-    function formatUptime(seconds) {
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      const secs = Math.floor(seconds % 60);
-
-      if (hours > 0) {
-        return `${hours}h ${minutes}m ${secs}s`;
-      } else if (minutes > 0) {
-        return `${minutes}m ${secs}s`;
-      } else {
-        return `${secs}s`;
-      }
-    }
-
-    // Format timestamp
-    function formatTimestamp(isoString) {
-      try {
-        const date = new Date(isoString);
-        return date.toLocaleTimeString('de-DE');
-      } catch {
-        return '--:--:--';
-      }
-    }
-
-    // Update system stats
-    systemStats.on('change', (newValue) => {
-      if (!newValue) return;
-
-      uptimeEl.textContent = formatUptime(newValue.uptime || 0);
-      replicantCountEl.textContent = newValue.replicantCount || 0;
-      messageCountEl.textContent = newValue.messageCount || 0;
-      lastUpdateEl.textContent = formatTimestamp(newValue.lastUpdate);
-    });
-
-    // Update message log
-    messageLog.on('change', (newValue) => {
-      if (!newValue || newValue.length === 0) {
-        logContainer.innerHTML = '<div class="empty-log">Keine Events vorhanden</div>';
-        return;
-      }
-
-      const wasAtBottom = logContainer.scrollHeight - logContainer.scrollTop === logContainer.clientHeight;
-      const previousCount = logEntries.length;
-      logEntries = newValue;
-
-      // Render log entries (newest first)
-      const sortedEntries = [...newValue].reverse();
-      logContainer.innerHTML = sortedEntries.map((entry, index) => {
-        const isNew = index < (newValue.length - previousCount);
-        return `
-          <div class="log-entry ${entry.action} ${isNew ? 'new' : ''}">
-            <span class="timestamp">${formatTimestamp(entry.timestamp)}</span>
-            <span class="action">[${entry.action.toUpperCase()}]</span>
-            <span class="details">${formatLogDetails(entry)}</span>
-          </div>
-        `;
-      }).join('');
-
-      // Auto-scroll to bottom if enabled
-      if (autoScroll && (wasAtBottom || previousCount === 0)) {
-        logContainer.scrollTop = logContainer.scrollHeight;
-      }
-    });
-
-    function formatLogDetails(entry) {
-      switch (entry.action) {
-        case 'name_changed':
-          return `"${entry.from}" → "${entry.to}"`;
-        case 'title_changed':
-          return `"${entry.from}" → "${entry.to}"`;
-        case 'score_changed':
-          return `Team ${entry.team} (${entry.name}): ${entry.oldScore} → ${entry.newScore}`;
-        case 'timer_state':
-          return `${entry.running ? 'Started' : 'Stopped'} (${entry.remaining}s remaining)`;
-        case 'ticker_messages_changed':
-          return `${entry.count} messages`;
-        case 'bundle_loaded':
-          return `Version ${entry.version} - Features: ${entry.features.join(', ')}`;
-        case 'bundle_unloaded':
-          return 'Bundle wird entladen';
-        default:
-          return JSON.stringify(entry).substring(0, 100);
-      }
-    }
-
-    // Auto-scroll toggle
-    autoScrollBtn.addEventListener('click', () => {
-      autoScroll = !autoScroll;
-      autoScrollBtn.textContent = `Auto-Scroll: ${autoScroll ? 'ON' : 'OFF'}`;
-    });
-
-    // Clear log (placeholder - would need backend support)
-    clearLogBtn.addEventListener('click', () => {
-      if (confirm('Möchten Sie wirklich alle Log-Einträge löschen?')) {
-        // In a real implementation, you would:
-        // messageLog.value = [];
-        alert('Log-Clear ist in dieser Demo-Version deaktiviert');
-      }
-    });
-
-    // Show active replicants (demo data)
-    function updateReplicantList() {
-      const replicants = [
-        { name: 'currentName', value: 'Max Mustermann' },
-        { name: 'currentTitle', value: 'Software Entwickler' },
-        { name: 'isVisible', value: false },
-        { name: 'scoreboard', value: 'Object with teamA, teamB' },
-        { name: 'timer', value: 'Object with duration, remaining' },
-        { name: 'ticker', value: 'Object with messages array' },
-        { name: 'messageLog', value: `Array[${logEntries.length}]` },
-        { name: 'systemStats', value: 'Object with uptime, counts' },
-      ];
-
-      replicantList.innerHTML = replicants.map(rep => `
-        <div class="replicant-item">
-          <div class="replicant-name">${rep.name}</div>
-          <div class="replicant-value">${typeof rep.value === 'object' ? JSON.stringify(rep.value).substring(0, 50) + '...' : rep.value}</div>
-        </div>
-      `).join('');
-    }
-
-    // Initial update
-    updateReplicantList();
-
-    // Update replicant list periodically
-    setInterval(updateReplicantList, 5000);
-
-    console.log('Debug & Monitor panel loaded');
-  </script>
-</body>
-</html>

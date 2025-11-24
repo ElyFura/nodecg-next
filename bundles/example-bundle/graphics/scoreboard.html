@@ -182,9 +182,7 @@
     </div>
   </div>
 
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-  <!-- NodeCG Client (Inline) -->
+<!-- NodeCG Client (Inline) -->
   <script>
     (function () {
       'use strict';
@@ -195,7 +193,11 @@
           this.defaultValue = options.defaultValue;
           this._value = this.defaultValue;
           this.listeners = new Set();
-          this.socket = io('/replicants', { path: '/socket.io', transports: ['websocket', 'polling'], reconnection: true });
+          this.socket = io('/replicants', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
           this.setupSocket();
           this.subscribe();
         }
@@ -215,133 +217,92 @@
               this.notifyListeners(this._value, oldValue);
             }
           });
-          this.socket.on('connect', () => { this.subscribe(); });
+          this.socket.on('connect', () => {
+            this.subscribe();
+          });
         }
         subscribe() {
-          this.socket.emit('subscribe', { namespace: this.namespace, name: this.name });
+          this.socket.emit('subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
         }
-        get value() { return this._value ?? this.defaultValue; }
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
         set value(newValue) {
           const oldValue = this._value;
           this._value = newValue;
-          this.socket.emit('set', { namespace: this.namespace, name: this.name, value: newValue });
+          this.socket.emit('set', {
+            namespace: this.namespace,
+            name: this.name,
+            value: newValue,
+          });
           this.notifyListeners(newValue, oldValue);
         }
         on(callback) {
+          if (typeof callback !== 'function') {
+            console.error('[NodeCG] Replicant.on() requires a function');
+            return;
+          }
           this.listeners.add(callback);
-          if (this._value !== undefined) callback(this._value, undefined);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
         }
         notifyListeners(newValue, oldValue) {
-          for (const listener of this.listeners) {
-            try { listener(newValue, oldValue); } catch (error) { console.error('[NodeCG] Error:', error); }
-          }
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
         }
       }
       window.nodecg = {
         bundleName: 'example-bundle',
-        Replicant: (name, opts = {}) => { console.log(`[NodeCG] Replicant :change`); return new Replicant(name, window.nodecg.bundleName, opts); },
-        sendMessage: (msg, data) => { console.log(`[NodeCG] sendMessage: `, data); const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('connect', () => { s.emit('message', { bundleName: window.nodecg.bundleName, messageName: msg, data }); }); return Promise.resolve(); },
-        listenFor: (msg, cb) => { const s = io('/messages', { path: '/socket.io', transports: ['websocket', 'polling'] }); s.on('message', (d) => { if (d.bundleName === window.nodecg.bundleName && d.messageName === msg) cb(d.data); }); }
+        Replicant: function (name, opts) {
+          console.log('[NodeCG] Creating Replicant:', name);
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+        sendMessage: function (msg, data) {
+          console.log('[NodeCG] sendMessage:', msg, data);
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('connect', function () {
+            socket.emit('message', {
+              bundleName: window.nodecg.bundleName,
+              messageName: msg,
+              data: data,
+            });
+          });
+          return Promise.resolve();
+        },
+        listenFor: function (msg, callback) {
+          const socket = io('/messages', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('message', function (data) {
+            if (
+              data.bundleName === window.nodecg.bundleName &&
+              data.messageName === msg
+            ) {
+              callback(data.data);
+            }
+          });
+        },
       };
-      console.log('[NodeCG] Client initialized');
+      console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
     })();
   </script>
-  <script>
-    const nodecg = window.nodecg;
 
-    const scoreboardEl = document.getElementById('scoreboard');
-    const teamAEl = document.getElementById('teamA');
-    const teamBEl = document.getElementById('teamB');
-    const nameAEl = document.getElementById('nameA');
-    const nameBEl = document.getElementById('nameB');
-    const scoreAEl = document.getElementById('scoreA');
-    const scoreBEl = document.getElementById('scoreB');
-    const logoAEl = document.getElementById('logoA');
-    const logoBEl = document.getElementById('logoB');
-
-    const scoreboard = nodecg.Replicant('scoreboard');
-
-    let previousScoreA = 0;
-    let previousScoreB = 0;
-
-    scoreboard.on('change', (newValue) => {
-      if (!newValue) return;
-
-      // Update visibility
-      if (newValue.visible) {
-        scoreboardEl.classList.add('visible');
-      } else {
-        scoreboardEl.classList.remove('visible');
-      }
-
-      // Update Team A
-      nameAEl.textContent = newValue.teamA.name;
-      teamAEl.style.borderColor = newValue.teamA.color;
-      teamAEl.style.setProperty('--team-color', newValue.teamA.color);
-      teamAEl.querySelector('.team::before')?.style.setProperty('background', newValue.teamA.color);
-
-      if (newValue.teamA.logo) {
-        logoAEl.innerHTML = `<img src="${newValue.teamA.logo}" alt="${newValue.teamA.name}">`;
-      } else {
-        logoAEl.textContent = newValue.teamA.name.charAt(0).toUpperCase();
-      }
-
-      // Update score with animation
-      if (newValue.teamA.score !== previousScoreA) {
-        scoreAEl.textContent = newValue.teamA.score;
-        scoreAEl.classList.add('pulse');
-        setTimeout(() => scoreAEl.classList.remove('pulse'), 300);
-
-        if (newValue.teamA.score > previousScoreA) {
-          showScoreChange(teamAEl, '+1');
-        }
-        previousScoreA = newValue.teamA.score;
-      } else {
-        scoreAEl.textContent = newValue.teamA.score;
-      }
-
-      // Update Team B
-      nameBEl.textContent = newValue.teamB.name;
-      teamBEl.style.borderColor = newValue.teamB.color;
-      teamBEl.style.setProperty('--team-color', newValue.teamB.color);
-
-      if (newValue.teamB.logo) {
-        logoBEl.innerHTML = `<img src="${newValue.teamB.logo}" alt="${newValue.teamB.name}">`;
-      } else {
-        logoBEl.textContent = newValue.teamB.name.charAt(0).toUpperCase();
-      }
-
-      // Update score with animation
-      if (newValue.teamB.score !== previousScoreB) {
-        scoreBEl.textContent = newValue.teamB.score;
-        scoreBEl.classList.add('pulse');
-        setTimeout(() => scoreBEl.classList.remove('pulse'), 300);
-
-        if (newValue.teamB.score > previousScoreB) {
-          showScoreChange(teamBEl, '+1');
-        }
-        previousScoreB = newValue.teamB.score;
-      } else {
-        scoreBEl.textContent = newValue.teamB.score;
-      }
-    });
-
-    function showScoreChange(teamEl, text) {
-      const changeEl = document.createElement('div');
-      changeEl.className = 'score-change';
-      changeEl.textContent = text;
-      teamEl.appendChild(changeEl);
-
-      setTimeout(() => {
-        teamEl.removeChild(changeEl);
-      }, 1000);
-    }
-
-    // Initialize
-    if (scoreboard.value) {
-      previousScoreA = scoreboard.value.teamA?.score || 0;
-      previousScoreB = scoreboard.value.teamB?.score || 0;
-    }
-  </script>
-</body>
-</html>
