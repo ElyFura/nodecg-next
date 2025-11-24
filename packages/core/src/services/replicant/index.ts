@@ -1,14 +1,10 @@
 /**
  * Replicant Service Exports
- *
- * Type-safe, validated, synchronized state management for NodeCG
  */
 
 export {
   ReplicantService,
   type ReplicantOptions,
-  type ReplicantChangeEvent,
-  type ReplicantMeta,
-} from './service';
-
-export { type ReplicantSyncMessage, type ReplicantSyncType, SyncManager } from './sync-manager';
+  type ReplicantValue,
+} from './replicant.service.js';
+export { SyncManager, type SyncMessage, type ChangeMessage } from './sync-manager.js';

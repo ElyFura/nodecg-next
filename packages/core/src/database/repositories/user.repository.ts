@@ -1,54 +1,36 @@
 /**
  * User Repository
- * Handles all database operations for Users, Sessions, and OAuth Providers
- * SQL-only, works completely offline with local PostgreSQL
+ * Handles all database operations for Users, Roles, and Permissions
  */
 
-import { PrismaClient, User, Session, OAuthProvider, UserRole } from '../generated/client';
-import { BaseRepository } from './base.repository';
+import { PrismaClient, User, Role, Permission } from '../generated/client/index.js';
+import { BaseRepository } from './base.repository.js';
 
 export interface UserCreateInput {
   username: string;
   email?: string;
-  password?: string; // Hashed password
-  role?: UserRole;
+  password?: string; // Pre-hashed
+  roleId?: string;
 }
 
 export interface UserUpdateInput {
   username?: string;
   email?: string;
-  password?: string; // Hashed password
-  role?: UserRole;
+  password?: string; // Pre-hashed
+  roleId?: string;
 }
 
 export interface UserFindOptions {
   username?: string;
   email?: string;
-  role?: UserRole;
-  includeSessions?: boolean;
+  roleId?: string;
+  includeRole?: boolean;
   includeProviders?: boolean;
-}
-
-export interface SessionCreateInput {
-  userId: string;
-  token: string;
-  expiresAt: Date;
-  ipAddress?: string;
-  userAgent?: string;
-}
-
-export interface OAuthProviderCreateInput {
-  userId: string;
-  provider: string; // 'twitch', 'discord', 'google', etc.
-  providerId: string;
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: Date;
 }
 
 export class UserRepository
   implements
-    BaseRepository<User, UserCreateInput, UserUpdateInput, UserFindOptions, { role?: UserRole }>
+    BaseRepository<User, UserCreateInput, UserUpdateInput, UserFindOptions, { username?: string }>
 {
   constructor(private prisma: PrismaClient) {}
 
@@ -59,9 +41,14 @@ export class UserRepository
     return this.prisma.user.findUnique({
       where: { id },
       include: {
-        sessions: {
-          where: { expiresAt: { gt: new Date() } }, // Only active sessions
-          orderBy: { createdAt: 'desc' },
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
         },
         providers: true,
       },
@@ -69,15 +56,20 @@ export class UserRepository
   }
 
   /**
-   * Find a user by username (common for login)
+   * Find a user by username
    */
   async findByUsername(username: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { username },
       include: {
-        sessions: {
-          where: { expiresAt: { gt: new Date() } },
-          orderBy: { createdAt: 'desc' },
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
         },
         providers: true,
       },
@@ -91,9 +83,14 @@ export class UserRepository
     return this.prisma.user.findUnique({
       where: { email },
       include: {
-        sessions: {
-          where: { expiresAt: { gt: new Date() } },
-          orderBy: { createdAt: 'desc' },
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
         },
         providers: true,
       },
@@ -101,33 +98,42 @@ export class UserRepository
   }
 
   /**
-   * Find many users with filtering
+   * Find users with optional filters
    */
-  async findMany(options?: UserFindOptions): Promise<User[]> {
+  async find(options: UserFindOptions = {}): Promise<User[]> {
     return this.prisma.user.findMany({
       where: {
-        ...(options?.username && { username: options.username }),
-        ...(options?.email && { email: options.email }),
-        ...(options?.role && { role: options.role }),
+        username: options.username,
+        email: options.email,
+        roleId: options.roleId,
       },
       include: {
-        ...(options?.includeSessions && {
-          sessions: {
-            where: { expiresAt: { gt: new Date() } },
-            orderBy: { createdAt: 'desc' },
-          },
-        }),
-        ...(options?.includeProviders && { providers: true }),
+        role: options.includeRole
+          ? {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            }
+          : false,
+        providers: options.includeProviders,
       },
-      orderBy: { createdAt: 'desc' },
     });
   }
 
   /**
-   * Find all admins
+   * Find all users
    */
-  async findAdmins(): Promise<User[]> {
-    return this.findMany({ role: UserRole.ADMIN });
+  async findAll(): Promise<User[]> {
+    return this.prisma.user.findMany({
+      include: {
+        role: true,
+        providers: true,
+      },
+    });
   }
 
   /**
@@ -135,11 +141,10 @@ export class UserRepository
    */
   async create(data: UserCreateInput): Promise<User> {
     return this.prisma.user.create({
-      data: {
-        username: data.username,
-        email: data.email,
-        password: data.password,
-        role: data.role || UserRole.VIEWER,
+      data,
+      include: {
+        role: true,
+        providers: true,
       },
     });
   }
@@ -150,18 +155,16 @@ export class UserRepository
   async update(id: string, data: UserUpdateInput): Promise<User> {
     return this.prisma.user.update({
       where: { id },
-      data: {
-        ...(data.username !== undefined && { username: data.username }),
-        ...(data.email !== undefined && { email: data.email }),
-        ...(data.password !== undefined && { password: data.password }),
-        ...(data.role !== undefined && { role: data.role }),
-        updatedAt: new Date(),
+      data,
+      include: {
+        role: true,
+        providers: true,
       },
     });
   }
 
   /**
-   * Delete a user (cascade deletes sessions and providers)
+   * Delete a user
    */
   async delete(id: string): Promise<void> {
     await this.prisma.user.delete({
@@ -170,28 +173,18 @@ export class UserRepository
   }
 
   /**
-   * Count users
+   * Count users with optional filters
    */
-  async count(options?: { role?: UserRole }): Promise<number> {
+  async count(filter?: { username?: string }): Promise<number> {
     return this.prisma.user.count({
-      where: options?.role ? { role: options.role } : undefined,
+      where: filter,
     });
   }
 
   /**
-   * Check if user exists
+   * Check if username exists
    */
-  async exists(id: string): Promise<boolean> {
-    const count = await this.prisma.user.count({
-      where: { id },
-    });
-    return count > 0;
-  }
-
-  /**
-   * Check if username exists (for registration validation)
-   */
-  async existsByUsername(username: string): Promise<boolean> {
+  async usernameExists(username: string): Promise<boolean> {
     const count = await this.prisma.user.count({
       where: { username },
     });
@@ -201,218 +194,262 @@ export class UserRepository
   /**
    * Check if email exists
    */
-  async existsByEmail(email: string): Promise<boolean> {
+  async emailExists(email: string): Promise<boolean> {
     const count = await this.prisma.user.count({
       where: { email },
     });
     return count > 0;
   }
 
-  // ==================== SESSION MANAGEMENT ====================
-
   /**
-   * Create a new session
+   * Find many users with optional filtering
    */
-  async createSession(data: SessionCreateInput): Promise<Session> {
-    return this.prisma.session.create({
-      data: {
-        userId: data.userId,
-        token: data.token,
-        expiresAt: data.expiresAt,
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
+  async findMany(options?: UserFindOptions): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        ...(options?.username && { username: options.username }),
+        ...(options?.email && { email: options.email }),
+        ...(options?.roleId && { roleId: options.roleId }),
+      },
+      include: {
+        role: options?.includeRole !== false,
+        providers: options?.includeProviders === true,
       },
     });
   }
 
   /**
-   * Find session by token
+   * Check if a user exists by ID
    */
-  async findSessionByToken(token: string): Promise<Session | null> {
-    return this.prisma.session.findUnique({
-      where: { token },
-      include: { user: true },
+  async exists(id: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
+      where: { id },
+    });
+    return count > 0;
+  }
+}
+
+/**
+ * Role Repository
+ */
+export class RoleRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async findById(id: string): Promise<Role | null> {
+    return this.prisma.role.findUnique({
+      where: { id },
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
     });
   }
 
-  /**
-   * Find active session by token (not expired)
-   */
-  async findActiveSessionByToken(token: string): Promise<Session | null> {
+  async findByName(name: string): Promise<Role | null> {
+    return this.prisma.role.findUnique({
+      where: { name },
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findAll(): Promise<Role[]> {
+    return this.prisma.role.findMany({
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
+  }
+
+  async create(data: { name: string; displayName: string; description?: string }): Promise<Role> {
+    return this.prisma.role.create({
+      data,
+    });
+  }
+
+  async addPermission(roleId: string, permissionId: string): Promise<void> {
+    await this.prisma.rolePermission.create({
+      data: {
+        roleId,
+        permissionId,
+      },
+    });
+  }
+
+  async removePermission(roleId: string, permissionId: string): Promise<void> {
+    await this.prisma.rolePermission.deleteMany({
+      where: {
+        roleId,
+        permissionId,
+      },
+    });
+  }
+}
+
+/**
+ * Permission Repository
+ */
+export class PermissionRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async findById(id: string): Promise<Permission | null> {
+    return this.prisma.permission.findUnique({
+      where: { id },
+    });
+  }
+
+  async findByName(name: string): Promise<Permission | null> {
+    return this.prisma.permission.findUnique({
+      where: { name },
+    });
+  }
+
+  async findAll(): Promise<Permission[]> {
+    return this.prisma.permission.findMany();
+  }
+
+  async create(data: {
+    name: string;
+    resource: string;
+    action: string;
+    description?: string;
+  }): Promise<Permission> {
+    return this.prisma.permission.create({
+      data,
+    });
+  }
+
+  async findByResource(resource: string): Promise<Permission[]> {
+    return this.prisma.permission.findMany({
+      where: { resource },
+    });
+  }
+}
+
+/**
+ * Session Repository
+ */
+export interface SessionCreateInput {
+  userId: string;
+  token: string;
+  expiresAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export class SessionRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async findActiveSessionByToken(token: string): Promise<any> {
     return this.prisma.session.findFirst({
       where: {
         token,
-        expiresAt: { gt: new Date() },
+        expiresAt: {
+          gt: new Date(),
+        },
       },
-      include: { user: true },
+      include: {
+        user: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
   }
 
-  /**
-   * Get all sessions for a user
-   */
-  async findUserSessions(userId: string, activeOnly = true): Promise<Session[]> {
-    return this.prisma.session.findMany({
-      where: {
-        userId,
-        ...(activeOnly && { expiresAt: { gt: new Date() } }),
-      },
-      orderBy: { createdAt: 'desc' },
+  async create(data: SessionCreateInput): Promise<any> {
+    return this.prisma.session.create({
+      data,
     });
   }
 
-  /**
-   * Delete a session (logout)
-   */
-  async deleteSession(token: string): Promise<void> {
-    await this.prisma.session.delete({
+  async deleteByToken(token: string): Promise<void> {
+    await this.prisma.session.deleteMany({
       where: { token },
     });
   }
 
-  /**
-   * Delete all sessions for a user (logout all devices)
-   */
-  async deleteUserSessions(userId: string): Promise<number> {
-    const result = await this.prisma.session.deleteMany({
-      where: { userId },
-    });
-    return result.count;
-  }
-
-  /**
-   * Delete expired sessions (cleanup task)
-   */
-  async deleteExpiredSessions(): Promise<number> {
+  async deleteExpired(): Promise<number> {
     const result = await this.prisma.session.deleteMany({
       where: {
-        expiresAt: { lt: new Date() },
+        expiresAt: {
+          lt: new Date(),
+        },
       },
     });
     return result.count;
   }
+}
 
-  // ==================== OAUTH PROVIDER MANAGEMENT ====================
+/**
+ * OAuth Provider Repository
+ */
+export interface OAuthProviderCreateInput {
+  userId: string;
+  provider: string;
+  providerId: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: Date;
+}
 
-  /**
-   * Create or update OAuth provider for user
-   */
-  async upsertOAuthProvider(data: OAuthProviderCreateInput): Promise<OAuthProvider> {
-    return this.prisma.oAuthProvider.upsert({
+export class OAuthProviderRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async findByProviderAndId(provider: string, providerId: string): Promise<any> {
+    return this.prisma.oAuthProvider.findUnique({
       where: {
         provider_providerId: {
-          provider: data.provider,
-          providerId: data.providerId,
+          provider,
+          providerId,
         },
       },
-      update: {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        expiresAt: data.expiresAt,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId: data.userId,
-        provider: data.provider,
-        providerId: data.providerId,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        expiresAt: data.expiresAt,
+      include: {
+        user: true,
       },
     });
   }
 
-  /**
-   * Find user by OAuth provider
-   */
-  async findByOAuthProvider(provider: string, providerId: string): Promise<User | null> {
-    const oauthProvider = await this.prisma.oAuthProvider.findUnique({
-      where: {
-        provider_providerId: { provider, providerId },
-      },
-      include: { user: true },
-    });
-
-    return oauthProvider?.user || null;
-  }
-
-  /**
-   * Get OAuth providers for a user
-   */
-  async findUserOAuthProviders(userId: string): Promise<OAuthProvider[]> {
-    return this.prisma.oAuthProvider.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
+  async create(data: OAuthProviderCreateInput): Promise<any> {
+    return this.prisma.oAuthProvider.create({
+      data,
     });
   }
 
-  /**
-   * Delete OAuth provider
-   */
-  async deleteOAuthProvider(provider: string, providerId: string): Promise<void> {
+  async updateTokens(
+    id: string,
+    data: { accessToken?: string; refreshToken?: string; expiresAt?: Date }
+  ): Promise<any> {
+    return this.prisma.oAuthProvider.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async delete(id: string): Promise<void> {
     await this.prisma.oAuthProvider.delete({
-      where: {
-        provider_providerId: { provider, providerId },
-      },
+      where: { id },
     });
-  }
-
-  /**
-   * Delete all OAuth providers for a user
-   */
-  async deleteUserOAuthProviders(userId: string): Promise<number> {
-    const result = await this.prisma.oAuthProvider.deleteMany({
-      where: { userId },
-    });
-    return result.count;
-  }
-
-  // ==================== UTILITY METHODS ====================
-
-  /**
-   * Change user role
-   */
-  async changeRole(userId: string, role: UserRole): Promise<User> {
-    return this.update(userId, { role });
-  }
-
-  /**
-   * Update user password
-   */
-  async updatePassword(userId: string, hashedPassword: string): Promise<User> {
-    return this.update(userId, { password: hashedPassword });
-  }
-
-  /**
-   * Get user statistics
-   */
-  async getStatistics(): Promise<{
-    total: number;
-    admins: number;
-    operators: number;
-    viewers: number;
-    withOAuth: number;
-  }> {
-    const [total, admins, operators, viewers, usersWithProviders] = await Promise.all([
-      this.count(),
-      this.count({ role: UserRole.ADMIN }),
-      this.count({ role: UserRole.OPERATOR }),
-      this.count({ role: UserRole.VIEWER }),
-      this.prisma.user.count({
-        where: {
-          providers: {
-            some: {},
-          },
-        },
-      }),
-    ]);
-
-    return {
-      total,
-      admins,
-      operators,
-      viewers,
-      withOAuth: usersWithProviders,
-    };
   }
 }

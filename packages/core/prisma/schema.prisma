@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:../../../db/node.db"
 }
 
 // For production PostgreSQL, change provider to "postgresql" and update DATABASE_URL
@@ -52,7 +52,8 @@ model User {
   username  String          @unique
   email     String?         @unique
   password  String? // bcrypt hashed (null for OAuth-only users)
-  role      UserRole        @default(VIEWER)
+  roleId    String? // Foreign key to Role
+  role      Role?           @relation(fields: [roleId], references: [id])
   providers OAuthProvider[]
   sessions  Session[]
   createdAt DateTime        @default(now())
@@ -60,13 +61,54 @@ model User {
 
   @@index([username])
   @@index([email])
+  @@index([roleId])
   @@map("users")
 }
 
-enum UserRole {
-  ADMIN
-  OPERATOR
-  VIEWER
+// RBAC Role model
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique // "admin", "operator", "viewer"
+  displayName String // "Administrator", "Operator", "Viewer"
+  description String?
+  permissions RolePermission[]
+  users       User[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([name])
+  @@map("roles")
+}
+
+// RBAC Permission model
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique // "replicant:read", "replicant:write", "bundle:manage"
+  resource    String // "replicant", "bundle", "user", "asset"
+  action      String // "read", "write", "delete", "manage"
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([resource])
+  @@index([action])
+  @@map("permissions")
+}
+
+// Join table for many-to-many relationship between Role and Permission
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
 }
 
 model OAuthProvider {

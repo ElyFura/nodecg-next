@@ -12,9 +12,9 @@ const logger = createLogger({ level: 'info' });
 
 export interface AuthenticatedRequest extends FastifyRequest {
   user?: {
-    id: string;
+    userId: string;
     username: string;
-    role: string;
+    roleId?: string;
   };
 }
 
@@ -41,7 +41,7 @@ export async function authenticateToken(
 
     // Verify token with session repository
     const repos = getRepositories(logger);
-    const session = await repos.user.findActiveSessionByToken(token);
+    const session = await repos.session.findActiveSessionByToken(token);
 
     if (!session || !session.user) {
       reply.code(401).send({
@@ -53,9 +53,9 @@ export async function authenticateToken(
 
     // Attach user to request
     request.user = {
-      id: session.user.id,
+      userId: session.user.id,
       username: session.user.username,
-      role: session.user.role,
+      roleId: session.user.roleId || undefined,
     };
 
     logger.debug(`Authenticated user: ${session.user.username}`);
@@ -82,7 +82,19 @@ export function requireRole(...roles: string[]) {
       return;
     }
 
-    if (!roles.includes(request.user.role)) {
+    if (!request.user.roleId) {
+      reply.code(403).send({
+        error: 'Forbidden',
+        message: 'User has no assigned role',
+      });
+      return;
+    }
+
+    // Get user role from database
+    const repos = getRepositories(logger);
+    const role = await repos.role.findById(request.user.roleId);
+
+    if (!role || !roles.includes(role.name)) {
       reply.code(403).send({
         error: 'Forbidden',
         message: `Required role: ${roles.join(' or ')}`,
@@ -90,7 +102,7 @@ export function requireRole(...roles: string[]) {
       return;
     }
 
-    logger.debug(`User ${request.user.username} authorized with role ${request.user.role}`);
+    logger.debug(`User ${request.user.username} authorized with role ${role.name}`);
   };
 }
 
@@ -110,13 +122,13 @@ export async function optionalAuth(
     }
 
     const repos = getRepositories(logger);
-    const session = await repos.user.findActiveSessionByToken(token);
+    const session = await repos.session.findActiveSessionByToken(token);
 
     if (session?.user) {
       request.user = {
-        id: session.user.id,
+        userId: session.user.id,
         username: session.user.username,
-        role: session.user.role,
+        roleId: session.user.roleId || undefined,
       };
     }
   } catch (error) {
@@ -127,14 +139,19 @@ export async function optionalAuth(
 /**
  * Require admin role
  */
-export const requireAdmin = requireRole('ADMIN');
+export const requireAdmin = requireRole('admin');
 
 /**
  * Require operator or admin role
  */
-export const requireOperator = requireRole('OPERATOR', 'ADMIN');
+export const requireOperator = requireRole('operator', 'admin');
 
 /**
  * Require viewer, operator, or admin role (any authenticated user)
  */
-export const requireViewer = requireRole('VIEWER', 'OPERATOR', 'ADMIN');
+export const requireViewer = requireRole('viewer', 'operator', 'admin');
+
+/**
+ * Alias for authenticateToken - require authentication
+ */
+export const requireAuth = authenticateToken;

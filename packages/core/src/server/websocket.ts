@@ -10,9 +10,8 @@ import { setupNamespaces } from '../gateway/websocket/namespaces';
 import { RoomManager } from '../gateway/websocket/rooms';
 import { createLogger } from '../utils/logger';
 import { ReplicantService, SyncManager } from '../services/replicant';
-import { BundleManager } from '../services/bundle';
-import { getEventBus } from '../utils/event-bus';
-import { getPrismaClient } from '../database/client';
+import { getRepositories } from '../database/client';
+import { getRedisClient } from '../database/redis';
 
 const logger = createLogger({ level: 'info' });
 
@@ -20,7 +19,6 @@ let io: SocketIOServer | null = null;
 let roomManager: RoomManager | null = null;
 let replicantService: ReplicantService | null = null;
 let syncManager: SyncManager | null = null;
-let bundleManager: BundleManager | null = null;
 
 /**
  * Setup WebSocket server with Socket.IO
@@ -53,31 +51,25 @@ export async function setupWebSocket(
   // Setup all namespaces (dashboard, graphics, extension)
   roomManager = setupNamespaces(io);
 
-  // Initialize core services
-  try {
-    const prisma = getPrismaClient(logger);
-    const eventBus = getEventBus();
+  // Initialize Replicant Service and SyncManager
+  logger.info('Initializing Replicant Service and SyncManager...');
+  const repositories = getRepositories(logger);
+  const redis = getRedisClient(logger);
 
-    // Initialize Replicant Service
-    replicantService = new ReplicantService(prisma, config, logger, eventBus);
-    await replicantService.initialize();
+  replicantService = new ReplicantService(repositories.replicant, redis);
+  syncManager = new SyncManager(io, replicantService);
 
-    logger.info('Replicant Service initialized');
+  // Make replicantService available on Fastify instance
+  (fastify as FastifyInstance & { replicantService: ReplicantService }).replicantService =
+    replicantService;
 
-    // Initialize Sync Manager for real-time replicant synchronization
-    syncManager = new SyncManager(replicantService, io, logger, eventBus);
-
-    logger.info('Replicant Sync Manager initialized');
-
-    // Initialize Bundle Manager
-    bundleManager = new BundleManager(prisma, config, logger, eventBus);
-    await bundleManager.initialize();
-
-    logger.info('Bundle Manager initialized');
-  } catch (error) {
-    logger.error('Failed to initialize services:', error);
-    throw error;
+  // Set replicantService on BundleManager to enable extension execution
+  const bundleManager = (fastify as any).bundleManager;
+  if (bundleManager && typeof bundleManager.setReplicantService === 'function') {
+    bundleManager.setReplicantService(replicantService);
   }
+
+  logger.info('Replicant Service and SyncManager initialized');
 
   // Global error handler
   io.engine.on('connection_error', (err) => {
@@ -90,7 +82,7 @@ export async function setupWebSocket(
   });
 
   logger.info('WebSocket server initialized');
-  logger.info('Available namespaces: /dashboard, /graphics, /extension');
+  logger.info('Available namespaces: /dashboard, /graphics, /extension, /replicants');
 
   return io;
 }
@@ -121,13 +113,6 @@ export function getReplicantService(): ReplicantService | null {
  */
 export function getSyncManager(): SyncManager | null {
   return syncManager;
-}
-
-/**
- * Get Bundle Manager instance
- */
-export function getBundleManager(): BundleManager | null {
-  return bundleManager;
 }
 
 /**
@@ -167,5 +152,7 @@ export async function closeWebSocket(): Promise<void> {
     });
     io = null;
     roomManager = null;
+    replicantService = null;
+    syncManager = null;
   }
 }

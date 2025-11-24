@@ -1,10 +1,5 @@
 /**
- * Bundle Service Exports
+ * Bundle Services Export
  */
 
-export {
-  BundleManager,
-  type LoadedBundle,
-  type BundleDiscoveryResult,
-  type BundleDependencyTree,
-} from './manager';
+export { BundleManager, type BundleManagerOptions, type LoadedBundle } from './manager';
