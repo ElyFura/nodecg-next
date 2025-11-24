@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug & Monitor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #e2e8f0;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+      text-align: center;
+      color: #22c55e;
+      font-family: 'Segoe UI', sans-serif;
+      text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #22c55e;
+      font-family: 'Courier New', monospace;
+    }
+
+    .log-section {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .log-section h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #22c55e;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .log-container {
+      background: #000;
+      border-radius: 4px;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      border-left: 3px solid;
+      padding-left: 10px;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .log-entry.new {
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .log-entry .timestamp {
+      color: #64748b;
+      margin-right: 10px;
+    }
+
+    .log-entry .action {
+      color: #22c55e;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .log-entry .details {
+      color: #cbd5e1;
+    }
+
+    .log-entry.name_changed { border-left-color: #3b82f6; }
+    .log-entry.title_changed { border-left-color: #8b5cf6; }
+    .log-entry.score_changed { border-left-color: #f59e0b; }
+    .log-entry.timer_state { border-left-color: #10b981; }
+    .log-entry.ticker_messages_changed { border-left-color: #ec4899; }
+    .log-entry.bundle_loaded { border-left-color: #22c55e; }
+    .log-entry.bundle_unloaded { border-left-color: #ef4444; }
+
+    .control-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      font-family: 'Courier New', monospace;
+    }
+
+    button:hover {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-clear {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #ef4444;
+    }
+
+    .btn-clear:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+
+    .empty-log {
+      text-align: center;
+      color: #64748b;
+      padding: 40px;
+      font-size: 14px;
+    }
+
+    .replicant-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .replicant-item {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 4px;
+      border-left: 3px solid #22c55e;
+      font-size: 12px;
+    }
+
+    .replicant-name {
+      color: #22c55e;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .replicant-value {
+      color: #cbd5e1;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h2>🐛 Debug & Monitor</h2>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">System Uptime</div>
+      <div class="stat-value" id="uptime">0s</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Replicants</div>
+      <div class="stat-value" id="replicantCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Message Count</div>
+      <div class="stat-value" id="messageCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last Update</div>
+      <div class="stat-value" id="lastUpdate" style="font-size: 14px;">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <h3>
+      <span>📋 Event Log</span>
+      <div>
+        <button id="autoScrollBtn">Auto-Scroll: ON</button>
+        <button class="btn-clear" id="clearLogBtn">Clear Log</button>
+      </div>
+    </h3>
+    <div class="log-container" id="logContainer">
+      <div class="empty-log">Warte auf Events...</div>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <h3>🔧 Active Replicants</h3>
+    <div class="replicant-list" id="replicantList">
+      <div class="empty-log">Lade Replicants...</div>
+    </div>
+  </div>
+
+  <script src="/nodecg-api-client.js"></script>
+  <script>
+    const nodecg = window.nodecg;
+
+    // Elements
+    const uptimeEl = document.getElementById('uptime');
+    const replicantCountEl = document.getElementById('replicantCount');
+    const messageCountEl = document.getElementById('messageCount');
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    const logContainer = document.getElementById('logContainer');
+    const autoScrollBtn = document.getElementById('autoScrollBtn');
+    const clearLogBtn = document.getElementById('clearLogBtn');
+    const replicantList = document.getElementById('replicantList');
+
+    let autoScroll = true;
+    let logEntries = [];
+
+    // Replicants
+    const systemStats = nodecg.Replicant('systemStats');
+    const messageLog = nodecg.Replicant('messageLog');
+
+    // Format uptime
+    function formatUptime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${secs}s`;
+      } else {
+        return `${secs}s`;
+      }
+    }
+
+    // Format timestamp
+    function formatTimestamp(isoString) {
+      try {
+        const date = new Date(isoString);
+        return date.toLocaleTimeString('de-DE');
+      } catch {
+        return '--:--:--';
+      }
+    }
+
+    // Update system stats
+    systemStats.on('change', (newValue) => {
+      if (!newValue) return;
+
+      uptimeEl.textContent = formatUptime(newValue.uptime || 0);
+      replicantCountEl.textContent = newValue.replicantCount || 0;
+      messageCountEl.textContent = newValue.messageCount || 0;
+      lastUpdateEl.textContent = formatTimestamp(newValue.lastUpdate);
+    });
+
+    // Update message log
+    messageLog.on('change', (newValue) => {
+      if (!newValue || newValue.length === 0) {
+        logContainer.innerHTML = '<div class="empty-log">Keine Events vorhanden</div>';
+        return;
+      }
+
+      const wasAtBottom = logContainer.scrollHeight - logContainer.scrollTop === logContainer.clientHeight;
+      const previousCount = logEntries.length;
+      logEntries = newValue;
+
+      // Render log entries (newest first)
+      const sortedEntries = [...newValue].reverse();
+      logContainer.innerHTML = sortedEntries.map((entry, index) => {
+        const isNew = index < (newValue.length - previousCount);
+        return `
+          <div class="log-entry ${entry.action} ${isNew ? 'new' : ''}">
+            <span class="timestamp">${formatTimestamp(entry.timestamp)}</span>
+            <span class="action">[${entry.action.toUpperCase()}]</span>
+            <span class="details">${formatLogDetails(entry)}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Auto-scroll to bottom if enabled
+      if (autoScroll && (wasAtBottom || previousCount === 0)) {
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+    });
+
+    function formatLogDetails(entry) {
+      switch (entry.action) {
+        case 'name_changed':
+          return `"${entry.from}" → "${entry.to}"`;
+        case 'title_changed':
+          return `"${entry.from}" → "${entry.to}"`;
+        case 'score_changed':
+          return `Team ${entry.team} (${entry.name}): ${entry.oldScore} → ${entry.newScore}`;
+        case 'timer_state':
+          return `${entry.running ? 'Started' : 'Stopped'} (${entry.remaining}s remaining)`;
+        case 'ticker_messages_changed':
+          return `${entry.count} messages`;
+        case 'bundle_loaded':
+          return `Version ${entry.version} - Features: ${entry.features.join(', ')}`;
+        case 'bundle_unloaded':
+          return 'Bundle wird entladen';
+        default:
+          return JSON.stringify(entry).substring(0, 100);
+      }
+    }
+
+    // Auto-scroll toggle
+    autoScrollBtn.addEventListener('click', () => {
+      autoScroll = !autoScroll;
+      autoScrollBtn.textContent = `Auto-Scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+    });
+
+    // Clear log (placeholder - would need backend support)
+    clearLogBtn.addEventListener('click', () => {
+      if (confirm('Möchten Sie wirklich alle Log-Einträge löschen?')) {
+        // In a real implementation, you would:
+        // messageLog.value = [];
+        alert('Log-Clear ist in dieser Demo-Version deaktiviert');
+      }
+    });
+
+    // Show active replicants (demo data)
+    function updateReplicantList() {
+      const replicants = [
+        { name: 'currentName', value: 'Max Mustermann' },
+        { name: 'currentTitle', value: 'Software Entwickler' },
+        { name: 'isVisible', value: false },
+        { name: 'scoreboard', value: 'Object with teamA, teamB' },
+        { name: 'timer', value: 'Object with duration, remaining' },
+        { name: 'ticker', value: 'Object with messages array' },
+        { name: 'messageLog', value: `Array[${logEntries.length}]` },
+        { name: 'systemStats', value: 'Object with uptime, counts' },
+      ];
+
+      replicantList.innerHTML = replicants.map(rep => `
+        <div class="replicant-item">
+          <div class="replicant-name">${rep.name}</div>
+          <div class="replicant-value">${typeof rep.value === 'object' ? JSON.stringify(rep.value).substring(0, 50) + '...' : rep.value}</div>
+        </div>
+      `).join('');
+    }
+
+    // Initial update
+    updateReplicantList();
+
+    // Update replicant list periodically
+    setInterval(updateReplicantList, 5000);
+
+    console.log('Debug & Monitor panel loaded');
+  </script>
+</body>
+</html>

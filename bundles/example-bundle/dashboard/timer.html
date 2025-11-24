@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timer Control</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+      text-align: center;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .timer-display-section {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+      text-align: center;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .timer-display {
+      font-size: 72px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+      margin-bottom: 10px;
+    }
+
+    .timer-label-display {
+      font-size: 18px;
+      opacity: 0.8;
+      margin-bottom: 20px;
+    }
+
+    .control-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .btn-stop {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .btn-reset {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .settings-section {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .settings-section h3 {
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+    }
+
+    .time-input-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .time-input-group input {
+      text-align: center;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+    }
+
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .visibility-toggle {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      margin-top: 20px;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-running {
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 1s infinite;
+    }
+
+    .status-paused {
+      background: #f59e0b;
+    }
+
+    .status-hidden {
+      background: #6b7280;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .quick-times {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .quick-time-btn {
+      padding: 10px;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <h2>⏱️ Timer & Countdown</h2>
+
+  <div class="timer-display-section">
+    <div class="timer-label-display" id="labelDisplay">Timer</div>
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div>
+      <span class="status-indicator" id="statusIndicator"></span>
+      <span id="statusText">Gestoppt</span>
+    </div>
+  </div>
+
+  <div class="control-buttons">
+    <button class="btn-start" id="startBtn">▶ Start</button>
+    <button class="btn-stop" id="stopBtn">⏸ Stop</button>
+    <button class="btn-reset" id="resetBtn">↺ Reset</button>
+  </div>
+
+  <div class="settings-section">
+    <h3>⚙️ Einstellungen</h3>
+
+    <div class="form-group">
+      <label for="labelInput">Timer Label:</label>
+      <input type="text" id="labelInput" placeholder="Match Timer">
+    </div>
+
+    <div class="form-group">
+      <label>Duration (Minuten:Sekunden):</label>
+      <div class="time-input-group">
+        <input type="number" id="minutesInput" min="0" max="59" placeholder="MM">
+        <input type="number" id="secondsInput" min="0" max="59" placeholder="SS">
+        <button class="quick-time-btn" id="setDurationBtn">Set</button>
+      </div>
+    </div>
+
+    <div class="quick-times">
+      <button class="quick-time-btn" data-seconds="60">1 Min</button>
+      <button class="quick-time-btn" data-seconds="300">5 Min</button>
+      <button class="quick-time-btn" data-seconds="600">10 Min</button>
+      <button class="quick-time-btn" data-seconds="900">15 Min</button>
+      <button class="quick-time-btn" data-seconds="1800">30 Min</button>
+      <button class="quick-time-btn" data-seconds="3600">60 Min</button>
+    </div>
+
+    <div class="form-group" style="margin-top: 15px;">
+      <div class="checkbox-group">
+        <input type="checkbox" id="countUpCheckbox">
+        <label for="countUpCheckbox" style="margin: 0;">Count Up (statt Count Down)</label>
+      </div>
+    </div>
+
+    <button class="visibility-toggle" id="visibilityBtn">
+      <span class="status-indicator status-hidden" id="visibilityIndicator"></span>
+      <span id="visibilityText">Timer anzeigen</span>
+    </button>
+  </div>
+
+  <script src="/nodecg-api-client.js"></script>
+  <script>
+    const nodecg = window.nodecg;
+
+    // Elements
+    const timerDisplay = document.getElementById('timerDisplay');
+    const labelDisplay = document.getElementById('labelDisplay');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const labelInput = document.getElementById('labelInput');
+    const minutesInput = document.getElementById('minutesInput');
+    const secondsInput = document.getElementById('secondsInput');
+    const setDurationBtn = document.getElementById('setDurationBtn');
+    const countUpCheckbox = document.getElementById('countUpCheckbox');
+    const visibilityBtn = document.getElementById('visibilityBtn');
+    const visibilityText = document.getElementById('visibilityText');
+    const visibilityIndicator = document.getElementById('visibilityIndicator');
+
+    // Replicant
+    const timer = nodecg.Replicant('timer');
+
+    function formatTime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Update UI from replicant
+    timer.on('change', (newValue) => {
+      if (!newValue) return;
+
+      timerDisplay.textContent = formatTime(newValue.remaining);
+      labelDisplay.textContent = newValue.label || 'Timer';
+      labelInput.value = newValue.label || '';
+      countUpCheckbox.checked = newValue.countUp || false;
+
+      // Update status
+      if (newValue.running) {
+        statusIndicator.className = 'status-indicator status-running';
+        statusText.textContent = 'Läuft';
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } else {
+        statusIndicator.className = 'status-indicator status-paused';
+        statusText.textContent = 'Gestoppt';
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+
+      // Update visibility
+      if (newValue.visible) {
+        visibilityText.textContent = 'Timer ausblenden';
+        visibilityIndicator.classList.remove('status-hidden');
+        visibilityIndicator.classList.add('status-running');
+      } else {
+        visibilityText.textContent = 'Timer anzeigen';
+        visibilityIndicator.classList.remove('status-running');
+        visibilityIndicator.classList.add('status-hidden');
+      }
+    });
+
+    // Control buttons
+    startBtn.addEventListener('click', () => {
+      nodecg.sendMessage('timer:start');
+    });
+
+    stopBtn.addEventListener('click', () => {
+      nodecg.sendMessage('timer:stop');
+    });
+
+    resetBtn.addEventListener('click', () => {
+      nodecg.sendMessage('timer:reset');
+    });
+
+    // Settings
+    labelInput.addEventListener('change', () => {
+      timer.value = {
+        ...timer.value,
+        label: labelInput.value,
+      };
+    });
+
+    setDurationBtn.addEventListener('click', () => {
+      const minutes = parseInt(minutesInput.value) || 0;
+      const seconds = parseInt(secondsInput.value) || 0;
+      const totalSeconds = minutes * 60 + seconds;
+
+      if (totalSeconds > 0) {
+        timer.value = {
+          ...timer.value,
+          duration: totalSeconds,
+          remaining: totalSeconds,
+        };
+      }
+    });
+
+    countUpCheckbox.addEventListener('change', () => {
+      timer.value = {
+        ...timer.value,
+        countUp: countUpCheckbox.checked,
+      };
+    });
+
+    visibilityBtn.addEventListener('click', () => {
+      timer.value = {
+        ...timer.value,
+        visible: !timer.value.visible,
+      };
+    });
+
+    // Quick time buttons
+    document.querySelectorAll('.quick-time-btn[data-seconds]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const seconds = parseInt(btn.dataset.seconds);
+        timer.value = {
+          ...timer.value,
+          duration: seconds,
+          remaining: seconds,
+        };
+      });
+    });
+  </script>
+</body>
+</html>

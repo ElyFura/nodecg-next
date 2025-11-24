@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Timer - NodeCG Next</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #timer-container {
+      position: absolute;
+      top: 50px;
+      right: 50px;
+      transform: translateX(150%) scale(0.8);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    #timer-container.visible {
+      transform: translateX(0) scale(1);
+      opacity: 1;
+    }
+
+    .timer-box {
+      background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.9));
+      padding: 30px 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
+      border: 4px solid #667eea;
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timer-box::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+      animation: shine 3s infinite;
+    }
+
+    @keyframes shine {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .timer-label {
+      font-size: 20px;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-align: center;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .timer-display {
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 20px rgba(102, 126, 234, 0.8),
+                   0 0 40px rgba(102, 126, 234, 0.4);
+      position: relative;
+      z-index: 1;
+      min-width: 280px;
+    }
+
+    .timer-display.warning {
+      color: #fbbf24;
+      text-shadow: 0 0 20px rgba(251, 191, 36, 0.8),
+                   0 0 40px rgba(251, 191, 36, 0.4);
+      animation: warningPulse 1s infinite;
+    }
+
+    .timer-display.critical {
+      color: #ef4444;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.8),
+                   0 0 40px rgba(239, 68, 68, 0.4);
+      animation: criticalPulse 0.5s infinite;
+    }
+
+    .timer-display.finished {
+      color: #10b981;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.8),
+                   0 0 40px rgba(16, 185, 129, 0.4);
+    }
+
+    @keyframes warningPulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    @keyframes criticalPulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+      }
+    }
+
+    .timer-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 0 0 16px 16px;
+      transition: width 0.3s linear;
+      z-index: 2;
+    }
+
+    .timer-status {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      z-index: 2;
+    }
+
+    .timer-status.running {
+      background: #10b981;
+      animation: statusBlink 1s infinite;
+    }
+
+    .timer-status.paused {
+      background: #fbbf24;
+    }
+
+    @keyframes statusBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.3;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="timer-container">
+    <div class="timer-box">
+      <div class="timer-status" id="status"></div>
+      <div class="timer-label" id="label">Timer</div>
+      <div class="timer-display" id="display">00:00</div>
+      <div class="timer-progress" id="progress" style="width: 100%"></div>
+    </div>
+  </div>
+
+  <script src="/nodecg-api-client.js"></script>
+  <script>
+    const nodecg = window.nodecg;
+
+    const containerEl = document.getElementById('timer-container');
+    const displayEl = document.getElementById('display');
+    const labelEl = document.getElementById('label');
+    const progressEl = document.getElementById('progress');
+    const statusEl = document.getElementById('status');
+
+    const timer = nodecg.Replicant('timer');
+
+    function formatTime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    timer.on('change', (newValue) => {
+      if (!newValue) return;
+
+      // Update visibility
+      if (newValue.visible) {
+        containerEl.classList.add('visible');
+      } else {
+        containerEl.classList.remove('visible');
+      }
+
+      // Update label
+      labelEl.textContent = newValue.label || 'Timer';
+
+      // Update display
+      const timeText = formatTime(newValue.remaining);
+      displayEl.textContent = timeText;
+
+      // Update status indicator
+      if (newValue.running) {
+        statusEl.classList.add('running');
+        statusEl.classList.remove('paused');
+      } else {
+        statusEl.classList.remove('running');
+        statusEl.classList.add('paused');
+      }
+
+      // Update color based on time remaining
+      displayEl.classList.remove('warning', 'critical', 'finished');
+
+      if (!newValue.countUp) {
+        if (newValue.remaining === 0) {
+          displayEl.classList.add('finished');
+        } else if (newValue.remaining <= 10) {
+          displayEl.classList.add('critical');
+        } else if (newValue.remaining <= 30) {
+          displayEl.classList.add('warning');
+        }
+      }
+
+      // Update progress bar
+      if (newValue.countUp) {
+        // For count up, show progress based on arbitrary max (e.g., 10 minutes)
+        const maxSeconds = 600;
+        const percentage = Math.min((newValue.remaining / maxSeconds) * 100, 100);
+        progressEl.style.width = `${percentage}%`;
+      } else {
+        // For count down, show remaining time
+        const percentage = (newValue.remaining / newValue.duration) * 100;
+        progressEl.style.width = `${percentage}%`;
+      }
+    });
+  </script>
+</body>
+</html>

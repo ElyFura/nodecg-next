@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Scoreboard - NodeCG Next</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #scoreboard {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      display: flex;
+      gap: 20px;
+      transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      opacity: 0;
+    }
+
+    #scoreboard.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .team {
+      display: flex;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(0,0,0,0.7));
+      padding: 20px 30px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 3px solid;
+      min-width: 250px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      opacity: 0.2;
+      z-index: 0;
+    }
+
+    .team-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+    }
+
+    .team-logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .team-logo img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .team-info {
+      flex: 1;
+    }
+
+    .team-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      margin-bottom: 5px;
+    }
+
+    .team-score {
+      font-size: 48px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+      line-height: 1;
+    }
+
+    .vs-separator {
+      font-size: 36px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      padding: 0 10px;
+    }
+
+    .score-change {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      font-size: 36px;
+      font-weight: bold;
+      color: #4ade80;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+      animation: scoreIncrease 1s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes scoreIncrease {
+      0% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-80%) scale(1.5);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-120%) scale(0.8);
+      }
+    }
+
+    .pulse {
+      animation: pulse 0.3s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scoreboard">
+    <div class="team" id="teamA">
+      <div class="team-content">
+        <div class="team-logo" id="logoA">A</div>
+        <div class="team-info">
+          <div class="team-name" id="nameA">Team Alpha</div>
+          <div class="team-score" id="scoreA">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vs-separator">VS</div>
+
+    <div class="team" id="teamB">
+      <div class="team-content">
+        <div class="team-info">
+          <div class="team-name" id="nameB">Team Beta</div>
+          <div class="team-score" id="scoreB">0</div>
+        </div>
+        <div class="team-logo" id="logoB">B</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/nodecg-api-client.js"></script>
+  <script>
+    const nodecg = window.nodecg;
+
+    const scoreboardEl = document.getElementById('scoreboard');
+    const teamAEl = document.getElementById('teamA');
+    const teamBEl = document.getElementById('teamB');
+    const nameAEl = document.getElementById('nameA');
+    const nameBEl = document.getElementById('nameB');
+    const scoreAEl = document.getElementById('scoreA');
+    const scoreBEl = document.getElementById('scoreB');
+    const logoAEl = document.getElementById('logoA');
+    const logoBEl = document.getElementById('logoB');
+
+    const scoreboard = nodecg.Replicant('scoreboard');
+
+    let previousScoreA = 0;
+    let previousScoreB = 0;
+
+    scoreboard.on('change', (newValue) => {
+      if (!newValue) return;
+
+      // Update visibility
+      if (newValue.visible) {
+        scoreboardEl.classList.add('visible');
+      } else {
+        scoreboardEl.classList.remove('visible');
+      }
+
+      // Update Team A
+      nameAEl.textContent = newValue.teamA.name;
+      teamAEl.style.borderColor = newValue.teamA.color;
+      teamAEl.style.setProperty('--team-color', newValue.teamA.color);
+      teamAEl.querySelector('.team::before')?.style.setProperty('background', newValue.teamA.color);
+
+      if (newValue.teamA.logo) {
+        logoAEl.innerHTML = `<img src="${newValue.teamA.logo}" alt="${newValue.teamA.name}">`;
+      } else {
+        logoAEl.textContent = newValue.teamA.name.charAt(0).toUpperCase();
+      }
+
+      // Update score with animation
+      if (newValue.teamA.score !== previousScoreA) {
+        scoreAEl.textContent = newValue.teamA.score;
+        scoreAEl.classList.add('pulse');
+        setTimeout(() => scoreAEl.classList.remove('pulse'), 300);
+
+        if (newValue.teamA.score > previousScoreA) {
+          showScoreChange(teamAEl, '+1');
+        }
+        previousScoreA = newValue.teamA.score;
+      } else {
+        scoreAEl.textContent = newValue.teamA.score;
+      }
+
+      // Update Team B
+      nameBEl.textContent = newValue.teamB.name;
+      teamBEl.style.borderColor = newValue.teamB.color;
+      teamBEl.style.setProperty('--team-color', newValue.teamB.color);
+
+      if (newValue.teamB.logo) {
+        logoBEl.innerHTML = `<img src="${newValue.teamB.logo}" alt="${newValue.teamB.name}">`;
+      } else {
+        logoBEl.textContent = newValue.teamB.name.charAt(0).toUpperCase();
+      }
+
+      // Update score with animation
+      if (newValue.teamB.score !== previousScoreB) {
+        scoreBEl.textContent = newValue.teamB.score;
+        scoreBEl.classList.add('pulse');
+        setTimeout(() => scoreBEl.classList.remove('pulse'), 300);
+
+        if (newValue.teamB.score > previousScoreB) {
+          showScoreChange(teamBEl, '+1');
+        }
+        previousScoreB = newValue.teamB.score;
+      } else {
+        scoreBEl.textContent = newValue.teamB.score;
+      }
+    });
+
+    function showScoreChange(teamEl, text) {
+      const changeEl = document.createElement('div');
+      changeEl.className = 'score-change';
+      changeEl.textContent = text;
+      teamEl.appendChild(changeEl);
+
+      setTimeout(() => {
+        teamEl.removeChild(changeEl);
+      }, 1000);
+    }
+
+    // Initialize
+    if (scoreboard.value) {
+      previousScoreA = scoreboard.value.teamA?.score || 0;
+      previousScoreB = scoreboard.value.teamB?.score || 0;
+    }
+  </script>
+</body>
+</html>
