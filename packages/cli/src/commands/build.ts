@@ -168,7 +168,7 @@ async function buildBundle(bundlesDir: string, bundleName: string): Promise<void
       await execAsync('npx vite build', { cwd: bundleDir });
       console.log(chalk.green('      ✓ Vite build complete'));
     }
-  } catch (_error) {
+  } catch {
     // Vite build failed, but might not be required
     console.log(chalk.yellow('      ⚠ Vite build failed (may not be required)'));
   }
@@ -179,7 +179,7 @@ async function buildBundle(bundlesDir: string, bundleName: string): Promise<void
     try {
       await execAsync('npm run build', { cwd: bundleDir });
       console.log(chalk.green('      ✓ Custom build complete'));
-    } catch (_error) {
+    } catch {
       // Build script might include vite/tsc which we already ran
       console.log(chalk.gray('      ⓘ Build script completed (with warnings)'));
     }

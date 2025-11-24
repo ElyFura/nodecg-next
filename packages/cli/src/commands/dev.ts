@@ -217,11 +217,14 @@ async function watchBundles(): Promise<void> {
         console.log(chalk.gray('  Server will auto-restart...\n'));
       }
     }
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if ((error as { code?: string }).code === 'ENOENT') {
       console.log(chalk.gray('  ⓘ No bundles directory found, skipping file watching'));
     } else {
-      console.warn(chalk.yellow('Warning: Could not watch bundles directory:'), error.message);
+      console.warn(
+        chalk.yellow('Warning: Could not watch bundles directory:'),
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 }

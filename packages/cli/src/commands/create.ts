@@ -202,7 +202,7 @@ async function generateTemplate(
   const { name, description, author } = metadata;
 
   // Generate package.json
-  const packageJson: Record<string, any> = {
+  const packageJson: Record<string, unknown> = {
     name,
     version: '0.1.0',
     description,

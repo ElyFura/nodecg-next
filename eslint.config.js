@@ -24,6 +24,10 @@ export default [
         __filename: 'readonly',
         console: 'readonly',
         Buffer: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
       },
     },
     plugins: {
