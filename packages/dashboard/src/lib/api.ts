@@ -93,6 +93,9 @@ export interface Bundle {
   panelCount: number;
   graphicCount: number;
   extensionPath?: string;
+  hasExtension: boolean;
+  hasDashboard: boolean;
+  hasGraphics: boolean;
   dashboardPanels: DashboardPanel[];
   graphics: BundleGraphic[];
 }
