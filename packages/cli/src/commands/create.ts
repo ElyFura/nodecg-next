@@ -202,6 +202,7 @@ async function generateTemplate(
   const { name, description, author } = metadata;
 
   // Generate package.json
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const packageJson: Record<string, any> = {
     name,
     version: '0.1.0',
