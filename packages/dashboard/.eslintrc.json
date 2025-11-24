@@ -8,7 +8,8 @@
     "plugin:@typescript-eslint/recommended",
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
-    "plugin:react-hooks/recommended"
+    "plugin:react-hooks/recommended",
+    "plugin:prettier/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -21,12 +22,17 @@
   "plugins": ["react-refresh"],
   "rules": {
     "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
-    "@typescript-eslint/no-explicit-any": "off",
-    "no-undef": "off"
+    "@typescript-eslint/no-explicit-any": "off"
   },
   "settings": {
     "react": {
       "version": "detect"
     }
+  },
+  "globals": {
+    "document": "readonly",
+    "window": "readonly",
+    "localStorage": "readonly",
+    "console": "readonly"
   }
 }
