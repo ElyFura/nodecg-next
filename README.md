@@ -7,23 +7,21 @@
 
 ## 🚀 Project Status
 
-**Current Phase:** Phase 8 - Observability & Production (Next) 🎯
-**Completed Phases:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ | Phase 7 ✅
+**Current Phase:** Phase 1 - Core Foundation (In Progress)
 
-NodeCG Next is a complete ground-up rewrite of NodeCG, designed for modern web standards and professional broadcast workflows. Phases 1-7 are complete, including Core Foundation, full Replicant System with real-time synchronization, Bundle System, complete Authentication & Authorization with OAuth2/RBAC/audit logging, fully-functional React Dashboard with real backend API integration using TanStack Query (zero mock data), comprehensive GraphQL API with Apollo Server, and flexible Plugin System with lifecycle management and hooks.
+NodeCG Next is a complete ground-up rewrite of NodeCG, designed for modern web standards and professional broadcast workflows.
 
 ## ✨ Features
 
 - 🎯 **100% TypeScript** - Complete type safety across the entire stack
 - ⚡ **Lightning Fast** - Fastify server with <3s startup time
 - 🔄 **Real-time Sync** - Socket.IO with <10ms replicant updates
-- 🎨 **Modern Dashboard** - Beautiful React interface with real-time data and zero mock data
-- 📦 **Bundle System** - Full bundle lifecycle with hot reload support
+- 🎨 **Modern UI** - React 18 dashboard with shadcn/ui components
 - 🐳 **Cloud Native** - Docker and Kubernetes ready out of the box
 - 🔒 **Enterprise Security** - OAuth2, RBAC, and audit logging
-- 🔌 **Plugin System** - Extend functionality without touching core with hooks and lifecycle
-- 📊 **GraphQL API** - Apollo Server 5 with comprehensive schema for bundles, replicants, and users
-- 📈 **Observable** - OpenTelemetry, Prometheus, and Grafana integration (planned)
+- 📊 **GraphQL API** - Flexible queries and real-time subscriptions
+- 🔌 **Plugin System** - Extend functionality without touching core
+- 📈 **Observable** - OpenTelemetry, Prometheus, and Grafana integration
 
 ## 📋 Architecture
 
@@ -34,18 +32,18 @@ NodeCG Next is built as a monorepo using modern tooling:
 - **Database:** PostgreSQL (production) / SQLite (development)
 - **Cache:** Redis 7
 - **Message Queue:** RabbitMQ
-- **Frontend:** React 18 + Vite + TanStack (Phase 5)
+- **Frontend:** React 18 + Vite + TanStack
 - **Testing:** Vitest + Playwright
 
 ### Package Structure
 
 ```
 packages/
-├── core/ # Core server implementation
-├── types/ # Shared TypeScript types
-├── client/ # Client library for graphics/dashboard
-├── cli/ # CLI tools for bundle development
-└── dashboard/ # React dashboard UI (Phase 5)
+├── core/          # Core server implementation
+├── types/         # Shared TypeScript types
+├── client/        # Client library for graphics/dashboard
+├── cli/           # CLI tools for bundle development
+└── dashboard/     # React dashboard UI
 ```
 
 ## 🛠️ Development Setup
@@ -75,9 +73,7 @@ pnpm install
 
 ```bash
 cp .env.example .env
-
 # Edit .env with your configuration
-
 ```
 
 4. **Start with Docker (recommended):**
@@ -89,127 +85,68 @@ docker-compose up -d
 Or **start development services manually:**
 
 ```bash
-
 # Terminal 1: Start PostgreSQL, Redis, RabbitMQ
-
 docker-compose up -d postgres redis rabbitmq
 
 # Terminal 2: Run Prisma migrations
-
 cd packages/core
 pnpm prisma:generate
 pnpm prisma migrate dev
 
 # Terminal 3: Start development server
-
-pnpm --filter @nodecg/core dev
+pnpm dev
 ```
 
 5. **Access the application:**
 
-- **NodeCG Dashboard:** http://localhost:3000 (displays all bundle panels)
-- **System Status:** http://localhost:3000/status
-- **Bundle Panels API:** http://localhost:3000/bundles/panels
-- **Bundle Graphics API:** http://localhost:3000/bundles/graphics
-- **Health Check:** http://localhost:3000/health
-- **RabbitMQ Management:** http://localhost:15672 (nodecg/nodecg)
-- **MinIO Console:** http://localhost:9001 (nodecg/nodecg123)
-
-### Creating Your First Bundle
-
-```bash
-
-# Build the CLI package first
-
-pnpm --filter @nodecg/cli build
-
-# Using the CLI from the workspace root
-
-node packages/cli/dist/cli.js create my-bundle --template react-ts
-
-# Available templates: react-ts, vue-ts, minimal-ts, minimal-js
-
-# Or install CLI globally for easier access
-
-cd packages/cli
-pnpm link -g
-nodecg create my-bundle --template react-ts
-
-# Or manually create a bundle
-
-mkdir -p bundles/my-bundle
-cd bundles/my-bundle
-
-# Add package.json with nodecg configuration
-
-```
-
-Example bundle structure:
-
-```
-bundles/my-bundle/
-├── package.json # Bundle configuration
-├── extension/ # Server-side logic
-│ └── index.js
-├── dashboard/ # Control panels
-│ └── panel.html
-└── graphics/ # Graphics overlays
-└── graphic.html
-```
+- NodeCG Server: http://localhost:3000
+- Health Check: http://localhost:3000/health
+- RabbitMQ Management: http://localhost:15672 (nodecg/nodecg)
+- MinIO Console: http://localhost:9001 (nodecg/nodecg123)
 
 ## 📦 Available Scripts
 
 ```bash
-
 # Development
-
-pnpm dev # Start all packages in watch mode
-pnpm build # Build all packages
-pnpm test # Run all tests
-pnpm test:watch # Run tests in watch mode
+pnpm dev              # Start all packages in watch mode
+pnpm build            # Build all packages
+pnpm test             # Run all tests
+pnpm test:watch       # Run tests in watch mode
 
 # Code Quality
-
-pnpm lint # Run ESLint
-pnpm format # Format code with Prettier
-pnpm format:check # Check code formatting
-pnpm typecheck # Run TypeScript type checking
+pnpm lint             # Run ESLint
+pnpm format           # Format code with Prettier
+pnpm format:check     # Check code formatting
+pnpm typecheck        # Run TypeScript type checking
 
 # Database
-
-pnpm prisma:generate # Generate Prisma client
-pnpm prisma:migrate # Run database migrations
-pnpm prisma:studio # Open Prisma Studio
+pnpm prisma:generate  # Generate Prisma client
+pnpm prisma:migrate   # Run database migrations
+pnpm prisma:studio    # Open Prisma Studio
 
 # Cleanup
-
-pnpm clean # Remove all build artifacts
+pnpm clean            # Remove all build artifacts
 ```
 
 ## 🧪 Testing
 
 ```bash
-
 # Run all tests
-
 pnpm test
 
 # Run tests in watch mode
-
 pnpm test:watch
 
 # Run tests with coverage
-
 pnpm test:coverage
 
 # Run specific package tests
-
 pnpm --filter @nodecg/core test
 ```
 
 ## 📚 Documentation
 
-Full documentation is available in the \`/docs\` directory:
+Full documentation is available in the `/docs` directory:
 
 - [Architecture Design](docs/01_ARCHITECTURE_DESIGN.md)
 - [Development Phases](docs/02_DEVELOPMENT_PHASES.md)
@@ -218,288 +155,32 @@ Full documentation is available in the \`/docs\` directory:
 
 ## 🗓️ Roadmap
 
-### Phase 1: Core Foundation ✅ (Completed)
+### Phase 1: Core Foundation (Current - Months 1-3)
 
 - ✅ Monorepo setup with Turborepo
-- ✅ TypeScript configuration (strict mode)
-- ✅ Fastify server with middleware pipeline
+- ✅ TypeScript configuration
+- ✅ Fastify server with health checks
 - ✅ Prisma ORM with PostgreSQL schema
-- ✅ Socket.IO WebSocket server (3 namespaces: dashboard, graphics, extension)
+- ✅ Socket.IO WebSocket server
 - ✅ Docker development environment
-- ✅ Event Bus implementation
-- ✅ Configuration loader with Zod validation
-- ✅ Error handling system with custom error classes
-- ✅ Validation middleware
-- ✅ Base service architecture with lifecycle management
-- ✅ Health check endpoints
-- ✅ Logger with Pino
+- ⏳ Replicant Service implementation
+- ⏳ Bundle Manager
 
-### Phase 2: Replicant System V2 ✅ (Complete)
+### Phase 2: Replicant System V2 (Months 2-4)
 
-#### 2.1 Replicant Database Foundation ✅ (Completed)
+- Type-safe Replicant API
+- Client-server synchronization
+- Schema validation with Zod
+- React/Vue/Svelte hooks
 
-- ✅ Replicant and ReplicantHistory database models
-- ✅ Repository layer with full CRUD operations
-- ✅ Persistence with PostgreSQL via Prisma
-- ✅ History tracking with revision numbers
-- ✅ REST API endpoints for replicants
-- ✅ Namespace organization
-- ✅ Authentication on API routes
+### Phase 3: Bundle System (Months 3-5)
 
-#### 2.2 Replicant Service Layer ✅ (Completed)
+- Bundle discovery and loading
+- CLI tool (create, dev, build)
+- Hot Module Replacement
+- Asset management
 
-- ✅ ReplicantService class (business logic layer)
-- ✅ Schema validation with Zod
-- ✅ Cache layer with Redis
-- ✅ Real-time subscribe/unsubscribe functionality
-- ✅ Type-safe Replicant API
-
-#### 2.3 Client-Server Synchronization ✅ (Completed)
-
-- ✅ SyncManager for real-time updates
-- ✅ WebSocket-based synchronization via Socket.IO
-- ✅ Subscribe/unsubscribe functionality
-- ✅ Change broadcasting to connected clients
-- ✅ Optimistic updates on client side
-- ✅ Reconnection logic with automatic resubscription
-- ✅ Low-latency synchronization (<50ms typical)
-
-#### 2.4 Client APIs ✅ (Completed)
-
-- ✅ @nodecg/client package with vanilla JavaScript API
-- ✅ React hooks (useReplicant, useReplicantValue, useReplicantInstance)
-- ✅ Replicant class with event listeners
-- ✅ Type-safe API with TypeScript support
-- ✅ Working example bundle demonstrating real-time sync
-
-**Status:** Phase 2 is fully complete with database layer, service layer with Redis caching, real-time WebSocket synchronization, and client-side APIs. The example bundle demonstrates dashboard-to-graphic synchronization in action.
-
-### Phase 3: Bundle System
-
-#### 3.1 Bundle Manager ✅
-
-- ✅ Bundle Manager Service with lifecycle management
-- ✅ Bundle discovery from filesystem
-- ✅ Dependency resolution
-- ✅ Hot Module Replacement with file watching
-- ✅ Bundle enable/disable functionality
-- ✅ Extension loading support
-- ✅ Windows and Unix path support
-
-#### 3.2 CLI Tool ✅
-
-- ✅ \`create\` command with interactive prompts
-- ✅ 4 bundle templates:
-  - React + TypeScript
-  - Vue + TypeScript
-  - Minimal TypeScript
-  - Minimal JavaScript
-- ✅ \`dev\` command with Vite HMR
-- ✅ \`build\` command for production
-
-#### 3.3 Asset Management ✅
-
-- ✅ Asset Upload Handler
-- ✅ S3/MinIO integration
-- ✅ Image processing with Sharp
-- ✅ Thumbnail generation
-- ✅ Multiple storage backends
-
-#### 3.4 Dashboard Interface ✅
-
-- ✅ Modern web dashboard at root (/)
-- ✅ Displays all bundle panels in grid layout
-- ✅ Panel iframes with proper sandboxing
-- ✅ System status page at /status
-- ✅ Bundle content serving routes
-- ✅ Responsive design with panel width support
-- ✅ Auto-refresh for new bundles
-
-#### 3.5 Testing & Documentation ✅
-
-- ✅ Comprehensive test suite (>80% coverage)
-- ✅ Unit tests for Bundle Manager
-- ✅ Integration tests
-- ✅ Example bundle demonstrating features
-- ✅ TypeScript strict mode compliance
-
-### Phase 4: Authentication & Authorization ✅ (Complete)
-
-#### 4.1 Authentication ✅ (Complete)
-
-- ✅ SQLite database configured at `/db/node.db`
-- ✅ Enhanced Prisma schema with RBAC (Role, Permission, RolePermission models)
-- ✅ Password hashing utilities with bcrypt (12 salt rounds)
-- ✅ JWT token generation and validation (access + refresh tokens)
-- ✅ User, Role, Permission, Session, and OAuthProvider repositories
-- ✅ AuthService for registration, login, logout, password management
-- ✅ Session management with database and JWT tokens
-- ✅ Authentication routes (`/auth/register`, `/auth/login`, `/auth/logout`, `/auth/refresh`, `/auth/me`, `/auth/change-password`)
-- ✅ Authentication middleware (required and optional)
-- ✅ OAuth2 provider integrations (Twitch, Discord, GitHub) with automatic user creation/linking
-
-#### 4.2 Authorization ✅ (Complete)
-
-- ✅ RBAC service with permission checking and caching
-- ✅ Authorization middleware (requirePermission, requireRole, requireAdmin, etc.)
-- ✅ Resource-level permissions (replicant, bundle, user, asset)
-- ✅ Default roles (admin, operator, viewer) with permissions
-- ✅ Permission caching for performance
-
-#### 4.3 Audit Logging ✅ (Complete)
-
-- ✅ AuditService for logging security events
-- ✅ Audit log query API with filtering
-- ✅ Log retention policies (90 days default)
-- ✅ Specialized logging methods (auth, replicant, bundle, user, asset operations)
-- ✅ Statistics and reporting
-
-#### 4.4 Server Integration ✅ (Complete)
-
-- ✅ Database initialization on server startup (creates `/db/node.db` automatically)
-- ✅ Default roles and permissions seeding (admin, operator, viewer)
-- ✅ Auth services registered in server routes
-- ✅ OAuth routes registered with Twitch, Discord, and GitHub providers
-- ✅ All TypeScript compilation errors resolved
-- ✅ Build succeeds with zero errors
-
-**Phase 4 Complete!** All authentication and authorization features are implemented and integrated. The server now automatically creates the database, seeds default roles, and provides full auth functionality including OAuth2 login, RBAC, session management, and audit logging.
-
-### Phase 5: Dashboard & UI ✅ (Complete)
-
-#### 5.1 Dashboard Foundation ✅ (Complete)
-
-- ✅ React 18 application with TypeScript strict mode
-- ✅ Vite 6 build system (3s builds, <100ms HMR)
-- ✅ TanStack Router v1 with file-based routing
-- ✅ TanStack Query for server state management
-- ✅ Tailwind CSS with PostCSS and Autoprefixer
-- ✅ shadcn/ui design system (theme, colors, utilities)
-- ✅ Dark/Light theme provider with system preference detection
-- ✅ Dashboard layout with sidebar navigation
-- ✅ Responsive design (mobile-first approach)
-
-#### 5.2 UI Components ✅ (Complete)
-
-- ✅ Button component with variants (default, destructive, outline, secondary, ghost, link)
-- ✅ Card components (Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter)
-- ✅ Theme toggle component
-- ✅ Navigation sidebar with active states
-
-#### 5.3 Dashboard Pages ✅ (Complete)
-
-- ✅ Home dashboard with stats cards and system overview
-- ✅ Bundle Management page with grid layout, status badges, and quick actions
-- ✅ Replicant Inspector with JSON viewer, revision tracking, and CRUD operations
-- ✅ User Management with table view, role management, and statistics
-- ✅ Settings page with server, database, security, and notification configuration
-
-#### 5.4 Additional UI Components ✅ (Complete)
-
-- ✅ Badge component for status indicators and labels
-- ✅ Table component with responsive design for data display
-
-#### 5.5 Backend API Integration ✅ (Complete)
-
-- ✅ Central API client (`/lib/api.ts`) with typed functions for all endpoints
-- ✅ Custom ApiError class with status codes and error handling
-- ✅ TanStack Query hooks for all data fetching operations
-- ✅ Automatic cache invalidation after mutations
-- ✅ Loading and error states across all pages
-- ✅ Real-time stats refreshing (5-second intervals)
-- ✅ Credentials-based authentication with cookie support
-- ✅ Environment variable support (VITE_API_BASE_URL)
-- ✅ Complete CRUD operations (Bundles, Replicants, Users)
-- ✅ Zero mock data - all pages connected to real backend APIs
-
-**Build Status:** Dashboard builds successfully (333KB main bundle, 14KB CSS, all gzipped to 101KB). TypeScript compilation passes with zero errors. Vite dev server runs on port 3001 with API proxy to backend on port 3000.
-
-**Phase 5 Fully Complete!** All dashboard pages are implemented with shadcn/ui design patterns, dark/light theme support, responsive layouts, and complete backend API integration. All mock data has been eliminated and replaced with real-time data fetching from the NodeCG server.
-
-### Phase 6: GraphQL API ✅ (Complete)
-
-#### 6.1 GraphQL Schema ✅ (Complete)
-
-- ✅ Comprehensive GraphQL schema with 40+ types
-- ✅ Bundle types with full metadata (name, version, authors, panels, graphics)
-- ✅ Replicant types with namespaces and JSON values
-- ✅ User types with roles and permissions
-- ✅ System stats and health check types
-- ✅ Subscription types for real-time updates
-- ✅ Custom scalars (DateTime, JSON)
-
-#### 6.2 GraphQL Resolvers ✅ (Complete)
-
-- ✅ Query resolvers for bundles, replicants, users, system stats
-- ✅ Mutation resolvers for CRUD operations
-- ✅ Subscription resolvers with PubSub pattern
-- ✅ Error handling with GraphQLError
-- ✅ Context with Fastify instance and user authentication
-- ✅ Type-safe resolver implementations
-
-#### 6.3 Apollo Server Integration ✅ (Complete)
-
-- ✅ Apollo Server 5 with Fastify integration
-- ✅ GraphQL Playground enabled for development
-- ✅ Context creation with authentication support
-- ✅ Introspection enabled
-- ✅ Proper plugin registration and cleanup
-
-#### 6.4 GraphQL Endpoints ✅ (Complete)
-
-- ✅ **POST /graphql** - GraphQL query and mutation endpoint
-- ✅ **GET /graphql** - GraphQL Playground (development)
-- ✅ Subscriptions schema defined (WebSocket implementation pending)
-
-**Build Status:** Core builds successfully with zero TypeScript errors. GraphQL API ready for queries and mutations.
-
-**Phase 6 Complete!** The GraphQL API provides a modern, flexible alternative to REST endpoints with full type safety, introspection, and a comprehensive schema covering all NodeCG resources.
-
-### Phase 7: Plugin System ✅ (Complete)
-
-#### 7.1 Plugin Architecture ✅ (Complete)
-
-- ✅ Comprehensive plugin type system with 8 lifecycle states
-- ✅ PluginMetadata interface with versioning and dependencies
-- ✅ PluginContext with logger, event bus, and configuration
-- ✅ 10 plugin hook types (init, start, stop, destroy, bundle, replicant, etc.)
-- ✅ BasePlugin abstract class with template method pattern
-- ✅ Plugin discovery and loading system
-
-#### 7.2 Plugin Manager ✅ (Complete)
-
-- ✅ PluginManagerService with full lifecycle management
-- ✅ Automatic plugin discovery from `/plugins` directory
-- ✅ Dependency resolution and priority-based loading
-- ✅ Plugin registry with state tracking
-- ✅ Hook execution system with context passing
-- ✅ Service registry for inter-plugin communication
-- ✅ Error handling and recovery
-
-#### 7.3 Server Integration ✅ (Complete)
-
-- ✅ Plugin manager integrated into server startup
-- ✅ Automatic discovery on server start
-- ✅ Graceful shutdown with plugin cleanup
-- ✅ Full TypeScript type safety
-- ✅ Zero compilation errors
-
-**Phase 7 Complete!** The plugin system provides a comprehensive, extensible architecture for adding functionality to NodeCG Next without modifying core code. Plugins can hook into 10 different lifecycle events, manage their own state, and communicate with each other through a service registry.
-
-### Phase 8-10: See [Development Phases](docs/02_DEVELOPMENT_PHASES.md)
-
-## 🎮 Example Bundle
-
-An example bundle is included in \`bundles/example-bundle/\` demonstrating:
-
-- Server-side extension with replicants
-- Dashboard control panel
-- Animated graphic overlay (1920x1080)
-- Replicant usage for state management
-- Message logging system
-- Demo mode for standalone testing
-
-Start the server and visit http://localhost:3000 to see the example bundle's control panel in action!
+### Phase 4-10: See [Development Phases](docs/02_DEVELOPMENT_PHASES.md)
 
 ## 🤝 Contributing
 
@@ -508,24 +189,12 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Workflow
 
 1. Fork the repository
-2. Create a feature branch (\`git checkout -b feature/amazing-feature\`)
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests and linting (\`pnpm test && pnpm lint\`)
-5. Commit your changes (\`git commit -m 'feat: add amazing feature'\`)
-6. Push to the branch (\`git push origin feature/amazing-feature\`)
+4. Run tests and linting (`pnpm test && pnpm lint`)
+5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
-
-### Commit Convention
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-- \`feat:\` - New features
-- \`fix:\` - Bug fixes
-- \`docs:\` - Documentation changes
-- \`style:\` - Code style changes (formatting, etc.)
-- \`refactor:\` - Code refactoring
-- \`test:\` - Test additions or changes
-- \`chore:\` - Build process or auxiliary tool changes
 
 ## 📝 License
 

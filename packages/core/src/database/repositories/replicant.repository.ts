@@ -143,13 +143,12 @@ export class ReplicantRepository
     }
 
     // Update replicant and create history entry in a transaction
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: PrismaClient) => {
       // Create history entry with old value
       await tx.replicantHistory.create({
         data: {
           replicantId: id,
           value: current.value,
-          revision: current.revision,
           changedBy: data.revision !== undefined ? 'system' : null,
           changedAt: new Date(),
         },
@@ -182,13 +181,12 @@ export class ReplicantRepository
       throw new Error(`Replicant ${namespace}:${name} not found`);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: PrismaClient) => {
       // Create history entry
       await tx.replicantHistory.create({
         data: {
           replicantId: replicant.id,
           value: replicant.value,
-          revision: replicant.revision,
           changedBy: changedBy || null,
           changedAt: new Date(),
         },
@@ -251,8 +249,7 @@ export class ReplicantRepository
   async existsByNamespaceAndName(namespace: string, name: string): Promise<boolean> {
     const count = await this.prisma.replicant.count({
       where: {
-        namespace,
-        name,
+        namespace_name: { namespace, name },
       },
     });
     return count > 0;

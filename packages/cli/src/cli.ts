@@ -60,61 +60,12 @@ program
     }
   });
 
-/**
- * Create command - create a new bundle from template
- */
-program
-  .command('create [name]')
-  .description('Create a new NodeCG bundle from template')
-  .option('-t, --template <template>', 'Template to use (react-ts|vue-ts|minimal-ts|minimal-js)')
-  .option('-d, --description <description>', 'Bundle description')
-  .option('-a, --author <author>', 'Author name')
-  .option('--no-git', 'Skip git initialization')
-  .action(async (name, options) => {
-    try {
-      const { createCommand } = await import('./commands/create.js');
-      await createCommand(name, options);
-    } catch (error) {
-      console.error(chalk.red('Failed to create bundle:'), error);
-      process.exit(1);
-    }
-  });
-
-/**
- * Dev command - start development server with hot reload
- */
-program
-  .command('dev')
-  .description('Start development server with hot reload')
-  .option('-p, --port <port>', 'Port to listen on', '3000')
-  .option('-h, --host <host>', 'Host to bind to', 'localhost')
-  .action(async (options) => {
-    try {
-      const { devCommand } = await import('./commands/dev.js');
-      await devCommand(options);
-    } catch (error) {
-      console.error(chalk.red('Failed to start dev server:'), error);
-      process.exit(1);
-    }
-  });
-
-/**
- * Build command - build bundles for production
- */
-program
-  .command('build')
-  .description('Build bundles for production')
-  .option('--bundle <name>', 'Build specific bundle')
-  .option('--all', 'Build all bundles')
-  .action(async (options) => {
-    try {
-      const { buildCommand } = await import('./commands/build.js');
-      await buildCommand(options);
-    } catch (error) {
-      console.error(chalk.red('Failed to build:'), error);
-      process.exit(1);
-    }
-  });
+// TODO: Implement additional commands
+// - init: Initialize new NodeCG installation
+// - bundle: Manage bundles (create, list, install, remove)
+// - config: Manage configuration (show, validate)
+// - db: Database operations (migrate, seed, reset)
+// - dev: Development server with hot reload
 
 // Parse command line arguments
 program.parse(process.argv);

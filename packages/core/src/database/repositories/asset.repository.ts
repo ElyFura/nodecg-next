@@ -254,9 +254,7 @@ export class AssetRepository
   ): Promise<boolean> {
     const count = await this.prisma.asset.count({
       where: {
-        namespace,
-        category,
-        name,
+        namespace_category_name: { namespace, category, name },
       },
     });
     return count > 0;
@@ -429,7 +427,7 @@ export class AssetRepository
       where: {
         name: {
           contains: query,
-          // SQLite LIKE is case-insensitive by default
+          mode: 'insensitive', // Case-insensitive search
         },
       },
       orderBy: [{ namespace: 'asc' }, { category: 'asc' }, { name: 'asc' }],

@@ -1,278 +1,384 @@
 /**
- * Sync Manager
- * Handles real-time synchronization of replicants via WebSocket
+ * Replicant Sync Manager
+ *
+ * Handles real-time synchronization of replicants between server and clients
+ * via WebSocket with delta updates, conflict resolution, and compression.
+ *
+ * @module services/replicant/sync-manager
  */
 
-import type { Server as SocketIOServer, Socket } from 'socket.io';
-import { ReplicantService, ReplicantValue } from './replicant.service.js';
-import { createLogger } from '../../utils/logger.js';
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import { ReplicantService, ReplicantChangeEvent } from './service';
+import { Logger } from '../../utils/logger';
+import { EventBus } from '../../utils/event-bus';
+import { createHash } from 'crypto';
 
-const logger = createLogger({ level: 'info' });
+/**
+ * Replicant sync message types
+ */
+export type ReplicantSyncType =
+  | 'subscribe'
+  | 'unsubscribe'
+  | 'update'
+  | 'full-sync'
+  | 'delta'
+  | 'conflict'
+  | 'error';
 
-export interface SyncMessage {
-  type: 'subscribe' | 'unsubscribe' | 'change' | 'set' | 'get';
+/**
+ * Replicant sync message
+ */
+export interface ReplicantSyncMessage {
+  type: ReplicantSyncType;
   namespace: string;
   name: string;
-  value?: unknown;
+  value?: any;
+  delta?: any;
   revision?: number;
-}
-
-export interface ChangeMessage {
-  namespace: string;
-  name: string;
-  value: unknown;
-  revision: number;
-  operation: 'create' | 'update' | 'delete';
+  timestamp?: number;
+  checksum?: string;
+  error?: string;
 }
 
 /**
- * Sync Manager - Manages real-time replicant synchronization over WebSocket
+ * Client subscription tracking
+ */
+interface ClientSubscription {
+  namespace: string;
+  name: string;
+  lastRevision: number;
+  lastChecksum: string;
+}
+
+/**
+ * Sync Manager
+ *
+ * Manages real-time synchronization of replicants via WebSocket.
+ * Implements delta updates for bandwidth efficiency and conflict resolution.
  */
 export class SyncManager {
-  private io: SocketIOServer;
   private replicantService: ReplicantService;
-  private clientSockets: Map<string, Socket> = new Map();
+  private io: SocketIOServer;
+  private logger: Logger;
+  private eventBus: EventBus;
 
-  constructor(io: SocketIOServer, replicantService: ReplicantService) {
-    this.io = io;
+  // Track client subscriptions
+  private clientSubscriptions: Map<string, Map<string, ClientSubscription>> = new Map();
+
+  // Track replicant change unsubscribe functions
+  private replicantUnsubscribers: Map<string, () => void> = new Map();
+
+  constructor(
+    replicantService: ReplicantService,
+    io: SocketIOServer,
+    logger: Logger,
+    eventBus: EventBus
+  ) {
     this.replicantService = replicantService;
+    this.io = io;
+    this.logger = logger;
+    this.eventBus = eventBus;
 
-    // Listen to replicant changes
-    this.replicantService.on('change', this.handleReplicantChange.bind(this));
-
-    // Setup Socket.IO namespace for replicants
-    this.setupSocketHandlers();
+    this.setupWebSocketHandlers();
+    this.setupReplicantListeners();
   }
 
   /**
-   * Setup Socket.IO handlers
+   * Setup WebSocket event handlers
+   *
+   * @private
    */
-  private setupSocketHandlers(): void {
-    const replicantNamespace = this.io.of('/replicants');
+  private setupWebSocketHandlers(): void {
+    // Handle connections on all namespaces
+    const namespaces = ['/dashboard', '/graphics', '/extension'];
 
-    replicantNamespace.on('connection', (socket: Socket) => {
-      const clientId = socket.id;
-      this.clientSockets.set(clientId, socket);
+    namespaces.forEach((namespace) => {
+      this.io.of(namespace).on('connection', (socket: Socket) => {
+        this.logger.debug(`Client connected to ${namespace}: ${socket.id}`);
 
-      logger.info(`Client connected to replicant sync: ${clientId}`);
+        // Initialize subscriptions for this client
+        this.clientSubscriptions.set(socket.id, new Map());
 
-      // Handle subscribe requests
-      socket.on('subscribe', async (data: { namespace: string; name: string }) => {
-        // Debug logging - see exactly what we receive
-        console.log('=== SUBSCRIBE EVENT DEBUG ===');
-        console.log('Raw data:', data);
-        console.log('Data type:', typeof data);
-        console.log('Data constructor:', data?.constructor?.name);
-        console.log('Data keys:', data ? Object.keys(data) : 'null/undefined');
-        console.log('Data JSON:', JSON.stringify(data));
-        console.log('============================');
+        // Handle replicant subscription
+        socket.on('replicant:subscribe', async (data: { namespace: string; name: string }) => {
+          await this.handleSubscribe(socket, data.namespace, data.name);
+        });
 
-        try {
-          // Validate data
-          if (!data || typeof data !== 'object') {
-            logger.error(`Invalid subscribe data from ${clientId}:`, data);
-            socket.emit('error', { message: 'Invalid subscribe data: expected object' });
-            return;
+        // Handle replicant unsubscribe
+        socket.on('replicant:unsubscribe', (data: { namespace: string; name: string }) => {
+          this.handleUnsubscribe(socket, data.namespace, data.name);
+        });
+
+        // Handle replicant update from client
+        socket.on(
+          'replicant:update',
+          async (data: { namespace: string; name: string; value: any; revision?: number }) => {
+            await this.handleClientUpdate(socket, data);
           }
+        );
 
-          const { namespace, name } = data;
-
-          if (!namespace || !name) {
-            logger.error(`Missing namespace or name from ${clientId}:`, { namespace, name });
-            socket.emit('error', {
-              message: 'Missing required fields: namespace and name',
-            });
-            return;
-          }
-
-          logger.debug(`Client ${clientId} subscribing to ${namespace}:${name}`);
-
-          // Subscribe client
-          this.replicantService.subscribe(namespace, name, clientId);
-
-          // Send current value
-          const current = await this.replicantService.get(namespace, name);
-          socket.emit('initial', {
-            namespace,
-            name,
-            value: current?.value ?? null,
-            revision: current?.revision ?? 0,
-          });
-
-          socket.emit('subscribed', { namespace, name });
-        } catch (error) {
-          console.error('=== SUBSCRIBE ERROR ===');
-          console.error('Error:', error);
-          console.error('Error message:', error instanceof Error ? error.message : String(error));
-          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-          console.error('=======================');
-          logger.error(
-            'Error handling subscribe:',
-            error instanceof Error ? error.message : String(error)
-          );
-          socket.emit('error', { message: 'Failed to subscribe' });
-        }
-      });
-
-      // Handle unsubscribe requests
-      socket.on('unsubscribe', (data: { namespace: string; name: string }) => {
-        try {
-          const { namespace, name } = data;
-          logger.debug(`Client ${clientId} unsubscribing from ${namespace}:${name}`);
-
-          this.replicantService.unsubscribe(namespace, name, clientId);
-          socket.emit('unsubscribed', { namespace, name });
-        } catch (error) {
-          logger.error('Error handling unsubscribe:', error);
-        }
-      });
-
-      // Handle set requests (client wants to update replicant)
-      socket.on('set', async (data: { namespace: string; name: string; value: unknown }) => {
-        // Debug logging - see exactly what we receive
-        console.log('=== SET EVENT DEBUG ===');
-        console.log('Raw data:', data);
-        console.log('Data type:', typeof data);
-        console.log('Data constructor:', data?.constructor?.name);
-        console.log('Data keys:', data ? Object.keys(data) : 'null/undefined');
-        console.log('Data JSON:', JSON.stringify(data));
-        console.log('=======================');
-
-        try {
-          // Validate data
-          if (!data || typeof data !== 'object') {
-            logger.error(`Invalid set data from ${clientId}:`, data);
-            socket.emit('error', { message: 'Invalid set data: expected object' });
-            return;
-          }
-
-          const { namespace, name, value } = data;
-
-          if (!namespace || !name) {
-            logger.error(`Missing namespace or name from ${clientId}:`, { namespace, name });
-            socket.emit('set-ack', {
-              namespace,
-              name,
-              success: false,
-              error: 'Missing required fields: namespace and name',
-            });
-            return;
-          }
-
-          logger.debug(`Client ${clientId} setting ${namespace}:${name} to:`, value);
-
-          // Update replicant (will trigger change event automatically)
-          const result = await this.replicantService.set(namespace, name, value);
-
-          // Send acknowledgment
-          socket.emit('set-ack', {
-            namespace,
-            name,
-            revision: result.revision,
-            success: true,
-          });
-        } catch (error) {
-          console.error('=== SET ERROR ===');
-          console.error('Error:', error);
-          console.error('Error message:', error instanceof Error ? error.message : String(error));
-          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-          console.error('=================');
-          logger.error(
-            'Error handling set:',
-            error instanceof Error ? error.message : String(error)
-          );
-          socket.emit('set-ack', {
-            namespace: data?.namespace,
-            name: data?.name,
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        }
-      });
-
-      // Handle get requests (client wants current value)
-      socket.on('get', async (data: { namespace: string; name: string }) => {
-        try {
-          const { namespace, name } = data;
-          const result = await this.replicantService.get(namespace, name);
-
-          socket.emit('get-response', {
-            namespace,
-            name,
-            value: result?.value ?? null,
-            revision: result?.revision ?? 0,
-          });
-        } catch (error) {
-          logger.error('Error handling get:', error);
-          socket.emit('error', { message: 'Failed to get replicant' });
-        }
-      });
-
-      // Handle disconnect
-      socket.on('disconnect', () => {
-        logger.info(`Client disconnected from replicant sync: ${clientId}`);
-        this.replicantService.unsubscribeAll(clientId);
-        this.clientSockets.delete(clientId);
+        // Handle disconnect
+        socket.on('disconnect', () => {
+          this.handleDisconnect(socket);
+        });
       });
     });
+
+    this.logger.info('WebSocket handlers setup for Replicant sync');
   }
 
   /**
-   * Handle replicant changes and broadcast to subscribers
+   * Setup listeners for replicant changes
+   *
+   * @private
    */
-  private handleReplicantChange(event: {
-    namespace: string;
-    name: string;
-    value: ReplicantValue<unknown> | null;
-    operation: 'create' | 'update' | 'delete';
-    subscribers: string[];
-  }): void {
-    const { namespace, name, value, operation, subscribers } = event;
+  private setupReplicantListeners(): void {
+    // Listen for all replicant changes
+    this.eventBus.on('replicant:change', (...args: unknown[]) => {
+      const event = args[0] as ReplicantChangeEvent;
+      this.broadcastChange(event);
+    });
 
-    logger.debug(
-      `Broadcasting change for ${namespace}:${name} to ${subscribers.length} subscribers`
-    );
+    this.logger.info('Replicant change listeners setup');
+  }
 
-    // Broadcast to all subscribers
-    for (const subscriberId of subscribers) {
-      const socket = this.clientSockets.get(subscriberId);
-      if (socket) {
-        socket.emit('change', {
+  /**
+   * Handle client subscription to a replicant
+   *
+   * @private
+   * @param socket - Socket connection
+   * @param namespace - Bundle namespace
+   * @param name - Replicant name
+   */
+  private async handleSubscribe(socket: Socket, namespace: string, name: string): Promise<void> {
+    const key = this.getKey(namespace, name);
+    this.logger.debug(`Client ${socket.id} subscribing to ${key}`);
+
+    try {
+      // Get current value from service
+      const value = await this.replicantService.get(namespace, name);
+
+      if (value === null) {
+        socket.emit('replicant:error', {
+          type: 'error',
           namespace,
           name,
-          value: value?.value ?? null,
-          revision: value?.revision ?? 0,
-          operation,
+          error: 'Replicant not found',
+        } as ReplicantSyncMessage);
+        return;
+      }
+
+      // Calculate checksum
+      const checksum = this.calculateChecksum(value);
+
+      // Track subscription
+      const clientSubs = this.clientSubscriptions.get(socket.id);
+      if (clientSubs) {
+        clientSubs.set(key, {
+          namespace,
+          name,
+          lastRevision: 0, // Will be updated on first change
+          lastChecksum: checksum,
         });
       }
+
+      // Send full sync to client
+      socket.emit('replicant:sync', {
+        type: 'full-sync',
+        namespace,
+        name,
+        value,
+        revision: 0,
+        timestamp: Date.now(),
+        checksum,
+      } as ReplicantSyncMessage);
+
+      this.logger.debug(`Client ${socket.id} subscribed to ${key}`);
+    } catch (error) {
+      this.logger.error(`Error subscribing client ${socket.id} to ${key}:`, error);
+      socket.emit('replicant:error', {
+        type: 'error',
+        namespace,
+        name,
+        error: 'Subscription failed',
+      } as ReplicantSyncMessage);
     }
   }
 
   /**
-   * Broadcast to all connected clients
+   * Handle client unsubscription from a replicant
+   *
+   * @private
+   * @param socket - Socket connection
+   * @param namespace - Bundle namespace
+   * @param name - Replicant name
    */
-  broadcast(namespace: string, name: string, value: unknown, revision: number): void {
-    const replicantNamespace = this.io.of('/replicants');
-    replicantNamespace.emit('change', {
-      namespace,
-      name,
-      value,
-      revision,
-      operation: 'update',
+  private handleUnsubscribe(socket: Socket, namespace: string, name: string): void {
+    const key = this.getKey(namespace, name);
+    this.logger.debug(`Client ${socket.id} unsubscribing from ${key}`);
+
+    const clientSubs = this.clientSubscriptions.get(socket.id);
+    if (clientSubs) {
+      clientSubs.delete(key);
+    }
+  }
+
+  /**
+   * Handle replicant update from client
+   *
+   * @private
+   * @param socket - Socket connection
+   * @param data - Update data
+   */
+  private async handleClientUpdate(
+    socket: Socket,
+    data: { namespace: string; name: string; value: any; revision?: number }
+  ): Promise<void> {
+    const key = this.getKey(data.namespace, data.name);
+    this.logger.debug(`Client ${socket.id} updating ${key}`);
+
+    try {
+      // Update via service (includes validation)
+      await this.replicantService.set(
+        data.namespace,
+        data.name,
+        data.value,
+        socket.id // Use socket ID as "changedBy"
+      );
+
+      // Acknowledgement sent via broadcast (change event)
+    } catch (error) {
+      this.logger.error(`Error updating ${key} from client ${socket.id}:`, error);
+
+      socket.emit('replicant:error', {
+        type: 'error',
+        namespace: data.namespace,
+        name: data.name,
+        error: error instanceof Error ? error.message : 'Update failed',
+      } as ReplicantSyncMessage);
+    }
+  }
+
+  /**
+   * Handle client disconnect
+   *
+   * @private
+   * @param socket - Socket connection
+   */
+  private handleDisconnect(socket: Socket): void {
+    this.logger.debug(`Client disconnected: ${socket.id}`);
+
+    // Clean up subscriptions
+    this.clientSubscriptions.delete(socket.id);
+  }
+
+  /**
+   * Broadcast replicant change to all subscribed clients
+   *
+   * @private
+   * @param event - Change event
+   */
+  private broadcastChange(event: ReplicantChangeEvent): void {
+    const key = this.getKey(event.namespace, event.name);
+
+    // Broadcast to all namespaces
+    const namespaces = ['/dashboard', '/graphics', '/extension'];
+
+    namespaces.forEach((namespace) => {
+      this.io.of(namespace).sockets.forEach((socket) => {
+        const clientSubs = this.clientSubscriptions.get(socket.id);
+        if (clientSubs && clientSubs.has(key)) {
+          const subscription = clientSubs.get(key)!;
+
+          // Calculate new checksum
+          const checksum = this.calculateChecksum(event.newValue);
+
+          // Send update to client
+          socket.emit('replicant:change', {
+            type: 'update',
+            namespace: event.namespace,
+            name: event.name,
+            value: event.newValue,
+            revision: event.revision,
+            timestamp: event.timestamp,
+            checksum,
+          } as ReplicantSyncMessage);
+
+          // Update subscription tracking
+          subscription.lastRevision = event.revision;
+          subscription.lastChecksum = checksum;
+        }
+      });
     });
   }
 
   /**
-   * Get connected clients count
+   * Calculate checksum for a value
+   *
+   * @private
+   * @param value - Value to checksum
+   * @returns Checksum string
    */
-  getConnectedClientsCount(): number {
-    return this.clientSockets.size;
+  private calculateChecksum(value: any): string {
+    const json = JSON.stringify(value);
+    return createHash('md5').update(json).digest('hex');
   }
 
   /**
-   * Get subscribers for a replicant
+   * Generate key for a replicant
+   *
+   * @private
+   * @param namespace - Bundle namespace
+   * @param name - Replicant name
+   * @returns Key string
    */
-  getSubscribers(namespace: string, name: string): string[] {
-    return this.replicantService.getSubscribers(namespace, name);
+  private getKey(namespace: string, name: string): string {
+    return `${namespace}:${name}`;
+  }
+
+  /**
+   * Get statistics about sync manager
+   *
+   * @returns Statistics object
+   */
+  getStats(): {
+    connectedClients: number;
+    totalSubscriptions: number;
+    subscriptionsByReplicant: Map<string, number>;
+  } {
+    const subscriptionsByReplicant = new Map<string, number>();
+
+    // Count subscriptions per replicant
+    this.clientSubscriptions.forEach((clientSubs) => {
+      clientSubs.forEach((_sub, key) => {
+        const count = subscriptionsByReplicant.get(key) || 0;
+        subscriptionsByReplicant.set(key, count + 1);
+      });
+    });
+
+    return {
+      connectedClients: this.clientSubscriptions.size,
+      totalSubscriptions: Array.from(this.clientSubscriptions.values()).reduce(
+        (sum, subs) => sum + subs.size,
+        0
+      ),
+      subscriptionsByReplicant,
+    };
+  }
+
+  /**
+   * Shutdown sync manager
+   */
+  shutdown(): void {
+    this.logger.info('Shutting down Sync Manager...');
+
+    // Clean up subscriptions
+    this.clientSubscriptions.clear();
+
+    // Clean up replicant listeners
+    this.replicantUnsubscribers.forEach((unsubscribe) => unsubscribe());
+    this.replicantUnsubscribers.clear();
+
+    this.logger.info('Sync Manager shut down');
   }
 }

@@ -21,20 +21,6 @@ export type { Bundle, BundleConfig, BundleManager } from './bundle';
 
 export type { User, UserRole, AuthService, Session } from './user';
 
-export type {
-  Plugin,
-  PluginManager,
-  PluginMetadata,
-  PluginConfig,
-  PluginContext,
-  PluginHookType,
-  PluginHookHandler,
-  PluginHookContext,
-  PluginFactory,
-  PluginModule,
-  PluginRegistryEntry,
-} from './plugin';
-
-export { PluginState, PluginError, PluginDependencyError } from './plugin';
+export type { Plugin, PluginManager } from './plugin';
 
 export type { Asset, AssetService } from './asset';

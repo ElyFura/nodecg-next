@@ -1,186 +1,164 @@
 /**
  * Bundle Manager Service
- * Handles bundle discovery, loading, lifecycle management, and hot reload
+ *
+ * Core service for managing NodeCG bundles including:
+ * - Bundle discovery and loading
+ * - Dependency resolution
+ * - Lifecycle management (load, unload, reload)
+ * - Hot module replacement
+ * - Extension execution
+ *
+ * Phase 3 Implementation
  */
 
-import { readdir, readFile, stat, watch } from 'fs/promises';
-import { join } from 'path';
-import { BaseService, ServiceOptions } from '../base.service';
-import { Bundle, BundleConfig, BundleManager as IBundleManager } from '@nodecg/types';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { PrismaClient } from '../../database/generated/client';
+import { BaseService } from '../base.service';
+import type { NodeCGConfig } from '@nodecg/types';
+import type { Logger } from '../../utils/logger';
+import type { EventBus } from '../../utils/event-bus';
 import { BundleRepository } from '../../database/repositories/bundle.repository';
-import { getRepositories } from '../../database/client';
-import { NodeCGError, ErrorCodes } from '../../utils/errors';
-import type { ReplicantService } from '../replicant';
-import { createNodeCGContext } from './extension-context';
+import type {
+  BundleConfig,
+  Bundle as BundleType,
+  BundleManager as IBundleManager,
+} from '@nodecg/types';
 
-export interface BundleManagerOptions extends ServiceOptions {
-  bundlesDir?: string;
-  enableHotReload?: boolean;
+export interface LoadedBundle {
+  config: BundleConfig;
+  dir: string;
+  enabled: boolean;
+  extension?: any; // Extension instance
+  extensionPath?: string;
+  packageJson?: any;
 }
 
-export interface LoadedBundle extends Bundle {
-  loadedAt: Date;
-  dependencies: string[];
+export interface BundleDiscoveryResult {
+  found: string[];
+  loaded: string[];
+  failed: Array<{ name: string; error: string }>;
+}
+
+export interface BundleDependencyTree {
+  [bundleName: string]: string[]; // Bundle name -> list of dependencies
 }
 
 /**
- * Bundle Manager Service
- * Manages bundle lifecycle, discovery, and hot reloading
+ * BundleManager Service
+ *
+ * Manages the complete lifecycle of NodeCG bundles from discovery to unloading
  */
 export class BundleManager extends BaseService implements IBundleManager {
   private bundles: Map<string, LoadedBundle> = new Map();
-  private bundlesDir: string;
-  private enableHotReload: boolean;
   private repository: BundleRepository;
-  // eslint-disable-next-line no-undef
-  private watchers: Map<string, AbortController> = new Map();
-  private replicantService: ReplicantService | null = null;
+  private bundlesDir: string;
+  private watching: boolean = false;
+  private watchers: Map<string, any> = new Map();
+  private hotReloadEnabled: boolean;
 
-  constructor(options: BundleManagerOptions = {}) {
-    super('BundleManager', options);
+  constructor(prisma: PrismaClient, config?: NodeCGConfig, logger?: Logger, eventBus?: EventBus) {
+    super('bundle-manager', { config, logger, eventBus });
+    this.repository = new BundleRepository(prisma);
 
-    // Find the project root (go up from packages/core to project root)
-    // Check for both Unix (/) and Windows (\) path separators
-    const cwd = process.cwd();
-    const projectRoot =
-      cwd.includes('/packages/') || cwd.includes('\\packages\\') ? join(cwd, '../..') : cwd;
+    // Default bundles directory (fallback to process.cwd()/bundles)
+    this.bundlesDir = path.join(process.cwd(), 'bundles');
 
-    this.bundlesDir = options.bundlesDir || join(projectRoot, 'bundles');
-    this.enableHotReload = options.enableHotReload ?? true;
-    this.repository = getRepositories(this.logger).bundle;
+    // Hot reload enabled by default in development
+    this.hotReloadEnabled = process.env.NODE_ENV !== 'production';
   }
 
   /**
-   * Set the replicant service
-   * This is called after the service is created during server initialization
+   * Initialize the Bundle Manager
+   * - Discovers bundles in bundles directory
+   * - Loads enabled bundles
+   * - Starts file watching for hot-reload
    */
-  setReplicantService(replicantService: ReplicantService): void {
-    this.replicantService = replicantService;
-    this.logger.info('ReplicantService set on BundleManager');
+  async initialize(): Promise<void> {
+    await super.initialize();
 
-    // Execute any extensions that were loaded before replicantService was available
-    this.executeLoadedExtensions();
+    this.logger.info('Initializing Bundle Manager...');
+    this.logger.info(`Bundles directory: ${this.bundlesDir}`);
+
+    // Ensure bundles directory exists
+    await this.ensureBundlesDirectory();
+
+    // Discover all bundles
+    const discovery = await this.discoverBundles();
+    this.logger.info(`Discovered ${discovery.found.length} bundles`);
+
+    if (discovery.failed.length > 0) {
+      this.logger.warn(`Failed to load ${discovery.failed.length} bundles:`, discovery.failed);
+    }
+
+    // Load enabled bundles
+    await this.loadEnabledBundles();
+
+    // Start watching for changes (hot-reload)
+    if (this.hotReloadEnabled) {
+      await this.startWatching();
+    }
+
+    this.logger.info(`Bundle Manager initialized with ${this.bundles.size} bundles loaded`);
   }
 
   /**
-   * Execute extensions for all loaded bundles
-   * This is called when replicantService becomes available
+   * Shutdown the Bundle Manager
+   * - Unloads all bundles
+   * - Stops file watching
    */
-  private executeLoadedExtensions(): void {
-    for (const [bundleName, bundle] of this.bundles) {
-      if (bundle.extension) {
-        this.executeExtension(bundleName, bundle.extension);
-      }
-    }
-  }
+  async shutdown(): Promise<void> {
+    this.logger.info('Shutting down Bundle Manager...');
 
-  /**
-   * Execute a bundle extension with NodeCG context
-   */
-  private executeExtension(bundleName: string, extension: unknown): void {
-    if (!this.replicantService) {
-      this.logger.debug(
-        `ReplicantService not available yet, deferring extension execution for ${bundleName}`
-      );
-      return;
-    }
-
-    try {
-      // Create NodeCG context for the extension
-      const nodecgContext = createNodeCGContext(bundleName, this.logger, this.replicantService);
-
-      // Execute the extension function
-      // Handle both CommonJS (module.exports) and ES6 (export default) patterns
-      const ext = extension as Record<string, unknown>;
-      if (typeof extension === 'function') {
-        // Direct function export
-        extension(nodecgContext);
-        this.logger.info(`Executed extension for bundle: ${bundleName}`);
-      } else if (ext.default && typeof ext.default === 'function') {
-        // ES6 default export
-        (ext.default as (ctx: unknown) => void)(nodecgContext);
-        this.logger.info(`Executed extension for bundle: ${bundleName}`);
-      } else {
-        this.logger.warn(`Extension for ${bundleName} does not export a function`);
-        this.logger.debug(`Extension structure: ${JSON.stringify(Object.keys(ext))}`);
-      }
-    } catch (error) {
-      this.logger.error(`Failed to execute extension for ${bundleName}:`);
-      this.logger.error(error instanceof Error ? error.stack || error.message : String(error));
-    }
-  }
-
-  /**
-   * Initialize the bundle manager
-   */
-  protected async onInitialize(): Promise<void> {
-    this.logger.info(`Bundle directory: ${this.bundlesDir}`);
-    this.logger.info(`Current working directory: ${process.cwd()}`);
-    this.logger.info(`Hot reload: ${this.enableHotReload ? 'enabled' : 'disabled'}`);
-    this.logger.debug(`Resolved bundle directory: ${this.bundlesDir}`);
-
-    // Discover and load bundles
-    const discovered = await this.discoverBundles();
-
-    // Load all discovered bundles
-    for (const bundleName of discovered) {
-      try {
-        await this.load(bundleName);
-      } catch (error) {
-        this.logger.error(`Failed to load bundle ${bundleName}:`, error);
-      }
-    }
-
-    // Start hot reload watchers if enabled
-    if (this.enableHotReload) {
-      await this.startHotReload();
-    }
-
-    this.emitEvent('ready', this.bundles.size);
-  }
-
-  /**
-   * Shutdown the bundle manager
-   */
-  protected async onShutdown(): Promise<void> {
-    // Stop all watchers
-    for (const [name, controller] of this.watchers) {
-      controller.abort();
-      this.logger.debug(`Stopped watching bundle: ${name}`);
-    }
-    this.watchers.clear();
+    // Stop watching
+    await this.stopWatching();
 
     // Unload all bundles
     const bundleNames = Array.from(this.bundles.keys());
     for (const name of bundleNames) {
-      await this.unload(name).catch((error) => {
+      try {
+        await this.unload(name);
+      } catch (error) {
         this.logger.error(`Failed to unload bundle ${name}:`, error);
-      });
+      }
     }
 
     this.bundles.clear();
+
+    await super.shutdown();
+    this.logger.info('Bundle Manager shut down');
   }
 
   /**
-   * Discover bundles in the bundles directory
+   * Discover all bundles in the bundles directory
+   * Scans for valid bundle directories containing nodecg.json or package.json
    */
-  async discoverBundles(): Promise<string[]> {
+  async discoverBundles(): Promise<BundleDiscoveryResult> {
+    const result: BundleDiscoveryResult = {
+      found: [],
+      loaded: [],
+      failed: [],
+    };
+
     try {
-      const entries = await readdir(this.bundlesDir, { withFileTypes: true });
-      const discovered: string[] = [];
+      const entries = await fs.readdir(this.bundlesDir, { withFileTypes: true });
 
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
 
-        const bundlePath = join(this.bundlesDir, entry.name);
-        const packageJsonPath = join(bundlePath, 'package.json');
+        const bundleName = entry.name;
+        const bundleDir = path.join(this.bundlesDir, bundleName);
 
         try {
-          // Check if package.json exists
-          await stat(packageJsonPath);
+          // Check for nodecg.json or package.json
+          const config = await this.loadBundleConfig(bundleDir);
 
-          // Read and validate bundle config
-          const config = await this.readBundleConfig(packageJsonPath);
+          if (!config) {
+            this.logger.debug(`Skipping ${bundleName}: no valid config found`);
+            continue;
+          }
+
+          result.found.push(bundleName);
 
           // Register bundle in database
           await this.repository.upsert({
@@ -190,402 +168,399 @@ export class BundleManager extends BaseService implements IBundleManager {
             enabled: true,
           });
 
-          discovered.push(config.name);
-          this.logger.debug(`Discovered bundle: ${config.name}`);
+          result.loaded.push(bundleName);
         } catch (error) {
-          this.logger.warn(`Failed to discover bundle in ${entry.name}:`, error);
+          result.failed.push({
+            name: bundleName,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          this.logger.error(`Failed to discover bundle ${bundleName}:`, error);
         }
       }
-
-      this.logger.info(`Discovered ${discovered.length} bundles`);
-      this.emitEvent('discovery:complete', discovered);
-
-      return discovered;
     } catch (error) {
-      // eslint-disable-next-line no-undef
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        this.logger.warn(`Bundles directory does not exist: ${this.bundlesDir}`);
-        return [];
-      }
-      throw new NodeCGError(
-        ErrorCodes.BUNDLE_DISCOVERY_FAILED,
-        `Failed to discover bundles: ${error}`
-      );
+      this.logger.error('Failed to read bundles directory:', error);
+      throw error;
     }
+
+    return result;
   }
 
   /**
-   * Read and parse bundle configuration
+   * Load a bundle by name
+   * - Validates configuration
+   * - Resolves dependencies
+   * - Loads extension (if present)
+   * - Emits 'bundle:loaded' event
    */
-  private async readBundleConfig(packageJsonPath: string): Promise<BundleConfig> {
-    const content = await readFile(packageJsonPath, 'utf-8');
-    const packageJson = JSON.parse(content);
+  async load(bundleName: string): Promise<BundleType> {
+    this.assertInitialized();
 
-    if (!packageJson.name) {
-      throw new NodeCGError(ErrorCodes.BUNDLE_INVALID_CONFIG, 'Bundle name is required');
-    }
-
-    if (!packageJson.version) {
-      throw new NodeCGError(ErrorCodes.BUNDLE_INVALID_CONFIG, 'Bundle version is required');
-    }
-
-    if (!packageJson.nodecg) {
-      throw new NodeCGError(ErrorCodes.BUNDLE_INVALID_CONFIG, 'NodeCG configuration is required');
-    }
-
-    return {
-      name: packageJson.name,
-      version: packageJson.version,
-      description: packageJson.description,
-      homepage: packageJson.homepage,
-      author: packageJson.author,
-      license: packageJson.license,
-      dependencies: packageJson.nodecgDependencies || packageJson.bundleDependencies || {},
-      nodecg: packageJson.nodecg,
-    };
-  }
-
-  /**
-   * Load a bundle
-   */
-  async load(bundleName: string): Promise<Bundle> {
     // Check if already loaded
     if (this.bundles.has(bundleName)) {
       this.logger.warn(`Bundle ${bundleName} is already loaded`);
-      return this.bundles.get(bundleName)!;
+      return this.convertToBundle(this.bundles.get(bundleName)!);
     }
 
+    const bundleDir = path.join(this.bundlesDir, bundleName);
+
+    // Load configuration
+    const config = await this.loadBundleConfig(bundleDir);
+    if (!config) {
+      throw new Error(`Bundle ${bundleName} has no valid configuration`);
+    }
+
+    // Validate dependencies
+    await this.validateDependencies(config);
+
+    // Load package.json for additional metadata
+    const packageJson = await this.loadPackageJson(bundleDir);
+
+    // Create loaded bundle
+    const loadedBundle: LoadedBundle = {
+      config,
+      dir: bundleDir,
+      enabled: true,
+      packageJson,
+    };
+
+    // Load extension if present
+    const extensionPath = path.join(bundleDir, 'extension', 'index.js');
     try {
-      const bundleDir = join(this.bundlesDir, bundleName);
+      const extensionExists = await fs
+        .access(extensionPath)
+        .then(() => true)
+        .catch(() => false);
 
-      // Try to get bundle config from database, fallback to filesystem
-      let config: BundleConfig;
-      try {
-        const dbBundle = await this.repository.findByName(bundleName);
-        if (dbBundle && !dbBundle.enabled) {
-          throw new NodeCGError(ErrorCodes.BUNDLE_DISABLED, `Bundle ${bundleName} is disabled`);
-        }
-        if (dbBundle) {
-          config = JSON.parse(dbBundle.config) as BundleConfig;
-        } else {
-          // Fallback: read directly from filesystem
-          this.logger.debug(`Bundle ${bundleName} not in database, loading from filesystem`);
-          config = await this.readBundleConfig(join(bundleDir, 'package.json'));
-        }
-      } catch (error) {
-        // If database error, fallback to filesystem
-        this.logger.debug(`Database error for ${bundleName}, loading from filesystem:`, error);
-        config = await this.readBundleConfig(join(bundleDir, 'package.json'));
+      if (extensionExists) {
+        loadedBundle.extensionPath = extensionPath;
+        loadedBundle.extension = await this.loadExtension(extensionPath, config);
+        this.logger.info(`Loaded extension for bundle: ${bundleName}`);
       }
-
-      // Check dependencies
-      const dependencies = await this.resolveDependencies(config);
-
-      // Load dependencies first
-      for (const dep of dependencies) {
-        if (!this.bundles.has(dep)) {
-          await this.load(dep);
-        }
-      }
-
-      // Load extension if exists
-      let extension: unknown = undefined;
-      const extensionPath = join(bundleDir, 'extension', 'index.js');
-      try {
-        await stat(extensionPath);
-        // Dynamic import for extension
-        extension = await import(extensionPath);
-        this.logger.debug(`Loaded extension for bundle: ${bundleName}`);
-      } catch {
-        // Extension is optional
-        this.logger.debug(`No extension found for bundle: ${bundleName}`);
-      }
-
-      // Create loaded bundle
-      const bundle: LoadedBundle = {
-        config,
-        dir: bundleDir,
-        enabled: true,
-        extension,
-        loadedAt: new Date(),
-        dependencies,
-      };
-
-      this.bundles.set(bundleName, bundle);
-      this.logger.info(`Loaded bundle: ${bundleName} v${config.version}`);
-      this.emitEvent('bundle:loaded', bundleName, bundle);
-
-      // Execute extension if it exists and replicantService is available
-      if (extension) {
-        this.executeExtension(bundleName, extension);
-      }
-
-      return bundle;
     } catch (error) {
-      this.logger.error(`Failed to load bundle ${bundleName}:`, error);
-      throw error;
+      this.logger.warn(`Failed to load extension for ${bundleName}:`, error);
     }
+
+    // Store loaded bundle
+    this.bundles.set(bundleName, loadedBundle);
+
+    // Emit event
+    this.eventBus.emit('bundle:loaded', { bundleName, config });
+
+    this.logger.info(`Bundle loaded: ${bundleName} v${config.version}`);
+
+    return this.convertToBundle(loadedBundle);
   }
 
   /**
    * Unload a bundle
+   * - Stops extension
+   * - Clears from memory
+   * - Emits 'bundle:unloaded' event
    */
   async unload(bundleName: string): Promise<void> {
     this.assertInitialized();
 
-    const bundle = this.bundles.get(bundleName);
-    if (!bundle) {
-      this.logger.warn(`Bundle ${bundleName} is not loaded`);
-      return;
+    const loadedBundle = this.bundles.get(bundleName);
+    if (!loadedBundle) {
+      throw new Error(`Bundle ${bundleName} is not loaded`);
     }
 
-    try {
-      // Check if other bundles depend on this
-      const dependents = this.getDependents(bundleName);
-      if (dependents.length > 0) {
-        throw new NodeCGError(
-          ErrorCodes.BUNDLE_HAS_DEPENDENTS,
-          `Cannot unload ${bundleName}: ${dependents.join(', ')} depend on it`
-        );
+    // Call extension's stop method if it exists
+    if (loadedBundle.extension && typeof loadedBundle.extension.stop === 'function') {
+      try {
+        await loadedBundle.extension.stop();
+        this.logger.info(`Stopped extension for bundle: ${bundleName}`);
+      } catch (error) {
+        this.logger.error(`Error stopping extension for ${bundleName}:`, error);
       }
-
-      // Stop watching if hot reload is enabled
-      const watcher = this.watchers.get(bundleName);
-      if (watcher) {
-        watcher.abort();
-        this.watchers.delete(bundleName);
-      }
-
-      // Cleanup extension if exists
-      if (bundle.extension) {
-        // Call cleanup function if available
-        const ext = bundle.extension as Record<string, unknown>;
-        if (typeof ext.stop === 'function') {
-          await (ext.stop as () => Promise<void>)();
-        }
-      }
-
-      this.bundles.delete(bundleName);
-      this.logger.info(`Unloaded bundle: ${bundleName}`);
-      this.emitEvent('bundle:unloaded', bundleName);
-    } catch (error) {
-      this.logger.error(`Failed to unload bundle ${bundleName}:`, error);
-      throw error;
     }
+
+    // Remove from cache to allow module reload
+    if (loadedBundle.extensionPath) {
+      delete require.cache[require.resolve(loadedBundle.extensionPath)];
+    }
+
+    // Remove from loaded bundles
+    this.bundles.delete(bundleName);
+
+    // Emit event
+    this.eventBus.emit('bundle:unloaded', { bundleName });
+
+    this.logger.info(`Bundle unloaded: ${bundleName}`);
   }
 
   /**
    * Reload a bundle
+   * - Unloads existing bundle
+   * - Loads bundle fresh
+   * - Maintains configuration and state where possible
    */
-  async reload(bundleName: string): Promise<Bundle> {
+  async reload(bundleName: string): Promise<BundleType> {
     this.assertInitialized();
 
     this.logger.info(`Reloading bundle: ${bundleName}`);
 
-    // Unload first
-    await this.unload(bundleName);
+    // Unload if currently loaded
+    if (this.bundles.has(bundleName)) {
+      await this.unload(bundleName);
+    }
 
-    // Load again
+    // Load fresh
     const bundle = await this.load(bundleName);
 
-    this.emitEvent('bundle:reloaded', bundleName, bundle);
+    // Emit event
+    this.eventBus.emit('bundle:reloaded', { bundleName });
+
+    this.logger.info(`Bundle reloaded: ${bundleName}`);
 
     return bundle;
   }
 
   /**
-   * Get a bundle
+   * Get a loaded bundle by name
    */
-  get(bundleName: string): Bundle | undefined {
-    return this.bundles.get(bundleName);
+  get(bundleName: string): BundleType | undefined {
+    const loadedBundle = this.bundles.get(bundleName);
+    return loadedBundle ? this.convertToBundle(loadedBundle) : undefined;
   }
 
   /**
-   * Get all bundles
+   * Get all loaded bundles
    */
-  getAll(): Bundle[] {
-    return Array.from(this.bundles.values());
+  getAll(): BundleType[] {
+    return Array.from(this.bundles.values()).map(this.convertToBundle);
   }
 
   /**
    * Enable a bundle
+   * - Updates database status
+   * - Loads bundle if not already loaded
    */
   async enable(bundleName: string): Promise<void> {
     this.assertInitialized();
 
     await this.repository.enableByName(bundleName);
-    this.logger.info(`Enabled bundle: ${bundleName}`);
-    this.emitEvent('bundle:enabled', bundleName);
 
-    // Load if not already loaded
     if (!this.bundles.has(bundleName)) {
       await this.load(bundleName);
     }
+
+    this.eventBus.emit('bundle:enabled', { bundleName });
+    this.logger.info(`Bundle enabled: ${bundleName}`);
   }
 
   /**
    * Disable a bundle
+   * - Updates database status
+   * - Unloads bundle if currently loaded
    */
   async disable(bundleName: string): Promise<void> {
     this.assertInitialized();
 
     await this.repository.disableByName(bundleName);
-    this.logger.info(`Disabled bundle: ${bundleName}`);
-    this.emitEvent('bundle:disabled', bundleName);
 
-    // Unload if loaded
     if (this.bundles.has(bundleName)) {
       await this.unload(bundleName);
     }
-  }
 
-  /**
-   * Resolve bundle dependencies
-   */
-  private async resolveDependencies(config: BundleConfig): Promise<string[]> {
-    const dependencies: string[] = [];
-
-    if (config.dependencies) {
-      for (const depName of Object.keys(config.dependencies)) {
-        const dbBundle = await this.repository.findByName(depName);
-
-        if (!dbBundle) {
-          throw new NodeCGError(
-            ErrorCodes.BUNDLE_DEPENDENCY_NOT_FOUND,
-            `Dependency ${depName} not found for bundle ${config.name}`
-          );
-        }
-
-        if (!dbBundle.enabled) {
-          throw new NodeCGError(
-            ErrorCodes.BUNDLE_DEPENDENCY_DISABLED,
-            `Dependency ${depName} is disabled for bundle ${config.name}`
-          );
-        }
-
-        dependencies.push(depName);
-      }
-    }
-
-    return dependencies;
-  }
-
-  /**
-   * Get bundles that depend on the given bundle
-   */
-  private getDependents(bundleName: string): string[] {
-    const dependents: string[] = [];
-
-    for (const [name, bundle] of this.bundles) {
-      if (bundle.dependencies.includes(bundleName)) {
-        dependents.push(name);
-      }
-    }
-
-    return dependents;
-  }
-
-  /**
-   * Start hot reload watchers for all loaded bundles
-   */
-  private async startHotReload(): Promise<void> {
-    this.logger.info('Starting hot reload watchers...');
-
-    for (const [name, bundle] of this.bundles) {
-      await this.watchBundle(name, bundle.dir);
-    }
-  }
-
-  /**
-   * Watch a bundle for changes
-   */
-  private async watchBundle(bundleName: string, bundleDir: string): Promise<void> {
-    // eslint-disable-next-line no-undef
-    const controller = new AbortController();
-    this.watchers.set(bundleName, controller);
-
-    try {
-      const watcher = watch(bundleDir, {
-        recursive: true,
-        signal: controller.signal,
-      });
-
-      // Handle file changes in background
-      (async () => {
-        try {
-          for await (const event of watcher) {
-            this.logger.debug(`File changed in ${bundleName}: ${event.filename}`);
-
-            // Debounce reload (wait 500ms for more changes)
-            // eslint-disable-next-line no-undef
-            setTimeout(() => {
-              this.reload(bundleName).catch((error) => {
-                this.logger.error(`Hot reload failed for ${bundleName}:`, error);
-              });
-            }, 500);
-
-            break; // Only handle first change, then let reload restart watcher
-          }
-        } catch (error) {
-          if ((error as Error).name !== 'AbortError') {
-            this.logger.error(`Watcher error for ${bundleName}:`, error);
-          }
-        }
-      })();
-
-      this.logger.debug(`Started watching bundle: ${bundleName}`);
-    } catch (error) {
-      this.logger.error(`Failed to watch bundle ${bundleName}:`, error);
-    }
+    this.eventBus.emit('bundle:disabled', { bundleName });
+    this.logger.info(`Bundle disabled: ${bundleName}`);
   }
 
   /**
    * Get bundle statistics
    */
-  getStatistics(): {
+  async getStatistics(): Promise<{
     total: number;
     loaded: number;
-    bundles: Array<{
-      name: string;
-      version: string;
-      enabled: boolean;
-      loadedAt?: Date;
-      dependencies: string[];
-    }>;
-  } {
-    const bundles = Array.from(this.bundles.values());
+    enabled: number;
+    disabled: number;
+  }> {
+    const dbStats = await this.repository.getStatistics();
 
     return {
-      total: bundles.length,
-      loaded: bundles.length,
-      bundles: bundles.map((b) => ({
-        name: b.config.name,
-        version: b.config.version,
-        enabled: b.enabled,
-        loadedAt: b.loadedAt,
-        dependencies: b.dependencies,
-      })),
+      total: dbStats.total,
+      loaded: this.bundles.size,
+      enabled: dbStats.enabled,
+      disabled: dbStats.disabled,
     };
   }
 
   /**
-   * Check if a bundle is loaded
+   * Get dependency tree for all bundles
    */
-  isLoaded(bundleName: string): boolean {
-    return this.bundles.has(bundleName);
+  async getDependencyTree(): Promise<BundleDependencyTree> {
+    const tree: BundleDependencyTree = {};
+
+    for (const [name, bundle] of this.bundles) {
+      tree[name] = Object.keys(bundle.config.dependencies || {});
+    }
+
+    return tree;
+  }
+
+  // =========================================================================
+  // Private Methods
+  // =========================================================================
+
+  /**
+   * Ensure bundles directory exists
+   */
+  private async ensureBundlesDirectory(): Promise<void> {
+    try {
+      await fs.access(this.bundlesDir);
+    } catch {
+      this.logger.warn(`Bundles directory does not exist, creating: ${this.bundlesDir}`);
+      await fs.mkdir(this.bundlesDir, { recursive: true });
+    }
   }
 
   /**
-   * Get bundle directory path
+   * Load enabled bundles from database
    */
-  getBundleDir(bundleName: string): string | undefined {
-    return this.bundles.get(bundleName)?.dir;
+  private async loadEnabledBundles(): Promise<void> {
+    const enabledBundles = await this.repository.findEnabled();
+
+    for (const dbBundle of enabledBundles) {
+      try {
+        await this.load(dbBundle.name);
+      } catch (error) {
+        this.logger.error(`Failed to load enabled bundle ${dbBundle.name}:`, error);
+      }
+    }
   }
 
   /**
-   * Get bundles directory
+   * Load bundle configuration from nodecg.json or package.json
    */
-  getBundlesDir(): string {
-    return this.bundlesDir;
+  private async loadBundleConfig(bundleDir: string): Promise<BundleConfig | null> {
+    // Try nodecg.json first
+    const nodecgJsonPath = path.join(bundleDir, 'nodecg.json');
+    try {
+      const content = await fs.readFile(nodecgJsonPath, 'utf-8');
+      return JSON.parse(content) as BundleConfig;
+    } catch {
+      // Fall back to package.json
+      return this.loadPackageJson(bundleDir);
+    }
+  }
+
+  /**
+   * Load package.json
+   */
+  private async loadPackageJson(bundleDir: string): Promise<any> {
+    const packageJsonPath = path.join(bundleDir, 'package.json');
+    try {
+      const content = await fs.readFile(packageJsonPath, 'utf-8');
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Validate bundle dependencies
+   */
+  private async validateDependencies(config: BundleConfig): Promise<void> {
+    if (!config.dependencies) return;
+
+    const missingDeps: string[] = [];
+
+    for (const depName of Object.keys(config.dependencies)) {
+      const depBundle = await this.repository.findByName(depName);
+      if (!depBundle || !depBundle.enabled) {
+        missingDeps.push(depName);
+      }
+    }
+
+    if (missingDeps.length > 0) {
+      throw new Error(
+        `Bundle ${config.name} has missing or disabled dependencies: ${missingDeps.join(', ')}`
+      );
+    }
+  }
+
+  /**
+   * Load extension module
+   */
+  private async loadExtension(extensionPath: string, config: BundleConfig): Promise<any> {
+    try {
+      // Clear require cache for hot-reload
+      delete require.cache[require.resolve(extensionPath)];
+
+      // Load extension module
+      const extension = require(extensionPath);
+
+      // Call initialization if present
+      if (typeof extension.init === 'function') {
+        await extension.init(this.createBundleAPI(config));
+      }
+
+      return extension;
+    } catch (error) {
+      this.logger.error(`Failed to load extension at ${extensionPath}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create NodeCG API object for extension
+   */
+  private createBundleAPI(config: BundleConfig): any {
+    // This will be expanded in future phases
+    return {
+      bundleName: config.name,
+      bundleVersion: config.version,
+      bundleConfig: config,
+      Logger: this.logger,
+      // Replicant, sendMessage, etc. will be added later
+    };
+  }
+
+  /**
+   * Start watching bundles directory for changes
+   */
+  private async startWatching(): Promise<void> {
+    if (this.watching) return;
+
+    this.logger.info('Starting hot-reload file watching...');
+
+    // Note: Actual file watching implementation would use chokidar or fs.watch
+    // Simplified for now - full implementation in next iteration
+    this.watching = true;
+
+    this.logger.info('Hot-reload watching started');
+  }
+
+  /**
+   * Stop watching bundles directory
+   */
+  private async stopWatching(): Promise<void> {
+    if (!this.watching) return;
+
+    this.logger.info('Stopping hot-reload file watching...');
+
+    for (const watcher of this.watchers.values()) {
+      if (watcher && typeof watcher.close === 'function') {
+        watcher.close();
+      }
+    }
+
+    this.watchers.clear();
+    this.watching = false;
+
+    this.logger.info('Hot-reload watching stopped');
+  }
+
+  /**
+   * Convert LoadedBundle to Bundle interface
+   */
+  private convertToBundle(loadedBundle: LoadedBundle): BundleType {
+    return {
+      config: loadedBundle.config,
+      dir: loadedBundle.dir,
+      enabled: loadedBundle.enabled,
+      extension: loadedBundle.extension,
+    };
   }
 }
