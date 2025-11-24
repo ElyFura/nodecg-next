@@ -396,3 +396,199 @@
     })();
   </script>
 
+  <script>
+    // Initialize replicants
+    const currentName = nodecg.Replicant('currentName', { defaultValue: 'John Doe' });
+    const currentTitle = nodecg.Replicant('currentTitle', { defaultValue: 'Software Engineer' });
+    const isVisible = nodecg.Replicant('isVisible', { defaultValue: false });
+    const scoreboard = nodecg.Replicant('scoreboard', {
+      defaultValue: {
+        teamA: { name: 'Team Alpha', score: 0, logo: '', color: '#667eea' },
+        teamB: { name: 'Team Beta', score: 0, logo: '', color: '#764ba2' },
+        visible: false
+      }
+    });
+    const timer = nodecg.Replicant('timer', {
+      defaultValue: {
+        duration: 300,
+        remaining: 300,
+        running: false,
+        visible: false,
+        countUp: false,
+        label: 'Match Timer'
+      }
+    });
+    const ticker = nodecg.Replicant('ticker', {
+      defaultValue: {
+        messages: [],
+        visible: false,
+        speed: 50
+      }
+    });
+
+    // DOM Elements
+    const nameInput = document.getElementById('lowerThirdName');
+    const titleInput = document.getElementById('lowerThirdTitle');
+    const showLowerThirdBtn = document.getElementById('showLowerThird');
+    const hideLowerThirdBtn = document.getElementById('hideLowerThird');
+
+    const showScoreboardBtn = document.getElementById('showScoreboard');
+    const hideScoreboardBtn = document.getElementById('hideScoreboard');
+    const resetScoreboardBtn = document.getElementById('resetScoreboard');
+
+    const startTimerBtn = document.getElementById('startTimer');
+    const stopTimerBtn = document.getElementById('stopTimer');
+    const resetTimerBtn = document.getElementById('resetTimer');
+
+    const tickerMessageInput = document.getElementById('tickerMessage');
+    const addTickerBtn = document.getElementById('addTickerMessage');
+    const showTickerBtn = document.getElementById('showTicker');
+    const hideTickerBtn = document.getElementById('hideTicker');
+
+    const showAllBtn = document.getElementById('showAll');
+    const hideAllBtn = document.getElementById('hideAll');
+    const resetAllBtn = document.getElementById('resetAll');
+    const testModeBtn = document.getElementById('testModeBtn');
+
+    // Lower Third Controls
+    nameInput.addEventListener('input', () => {
+      currentName.value = nameInput.value;
+    });
+
+    titleInput.addEventListener('input', () => {
+      currentTitle.value = titleInput.value;
+    });
+
+    showLowerThirdBtn.addEventListener('click', () => {
+      isVisible.value = true;
+    });
+
+    hideLowerThirdBtn.addEventListener('click', () => {
+      isVisible.value = false;
+    });
+
+    // Update inputs when replicants change
+    currentName.on((newValue) => {
+      if (nameInput.value !== newValue) {
+        nameInput.value = newValue || 'John Doe';
+      }
+    });
+
+    currentTitle.on((newValue) => {
+      if (titleInput.value !== newValue) {
+        titleInput.value = newValue || 'Software Engineer';
+      }
+    });
+
+    // Scoreboard Controls
+    showScoreboardBtn.addEventListener('click', () => {
+      const current = scoreboard.value || {};
+      scoreboard.value = { ...current, visible: true };
+    });
+
+    hideScoreboardBtn.addEventListener('click', () => {
+      const current = scoreboard.value || {};
+      scoreboard.value = { ...current, visible: false };
+    });
+
+    resetScoreboardBtn.addEventListener('click', () => {
+      if (confirm('Alle Scores zurücksetzen?')) {
+        nodecg.sendMessage('scoreboard:reset');
+      }
+    });
+
+    // Timer Controls
+    startTimerBtn.addEventListener('click', () => {
+      nodecg.sendMessage('timer:start');
+    });
+
+    stopTimerBtn.addEventListener('click', () => {
+      nodecg.sendMessage('timer:stop');
+    });
+
+    resetTimerBtn.addEventListener('click', () => {
+      nodecg.sendMessage('timer:reset');
+    });
+
+    // News Ticker Controls
+    addTickerBtn.addEventListener('click', () => {
+      const message = tickerMessageInput.value.trim();
+      if (message) {
+        nodecg.sendMessage('ticker:addMessage', {
+          text: message,
+          priority: 'normal'
+        });
+        tickerMessageInput.value = '';
+      }
+    });
+
+    tickerMessageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addTickerBtn.click();
+      }
+    });
+
+    showTickerBtn.addEventListener('click', () => {
+      const current = ticker.value || {};
+      ticker.value = { ...current, visible: true };
+    });
+
+    hideTickerBtn.addEventListener('click', () => {
+      const current = ticker.value || {};
+      ticker.value = { ...current, visible: false };
+    });
+
+    // Quick Actions
+    showAllBtn.addEventListener('click', () => {
+      isVisible.value = true;
+      scoreboard.value = { ...(scoreboard.value || {}), visible: true };
+      timer.value = { ...(timer.value || {}), visible: true };
+      ticker.value = { ...(ticker.value || {}), visible: true };
+    });
+
+    hideAllBtn.addEventListener('click', () => {
+      isVisible.value = false;
+      scoreboard.value = { ...(scoreboard.value || {}), visible: false };
+      timer.value = { ...(timer.value || {}), visible: false };
+      ticker.value = { ...(ticker.value || {}), visible: false };
+    });
+
+    resetAllBtn.addEventListener('click', () => {
+      if (confirm('Alle Daten zurücksetzen?')) {
+        nodecg.sendMessage('scoreboard:reset');
+        nodecg.sendMessage('timer:reset');
+        nodecg.sendMessage('ticker:clearMessages');
+      }
+    });
+
+    testModeBtn.addEventListener('click', () => {
+      currentName.value = 'Max Mustermann';
+      currentTitle.value = 'Game Developer';
+      isVisible.value = true;
+
+      scoreboard.value = {
+        teamA: { name: 'Team Red', score: 3, logo: '', color: '#ef4444' },
+        teamB: { name: 'Team Blue', score: 2, logo: '', color: '#3b82f6' },
+        visible: true
+      };
+
+      timer.value = {
+        duration: 180,
+        remaining: 180,
+        running: true,
+        visible: true,
+        countUp: false,
+        label: 'Round Timer'
+      };
+      nodecg.sendMessage('timer:start');
+
+      nodecg.sendMessage('ticker:addMessage', {
+        text: 'Willkommen zum Test-Stream!',
+        priority: 'high'
+      });
+
+      ticker.value = { ...(ticker.value || {}), visible: true };
+    });
+
+    console.log('[NodeCG] Control panel initialized');
+  </script>

@@ -356,3 +356,149 @@
     })();
   </script>
 
+  <script>
+    // Initialize scoreboard replicant
+    const scoreboard = nodecg.Replicant('scoreboard', {
+      defaultValue: {
+        teamA: { name: 'Team Alpha', score: 0, logo: '', color: '#667eea' },
+        teamB: { name: 'Team Beta', score: 0, logo: '', color: '#764ba2' },
+        visible: false
+      }
+    });
+
+    // DOM Elements
+    const nameAInput = document.getElementById('nameA');
+    const colorPickerA = document.getElementById('colorPickerA');
+    const colorA = document.getElementById('colorA');
+    const scoreA = document.getElementById('scoreA');
+    const incrementABtn = document.getElementById('incrementA');
+    const decrementABtn = document.getElementById('decrementA');
+
+    const nameBInput = document.getElementById('nameB');
+    const colorPickerB = document.getElementById('colorPickerB');
+    const colorB = document.getElementById('colorB');
+    const scoreB = document.getElementById('scoreB');
+    const incrementBBtn = document.getElementById('incrementB');
+    const decrementBBtn = document.getElementById('decrementB');
+
+    const toggleBtn = document.getElementById('toggleBtn');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const toggleText = document.getElementById('toggleText');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Team A Controls
+    nameAInput.addEventListener('change', () => {
+      const current = scoreboard.value || {};
+      scoreboard.value = {
+        ...current,
+        teamA: {
+          ...(current.teamA || {}),
+          name: nameAInput.value,
+        },
+      };
+    });
+
+    colorPickerA.addEventListener('change', () => {
+      const current = scoreboard.value || {};
+      scoreboard.value = {
+        ...current,
+        teamA: {
+          ...(current.teamA || {}),
+          color: colorPickerA.value,
+        },
+      };
+    });
+
+    incrementABtn.addEventListener('click', () => {
+      nodecg.sendMessage('scoreboard:incrementTeamA');
+    });
+
+    decrementABtn.addEventListener('click', () => {
+      nodecg.sendMessage('scoreboard:decrementTeamA');
+    });
+
+    // Team B Controls
+    nameBInput.addEventListener('change', () => {
+      const current = scoreboard.value || {};
+      scoreboard.value = {
+        ...current,
+        teamB: {
+          ...(current.teamB || {}),
+          name: nameBInput.value,
+        },
+      };
+    });
+
+    colorPickerB.addEventListener('change', () => {
+      const current = scoreboard.value || {};
+      scoreboard.value = {
+        ...current,
+        teamB: {
+          ...(current.teamB || {}),
+          color: colorPickerB.value,
+        },
+      };
+    });
+
+    incrementBBtn.addEventListener('click', () => {
+      nodecg.sendMessage('scoreboard:incrementTeamB');
+    });
+
+    decrementBBtn.addEventListener('click', () => {
+      nodecg.sendMessage('scoreboard:decrementTeamB');
+    });
+
+    // Visibility Toggle
+    toggleBtn.addEventListener('click', () => {
+      const currentValue = scoreboard.value || {};
+      scoreboard.value = {
+        ...currentValue,
+        visible: !(currentValue.visible || false),
+      };
+    });
+
+    // Reset Button
+    resetBtn.addEventListener('click', () => {
+      if (confirm('Alle Scores zurücksetzen?')) {
+        nodecg.sendMessage('scoreboard:reset');
+      }
+    });
+
+    // Update UI when scoreboard changes
+    scoreboard.on((newValue) => {
+      if (!newValue) return;
+
+      // Team A
+      if (newValue.teamA) {
+        if (nameAInput.value !== newValue.teamA.name) {
+          nameAInput.value = newValue.teamA.name || 'Team Alpha';
+        }
+        colorPickerA.value = newValue.teamA.color || '#667eea';
+        colorA.style.backgroundColor = newValue.teamA.color || '#667eea';
+        scoreA.textContent = newValue.teamA.score || 0;
+      }
+
+      // Team B
+      if (newValue.teamB) {
+        if (nameBInput.value !== newValue.teamB.name) {
+          nameBInput.value = newValue.teamB.name || 'Team Beta';
+        }
+        colorPickerB.value = newValue.teamB.color || '#764ba2';
+        colorB.style.backgroundColor = newValue.teamB.color || '#764ba2';
+        scoreB.textContent = newValue.teamB.score || 0;
+      }
+
+      // Visibility
+      if (newValue.visible) {
+        statusIndicator.classList.remove('status-hidden');
+        statusIndicator.classList.add('status-visible');
+        toggleText.textContent = 'Scoreboard ausblenden';
+      } else {
+        statusIndicator.classList.remove('status-visible');
+        statusIndicator.classList.add('status-hidden');
+        toggleText.textContent = 'Scoreboard anzeigen';
+      }
+    });
+
+    console.log('[NodeCG] Scoreboard panel initialized');
+  </script>

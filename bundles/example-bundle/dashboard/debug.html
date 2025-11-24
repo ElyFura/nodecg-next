@@ -367,3 +367,144 @@
     })();
   </script>
 
+  <script>
+    // Initialize replicants
+    const messageLog = nodecg.Replicant('messageLog', { defaultValue: [] });
+    const systemStats = nodecg.Replicant('systemStats', {
+      defaultValue: {
+        uptime: 0,
+        replicantCount: 0,
+        messageCount: 0,
+        lastUpdate: new Date().toISOString()
+      }
+    });
+
+    // DOM Elements
+    const uptimeValue = document.getElementById('uptimeValue');
+    const replicantCountValue = document.getElementById('replicantCount');
+    const messageCountValue = document.getElementById('messageCount');
+    const lastUpdateValue = document.getElementById('lastUpdate');
+    const eventLogContainer = document.getElementById('eventLog');
+    const clearLogBtn = document.getElementById('clearLog');
+    const autoScrollCheckbox = document.getElementById('autoScroll');
+    const replicantList = document.getElementById('replicantList');
+
+    let autoScroll = true;
+
+    // Format uptime
+    function formatUptime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hours}h ${minutes}m ${secs}s`;
+    }
+
+    // Format timestamp
+    function formatTimestamp(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('de-DE');
+    }
+
+    // Event type colors
+    const eventTypeColors = {
+      name_changed: '#3b82f6',
+      title_changed: '#8b5cf6',
+      score_changed: '#10b981',
+      timer_state: '#f59e0b',
+      ticker_messages_changed: '#06b6d4',
+      bundle_loaded: '#22c55e',
+      bundle_unloaded: '#ef4444',
+      default: '#6b7280'
+    };
+
+    // Render event log
+    function renderEventLog(events) {
+      if (!events || events.length === 0) {
+        eventLogContainer.innerHTML = '<div class="empty-log">Keine Events vorhanden</div>';
+        return;
+      }
+
+      eventLogContainer.innerHTML = '';
+
+      // Show last 100 events
+      const recentEvents = events.slice(-100);
+
+      recentEvents.forEach(event => {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'log-entry';
+
+        const color = eventTypeColors[event.type] || eventTypeColors.default;
+
+        eventEl.innerHTML = `
+          <span class="log-time">${formatTimestamp(event.timestamp)}</span>
+          <span class="log-type" style="background: ${color}20; color: ${color}; border-color: ${color};">
+            ${event.type}
+          </span>
+          <span class="log-message">${event.message}</span>
+        `;
+
+        eventLogContainer.appendChild(eventEl);
+      });
+
+      // Auto-scroll to bottom
+      if (autoScroll) {
+        eventLogContainer.scrollTop = eventLogContainer.scrollHeight;
+      }
+    }
+
+    // Render replicant list
+    function renderReplicantList() {
+      const replicants = [
+        { name: 'currentName', type: 'String' },
+        { name: 'currentTitle', type: 'String' },
+        { name: 'isVisible', type: 'Boolean' },
+        { name: 'scoreboard', type: 'Object' },
+        { name: 'timer', type: 'Object' },
+        { name: 'ticker', type: 'Object' },
+        { name: 'messageLog', type: 'Array' },
+        { name: 'systemStats', type: 'Object' }
+      ];
+
+      replicantList.innerHTML = '';
+
+      replicants.forEach(rep => {
+        const repEl = document.createElement('div');
+        repEl.className = 'replicant-item';
+        repEl.innerHTML = `
+          <div class="replicant-name">${rep.name}</div>
+          <div class="replicant-type">${rep.type}</div>
+        `;
+        replicantList.appendChild(repEl);
+      });
+    }
+
+    // Clear log button
+    clearLogBtn.addEventListener('click', () => {
+      messageLog.value = [];
+    });
+
+    // Auto-scroll toggle
+    autoScrollCheckbox.addEventListener('change', () => {
+      autoScroll = autoScrollCheckbox.checked;
+    });
+
+    // Update system stats
+    systemStats.on((newValue) => {
+      if (!newValue) return;
+
+      uptimeValue.textContent = formatUptime(newValue.uptime || 0);
+      replicantCountValue.textContent = newValue.replicantCount || 8;
+      messageCountValue.textContent = newValue.messageCount || 0;
+      lastUpdateValue.textContent = formatTimestamp(newValue.lastUpdate || new Date().toISOString());
+    });
+
+    // Update event log
+    messageLog.on((newValue) => {
+      renderEventLog(newValue);
+    });
+
+    // Initial render
+    renderReplicantList();
+
+    console.log('[NodeCG] Debug panel initialized');
+  </script>
