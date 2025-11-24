@@ -272,9 +272,11 @@
     </div>
   </div>
 
-  <script src="/nodecg-api-client.js"></script>
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <!-- NodeCG Client -->
+  <script src="../shared/nodecg-client.js"></script>
   <script>
-    const nodecg = window.nodecg;
 
     // Replicants
     const currentName = nodecg.Replicant('currentName');
@@ -364,9 +366,10 @@
 
     // Scoreboard Controls
     document.getElementById('toggleScoreboardBtn').addEventListener('click', () => {
+      const sbVal = scoreboard.value || {};
       scoreboard.value = {
-        ...scoreboard.value,
-        visible: !scoreboard.value.visible,
+        ...sbVal,
+        visible: !(sbVal.visible || false),
       };
     });
 
@@ -391,9 +394,10 @@
 
     // Ticker Controls
     document.getElementById('toggleTickerBtn').addEventListener('click', () => {
+      const tVal = ticker.value || {};
       ticker.value = {
-        ...ticker.value,
-        visible: !ticker.value.visible,
+        ...tVal,
+        visible: !(tVal.visible || false),
       };
     });
 
@@ -414,16 +418,16 @@
     // Quick Actions
     document.getElementById('showAllBtn').addEventListener('click', () => {
       lowerThirdVisible.value = true;
-      scoreboard.value = { ...scoreboard.value, visible: true };
-      timer.value = { ...timer.value, visible: true };
-      ticker.value = { ...ticker.value, visible: true };
+      scoreboard.value = { ...(scoreboard.value || {}), visible: true };
+      timer.value = { ...(timer.value || {}), visible: true };
+      ticker.value = { ...(ticker.value || {}), visible: true };
     });
 
     document.getElementById('hideAllBtn').addEventListener('click', () => {
       lowerThirdVisible.value = false;
-      scoreboard.value = { ...scoreboard.value, visible: false };
-      timer.value = { ...timer.value, visible: false };
-      ticker.value = { ...ticker.value, visible: false };
+      scoreboard.value = { ...(scoreboard.value || {}), visible: false };
+      timer.value = { ...(timer.value || {}), visible: false };
+      ticker.value = { ...(ticker.value || {}), visible: false };
     });
 
     document.getElementById('resetAllBtn').addEventListener('click', () => {

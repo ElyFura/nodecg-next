@@ -265,7 +265,10 @@
     </button>
   </div>
 
-  <script src="/nodecg-api-client.js"></script>
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <!-- NodeCG Client -->
+  <script src="../shared/nodecg-client.js"></script>
   <script>
     const nodecg = window.nodecg;
 
@@ -350,7 +353,7 @@
     // Settings
     labelInput.addEventListener('change', () => {
       timer.value = {
-        ...timer.value,
+        ...(timer.value || {}),
         label: labelInput.value,
       };
     });
@@ -362,7 +365,7 @@
 
       if (totalSeconds > 0) {
         timer.value = {
-          ...timer.value,
+          ...(timer.value || {}),
           duration: totalSeconds,
           remaining: totalSeconds,
         };
@@ -371,15 +374,16 @@
 
     countUpCheckbox.addEventListener('change', () => {
       timer.value = {
-        ...timer.value,
+        ...(timer.value || {}),
         countUp: countUpCheckbox.checked,
       };
     });
 
     visibilityBtn.addEventListener('click', () => {
+      const currentValue = timer.value || {};
       timer.value = {
-        ...timer.value,
-        visible: !timer.value.visible,
+        ...currentValue,
+        visible: !(currentValue.visible || false),
       };
     });
 
@@ -388,7 +392,7 @@
       btn.addEventListener('click', () => {
         const seconds = parseInt(btn.dataset.seconds);
         timer.value = {
-          ...timer.value,
+          ...(timer.value || {}),
           duration: seconds,
           remaining: seconds,
         };

@@ -232,7 +232,10 @@
     </div>
   </div>
 
-  <script src="/nodecg-api-client.js"></script>
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <!-- NodeCG Client -->
+  <script src="../shared/nodecg-client.js"></script>
   <script>
     const nodecg = window.nodecg;
 
@@ -292,7 +295,7 @@
     // Toggle visibility
     toggleBtn.addEventListener('click', () => {
       scoreboard.value = {
-        ...scoreboard.value,
+        ...(scoreboard.value || {}),
         visible: !scoreboard.value.visible,
       };
     });
@@ -315,7 +318,7 @@
 
     nameAInput.addEventListener('change', () => {
       scoreboard.value = {
-        ...scoreboard.value,
+        ...(scoreboard.value || {}),
         teamA: {
           ...scoreboard.value.teamA,
           name: nameAInput.value,
@@ -325,7 +328,7 @@
 
     colorPickerA.addEventListener('change', () => {
       scoreboard.value = {
-        ...scoreboard.value,
+        ...(scoreboard.value || {}),
         teamA: {
           ...scoreboard.value.teamA,
           color: colorPickerA.value,
@@ -344,7 +347,7 @@
 
     nameBInput.addEventListener('change', () => {
       scoreboard.value = {
-        ...scoreboard.value,
+        ...(scoreboard.value || {}),
         teamB: {
           ...scoreboard.value.teamB,
           name: nameBInput.value,
@@ -354,7 +357,7 @@
 
     colorPickerB.addEventListener('change', () => {
       scoreboard.value = {
-        ...scoreboard.value,
+        ...(scoreboard.value || {}),
         teamB: {
           ...scoreboard.value.teamB,
           color: colorPickerB.value,
