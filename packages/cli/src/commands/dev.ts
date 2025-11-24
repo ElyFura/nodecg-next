@@ -117,7 +117,7 @@ async function startViteServer(): Promise<void> {
     });
 
     // Don't wait forever for Vite
-    setTimeout(() => {
+    globalThis.setTimeout(() => {
       if (!viteProcess) {
         console.log(chalk.gray('  ⓘ Vite not found, continuing without it'));
       }
@@ -183,7 +183,7 @@ async function startNodeCGServer(port: string, host: string): Promise<void> {
     });
 
     // Timeout if server doesn't start
-    setTimeout(() => {
+    globalThis.setTimeout(() => {
       console.log(chalk.green('\n✓ NodeCG server starting (waiting for confirmation)...\n'));
       resolve();
     }, 2000);
@@ -217,11 +217,12 @@ async function watchBundles(): Promise<void> {
         console.log(chalk.gray('  Server will auto-restart...\n'));
       }
     }
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
       console.log(chalk.gray('  ⓘ No bundles directory found, skipping file watching'));
     } else {
-      console.warn(chalk.yellow('Warning: Could not watch bundles directory:'), error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(chalk.yellow('Warning: Could not watch bundles directory:'), message);
     }
   }
 }

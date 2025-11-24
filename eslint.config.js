@@ -3,6 +3,7 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import prettier from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
+import globals from 'globals';
 
 export default [
   eslint.configs.recommended,
@@ -17,13 +18,8 @@ export default [
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
-        process: 'readonly',
-        require: 'readonly',
-        module: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        console: 'readonly',
-        Buffer: 'readonly',
+        ...globals.node,
+        ...globals.es2021,
       },
     },
     plugins: {
@@ -41,6 +37,17 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'prettier/prettier': 'error',
+      'no-undef': 'off', // TypeScript handles this
+    },
+  },
+  // Browser environment for dashboard and client packages
+  {
+    files: ['packages/dashboard/**/*.{ts,tsx}', 'packages/client/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+      },
     },
   },
   {

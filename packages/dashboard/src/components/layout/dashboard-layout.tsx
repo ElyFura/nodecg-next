@@ -1,14 +1,6 @@
+import * as React from 'react';
 import { Link } from '@tanstack/react-router';
-import {
-  Package,
-  Radio,
-  Users,
-  Settings,
-  LayoutDashboard,
-  Moon,
-  Sun,
-  LogOut,
-} from 'lucide-react';
+import { Package, Radio, Users, Settings, LayoutDashboard, Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';

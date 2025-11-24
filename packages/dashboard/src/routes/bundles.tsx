@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Package, Play, Square, RefreshCw, Settings as SettingsIcon, Loader2 } from 'lucide-react';

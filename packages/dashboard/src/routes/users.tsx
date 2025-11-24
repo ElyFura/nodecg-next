@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Edit, Trash2, Shield, Loader2 } from 'lucide-react';

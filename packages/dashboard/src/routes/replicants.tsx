@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Radio, Copy, Edit, RefreshCw, Trash2, Loader2 } from 'lucide-react';
