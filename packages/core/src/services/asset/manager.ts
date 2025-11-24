@@ -3,7 +3,12 @@
  * Handles asset uploads, storage (S3/MinIO), and image processing
  */
 
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { createWriteStream } from 'fs';
 import { mkdir, unlink } from 'fs/promises';
 import { join, extname, basename } from 'path';
@@ -130,12 +135,13 @@ export class AssetManager extends BaseService {
       this.s3Client = new S3Client({
         endpoint: options.s3.endpoint,
         region: options.s3.region || 'us-east-1',
-        credentials: options.s3.accessKeyId && options.s3.secretAccessKey
-          ? {
-              accessKeyId: options.s3.accessKeyId,
-              secretAccessKey: options.s3.secretAccessKey,
-            }
-          : undefined,
+        credentials:
+          options.s3.accessKeyId && options.s3.secretAccessKey
+            ? {
+                accessKeyId: options.s3.accessKeyId,
+                secretAccessKey: options.s3.secretAccessKey,
+              }
+            : undefined,
         forcePathStyle: options.s3.forcePathStyle ?? true, // Required for MinIO
       });
       this.s3Bucket = options.s3.bucket;
@@ -160,14 +166,16 @@ export class AssetManager extends BaseService {
     if (this.storage === 's3' && this.s3Client && this.s3Bucket) {
       try {
         // Try to list objects to verify connection
-        await this.s3Client.send(
-          new GetObjectCommand({
-            Bucket: this.s3Bucket,
-            Key: '__test__',
-          })
-        ).catch(() => {
-          // Expected to fail, just testing connection
-        });
+        await this.s3Client
+          .send(
+            new GetObjectCommand({
+              Bucket: this.s3Bucket,
+              Key: '__test__',
+            })
+          )
+          .catch(() => {
+            // Expected to fail, just testing connection
+          });
         this.logger.info(`S3 connection successful: ${this.s3Bucket}`);
       } catch (error) {
         this.logger.warn('S3 connection test failed:', error);
@@ -235,10 +243,7 @@ export class AssetManager extends BaseService {
       };
     } catch (error) {
       this.logger.error(`Failed to upload asset ${fileName}:`, error);
-      throw new NodeCGError(
-        ErrorCodes.ASSET_UPLOAD_FAILED,
-        `Failed to upload asset: ${error}`
-      );
+      throw new NodeCGError(ErrorCodes.ASSET_UPLOAD_FAILED, `Failed to upload asset: ${error}`);
     }
   }
 
@@ -252,11 +257,7 @@ export class AssetManager extends BaseService {
 
     try {
       // Get asset from database
-      const asset = await this.repository.findByNamespaceCategoryAndName(
-        namespace,
-        category,
-        name
-      );
+      const asset = await this.repository.findByNamespaceCategoryAndName(namespace, category, name);
 
       if (!asset) {
         throw new NodeCGError(ErrorCodes.ASSET_NOT_FOUND, 'Asset not found');

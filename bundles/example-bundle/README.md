@@ -58,6 +58,7 @@ This bundle uses vanilla JavaScript for maximum compatibility. No build process 
 ### Adding Features
 
 1. **New Replicant**: Add in `extension/index.js`
+
    ```javascript
    const myReplicant = nodecg.Replicant('myReplicant', {
      defaultValue: 'initial value',
@@ -66,6 +67,7 @@ This bundle uses vanilla JavaScript for maximum compatibility. No build process 
    ```
 
 2. **Listen for Changes**: In extension or graphics
+
    ```javascript
    myReplicant.on('change', (newValue, oldValue) => {
      console.log('Value changed:', newValue);
@@ -81,6 +83,7 @@ This bundle uses vanilla JavaScript for maximum compatibility. No build process 
 ## Testing
 
 Open the graphic directly in a browser to test in demo mode:
+
 ```
 file:///path/to/bundles/example-bundle/graphics/lower-third.html
 ```
@@ -113,7 +116,11 @@ For production, the NodeCG client will automatically replace the mock API:
 
 ```javascript
 // Development (mock)
-const nodecg = window.nodecg || { /* mock */ };
+const nodecg =
+  window.nodecg ||
+  {
+    /* mock */
+  };
 
 // Production (actual NodeCG client)
 const nodecg = window.nodecg; // Provided by NodeCG
