@@ -428,27 +428,26 @@
     });
 
     // DOM Elements
-    const nameInput = document.getElementById('lowerThirdName');
-    const titleInput = document.getElementById('lowerThirdTitle');
-    const showLowerThirdBtn = document.getElementById('showLowerThird');
-    const hideLowerThirdBtn = document.getElementById('hideLowerThird');
+    const nameInput = document.getElementById('nameInput');
+    const titleInput = document.getElementById('titleInput');
+    const showLowerThirdBtn = document.getElementById('showLowerThirdBtn');
+    const hideLowerThirdBtn = document.getElementById('hideLowerThirdBtn');
 
-    const showScoreboardBtn = document.getElementById('showScoreboard');
-    const hideScoreboardBtn = document.getElementById('hideScoreboard');
-    const resetScoreboardBtn = document.getElementById('resetScoreboard');
+    const toggleScoreboardBtn = document.getElementById('toggleScoreboardBtn');
+    const resetScoreboardBtn = document.getElementById('resetScoreboardBtn');
 
-    const startTimerBtn = document.getElementById('startTimer');
-    const stopTimerBtn = document.getElementById('stopTimer');
-    const resetTimerBtn = document.getElementById('resetTimer');
+    const startTimerBtn = document.getElementById('startTimerBtn');
+    const stopTimerBtn = document.getElementById('stopTimerBtn');
+    const resetTimerBtn = document.getElementById('resetTimerBtn');
 
-    const tickerMessageInput = document.getElementById('tickerMessage');
-    const addTickerBtn = document.getElementById('addTickerMessage');
-    const showTickerBtn = document.getElementById('showTicker');
-    const hideTickerBtn = document.getElementById('hideTicker');
+    const tickerMessageInput = document.getElementById('tickerMessageInput');
+    const addTickerBtn = document.getElementById('addTickerMessageBtn');
+    const toggleTickerBtn = document.getElementById('toggleTickerBtn');
+    const clearTickerBtn = document.getElementById('clearTickerBtn');
 
-    const showAllBtn = document.getElementById('showAll');
-    const hideAllBtn = document.getElementById('hideAll');
-    const resetAllBtn = document.getElementById('resetAll');
+    const showAllBtn = document.getElementById('showAllBtn');
+    const hideAllBtn = document.getElementById('hideAllBtn');
+    const resetAllBtn = document.getElementById('resetAllBtn');
     const testModeBtn = document.getElementById('testModeBtn');
 
     // Lower Third Controls
@@ -482,14 +481,9 @@
     });
 
     // Scoreboard Controls
-    showScoreboardBtn.addEventListener('click', () => {
+    toggleScoreboardBtn.addEventListener('click', () => {
       const current = scoreboard.value || {};
-      scoreboard.value = { ...current, visible: true };
-    });
-
-    hideScoreboardBtn.addEventListener('click', () => {
-      const current = scoreboard.value || {};
-      scoreboard.value = { ...current, visible: false };
+      scoreboard.value = { ...current, visible: !(current.visible || false) };
     });
 
     resetScoreboardBtn.addEventListener('click', () => {
@@ -529,14 +523,13 @@
       }
     });
 
-    showTickerBtn.addEventListener('click', () => {
+    toggleTickerBtn.addEventListener('click', () => {
       const current = ticker.value || {};
-      ticker.value = { ...current, visible: true };
+      ticker.value = { ...current, visible: !(current.visible || false) };
     });
 
-    hideTickerBtn.addEventListener('click', () => {
-      const current = ticker.value || {};
-      ticker.value = { ...current, visible: false };
+    clearTickerBtn.addEventListener('click', () => {
+      nodecg.sendMessage('ticker:clearMessages');
     });
 
     // Quick Actions

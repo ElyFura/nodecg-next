@@ -381,13 +381,13 @@
     });
 
     // DOM Elements
-    const uptimeValue = document.getElementById('uptimeValue');
+    const uptimeValue = document.getElementById('uptime');
     const replicantCountValue = document.getElementById('replicantCount');
     const messageCountValue = document.getElementById('messageCount');
     const lastUpdateValue = document.getElementById('lastUpdate');
-    const eventLogContainer = document.getElementById('eventLog');
-    const clearLogBtn = document.getElementById('clearLog');
-    const autoScrollCheckbox = document.getElementById('autoScroll');
+    const eventLogContainer = document.getElementById('logContainer');
+    const clearLogBtn = document.getElementById('clearLogBtn');
+    const autoScrollBtn = document.getElementById('autoScrollBtn');
     const replicantList = document.getElementById('replicantList');
 
     let autoScroll = true;
@@ -485,8 +485,9 @@
     });
 
     // Auto-scroll toggle
-    autoScrollCheckbox.addEventListener('change', () => {
-      autoScroll = autoScrollCheckbox.checked;
+    autoScrollBtn.addEventListener('click', () => {
+      autoScroll = !autoScroll;
+      autoScrollBtn.textContent = autoScroll ? 'Auto-Scroll: ON' : 'Auto-Scroll: OFF';
     });
 
     // Update system stats
