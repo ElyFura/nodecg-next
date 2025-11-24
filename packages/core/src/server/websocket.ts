@@ -121,6 +121,29 @@ export function getSyncManager(): SyncManager | null {
 export async function closeWebSocket(): Promise<void> {
   if (io) {
     logger.info('Closing WebSocket server...');
+
+    // Shutdown services in reverse order of initialization
+
+    // Shutdown Bundle Manager
+    if (bundleManager) {
+      await bundleManager.shutdown();
+      bundleManager = null;
+      logger.info('Bundle Manager shut down');
+    }
+
+    // Shutdown Replicant services
+    if (syncManager) {
+      syncManager.shutdown();
+      syncManager = null;
+      logger.info('Sync Manager shut down');
+    }
+
+    if (replicantService) {
+      await replicantService.shutdown();
+      replicantService = null;
+      logger.info('Replicant Service shut down');
+    }
+
     await new Promise<void>((resolve) => {
       io?.close(() => {
         logger.info('WebSocket server closed');

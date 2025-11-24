@@ -11,6 +11,10 @@ datasource db {
   url      = "file:../../../db/node.db"
 }
 
+// For production PostgreSQL, change provider to "postgresql" and update DATABASE_URL
+// provider = "postgresql"
+// url      = env("DATABASE_URL")
+
 // Replicant storage
 model Replicant {
   id        String   @id @default(cuid())

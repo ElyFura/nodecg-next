@@ -4,28 +4,32 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { getRepositories } from '../../../../database/client';
+import { getReplicantService } from '../../../../server/websocket';
 import { authenticateToken, AuthenticatedRequest, requireOperator } from '../../middleware/auth';
 import { createLogger } from '../../../../utils/logger';
 
 const logger = createLogger({ level: 'info' });
 
 export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
-  const repos = getRepositories(logger);
-
-  // Get all namespaces
+  // Get all replicants (admin only)
   fastify.get(
-    '/namespaces',
+    '/',
     {
-      preHandler: [authenticateToken],
+      preHandler: [authenticateToken, requireOperator],
     },
     async (_request, reply) => {
       try {
-        const namespaces = await repos.replicant.getNamespaces();
-        reply.send({ namespaces });
+        const service = getReplicantService();
+        if (!service) {
+          reply.code(503).send({ error: 'Replicant service not available' });
+          return;
+        }
+
+        const replicants = await service.getAll();
+        reply.send({ replicants });
       } catch (error) {
-        logger.error('Failed to get namespaces:', error);
-        reply.code(500).send({ error: 'Failed to get namespaces' });
+        logger.error('Failed to get all replicants:', error);
+        reply.code(500).send({ error: 'Failed to get replicants' });
       }
     }
   );
@@ -38,8 +42,14 @@ export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
+        const service = getReplicantService();
+        if (!service) {
+          reply.code(503).send({ error: 'Replicant service not available' });
+          return;
+        }
+
         const { namespace } = request.params;
-        const replicants = await repos.replicant.findByNamespace(namespace);
+        const replicants = await service.getByNamespace(namespace);
         reply.send({ replicants });
       } catch (error) {
         logger.error('Failed to get replicants:', error);
@@ -56,15 +66,21 @@ export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
-        const { namespace, name } = request.params;
-        const replicant = await repos.replicant.findByNamespaceAndName(namespace, name);
+        const service = getReplicantService();
+        if (!service) {
+          reply.code(503).send({ error: 'Replicant service not available' });
+          return;
+        }
 
-        if (!replicant) {
+        const { namespace, name } = request.params;
+        const value = await service.get(namespace, name);
+
+        if (value === null) {
           reply.code(404).send({ error: 'Replicant not found' });
           return;
         }
 
-        reply.send({ replicant });
+        reply.send({ namespace, name, value });
       } catch (error) {
         logger.error('Failed to get replicant:', error);
         reply.code(500).send({ error: 'Failed to get replicant' });
@@ -75,7 +91,7 @@ export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
   // Update replicant value
   fastify.put<{
     Params: { namespace: string; name: string };
-    Body: { value: string };
+    Body: { value: any };
   }>(
     '/:namespace/:name',
     {
@@ -84,33 +100,34 @@ export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
     async (
       request: AuthenticatedRequest & {
         params: { namespace: string; name: string };
-        body: { value: string };
+        body: { value: any };
       },
       reply
     ) => {
       try {
-        const { namespace, name } = request.params;
-        const { value } = request.body;
-
-        // Validate JSON
-        try {
-          JSON.parse(value);
-        } catch {
-          reply.code(400).send({ error: 'Invalid JSON value' });
+        const service = getReplicantService();
+        if (!service) {
+          reply.code(503).send({ error: 'Replicant service not available' });
           return;
         }
 
-        const replicant = await repos.replicant.updateByNamespaceAndName(
-          namespace,
-          name,
-          value,
-          request.user?.username
-        );
+        const { namespace, name } = request.params;
+        const { value } = request.body;
 
-        reply.send({ replicant });
+        // Attempt to set the value (validation happens in service)
+        const success = await service.set(namespace, name, value, request.user?.username);
+
+        if (success) {
+          const updatedValue = await service.get(namespace, name);
+          reply.send({ namespace, name, value: updatedValue });
+        } else {
+          reply.code(500).send({ error: 'Failed to update replicant' });
+        }
       } catch (error) {
         logger.error('Failed to update replicant:', error);
-        reply.code(500).send({ error: 'Failed to update replicant' });
+        reply.code(400).send({
+          error: error instanceof Error ? error.message : 'Failed to update replicant',
+        });
       }
     }
   );
@@ -126,10 +143,16 @@ export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
+        const service = getReplicantService();
+        if (!service) {
+          reply.code(503).send({ error: 'Replicant service not available' });
+          return;
+        }
+
         const { namespace, name } = request.params;
         const limit = parseInt(request.query.limit || '50', 10);
 
-        const history = await repos.replicant.getHistoryByNamespaceAndName(namespace, name, limit);
+        const history = await service.getHistory(namespace, name, limit);
 
         reply.send({ history });
       } catch (error) {
@@ -147,8 +170,14 @@ export async function replicantRoutes(fastify: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       try {
+        const service = getReplicantService();
+        if (!service) {
+          reply.code(503).send({ error: 'Replicant service not available' });
+          return;
+        }
+
         const { namespace, name } = request.params;
-        await repos.replicant.deleteByNamespaceAndName(namespace, name);
+        await service.delete(namespace, name);
         reply.send({ success: true });
       } catch (error) {
         logger.error('Failed to delete replicant:', error);
