@@ -5,6 +5,7 @@
 
 import { readdir, readFile, stat, watch } from 'fs/promises';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 import { BaseService, ServiceOptions } from '../base.service';
 import { Bundle, BundleConfig, BundleManager as IBundleManager } from '@nodecg/types';
 import { BundleRepository } from '../../database/repositories/bundle.repository';
@@ -335,8 +336,8 @@ export class BundleManager extends BaseService implements IBundleManager {
       try {
         await stat(extensionPath);
         console.log(`[BundleManager] Extension file exists, importing...`);
-        // Dynamic import for extension
-        extension = await import(extensionPath);
+        // Dynamic import for extension - convert to file:// URL for Windows compatibility
+        extension = await import(pathToFileURL(extensionPath).href);
         console.log(`[BundleManager] Extension imported successfully:`, typeof extension);
         this.logger.info(`✅ Loaded extension for bundle: ${bundleName}`);
       } catch (error) {
