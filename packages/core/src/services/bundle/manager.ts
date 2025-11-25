@@ -83,31 +83,21 @@ export class BundleManager extends BaseService implements IBundleManager {
    * This is called when replicantService becomes available
    */
   private executeLoadedExtensions(): void {
-    console.log(`[executeLoadedExtensions] Called! Bundle count: ${this.bundles.size}`);
     this.logger.info(`Executing loaded extensions for ${this.bundles.size} bundle(s)`);
     for (const [bundleName, bundle] of this.bundles) {
-      console.log(
-        `[executeLoadedExtensions] Bundle: ${bundleName}, has extension: ${!!bundle.extension}`
-      );
       this.logger.debug(`Checking bundle: ${bundleName}, has extension: ${!!bundle.extension}`);
 
       // Skip if extension already executed
       if (this.executedExtensions.has(bundleName)) {
-        console.log(
-          `[executeLoadedExtensions] Extension for ${bundleName} already executed, skipping`
-        );
+        this.logger.debug(`Extension for ${bundleName} already executed, skipping`);
         continue;
       }
 
       if (bundle.extension) {
-        console.log(`[executeLoadedExtensions] Calling executeExtension for ${bundleName}`);
         this.logger.info(`Executing extension for: ${bundleName}`);
         this.executeExtension(bundleName, bundle.extension);
-      } else {
-        console.log(`[executeLoadedExtensions] Bundle ${bundleName} has NO extension!`);
       }
     }
-    console.log(`[executeLoadedExtensions] Done!`);
   }
 
   /**
@@ -344,20 +334,15 @@ export class BundleManager extends BaseService implements IBundleManager {
       // Load extension if exists
       let extension: unknown = undefined;
       const extensionPath = join(bundleDir, 'extension', 'index.js');
-      console.log(`[BundleManager] Checking for extension at: ${extensionPath}`);
       try {
         await stat(extensionPath);
-        console.log(`[BundleManager] Extension file exists, importing...`);
         // Dynamic import for extension - convert to file:// URL for Windows compatibility
         extension = await import(pathToFileURL(extensionPath).href);
-        console.log(`[BundleManager] Extension imported successfully:`, typeof extension);
         this.logger.info(`✅ Loaded extension for bundle: ${bundleName}`);
-      } catch (error) {
+      } catch {
         // Extension is optional
-        console.log(`[BundleManager] Extension not found or failed:`, error);
         this.logger.debug(`No extension found for bundle: ${bundleName}`);
       }
-      console.log(`[BundleManager] Extension value:`, extension ? 'SET' : 'UNDEFINED');
 
       // Create loaded bundle
       const bundle: LoadedBundle = {
