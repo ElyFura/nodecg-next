@@ -80,9 +80,17 @@ export class BundleManager extends BaseService implements IBundleManager {
 
   /**
    * Execute extensions for all loaded bundles
-   * This is called when replicantService becomes available
+   * Only executes when BOTH replicantService AND socketIO are available
    */
   private executeLoadedExtensions(): void {
+    // Only execute if both services are available
+    if (!this.replicantService || !this.socketIO) {
+      this.logger.debug(
+        `Deferring extension execution - replicantService: ${!!this.replicantService}, socketIO: ${!!this.socketIO}`
+      );
+      return;
+    }
+
     this.logger.info(`Executing loaded extensions for ${this.bundles.size} bundle(s)`);
     for (const [bundleName, bundle] of this.bundles) {
       this.logger.debug(`Checking bundle: ${bundleName}, has extension: ${!!bundle.extension}`);
