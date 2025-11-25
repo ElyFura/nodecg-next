@@ -4,7 +4,7 @@
  */
 
 import { Server } from 'socket.io';
-import { socketAuth, socketOptionalAuth } from '../middleware/auth';
+import { socketOptionalAuth } from '../middleware/auth';
 import { RoomManager, createRoomManager } from '../rooms';
 import { setupDashboardNamespace } from './dashboard';
 import { setupGraphicsNamespace } from './graphics';
@@ -29,9 +29,9 @@ export interface SocketNamespaces {
 export function setupNamespaces(io: Server): RoomManager {
   const roomManager = createRoomManager(io);
 
-  // Dashboard namespace - requires authentication
+  // Dashboard namespace - optional authentication (panels loaded in authenticated iframes)
   const dashboardNs = io.of('/dashboard');
-  dashboardNs.use(socketAuth);
+  dashboardNs.use(socketOptionalAuth);
   setupDashboardNamespace(dashboardNs, roomManager);
 
   // Graphics namespace - optional authentication
