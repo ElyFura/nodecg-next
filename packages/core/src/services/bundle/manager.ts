@@ -81,8 +81,11 @@ export class BundleManager extends BaseService implements IBundleManager {
    * This is called when replicantService becomes available
    */
   private executeLoadedExtensions(): void {
+    this.logger.info(`Executing loaded extensions for ${this.bundles.size} bundle(s)`);
     for (const [bundleName, bundle] of this.bundles) {
+      this.logger.debug(`Checking bundle: ${bundleName}, has extension: ${!!bundle.extension}`);
       if (bundle.extension) {
+        this.logger.info(`Executing extension for: ${bundleName}`);
         this.executeExtension(bundleName, bundle.extension);
       }
     }
@@ -92,6 +95,11 @@ export class BundleManager extends BaseService implements IBundleManager {
    * Execute a bundle extension with NodeCG context
    */
   private executeExtension(bundleName: string, extension: unknown): void {
+    this.logger.info(`executeExtension called for ${bundleName}`);
+    this.logger.debug(`  - replicantService available: ${!!this.replicantService}`);
+    this.logger.debug(`  - socketIO available: ${!!this.socketIO}`);
+    this.logger.debug(`  - extension type: ${typeof extension}`);
+
     if (!this.replicantService) {
       this.logger.debug(
         `ReplicantService not available yet, deferring extension execution for ${bundleName}`
@@ -101,6 +109,7 @@ export class BundleManager extends BaseService implements IBundleManager {
 
     try {
       // Create NodeCG context for the extension
+      this.logger.info(`Creating NodeCG context for ${bundleName}...`);
       const nodecgContext = createNodeCGContext(
         bundleName,
         this.logger,
@@ -111,20 +120,24 @@ export class BundleManager extends BaseService implements IBundleManager {
       // Execute the extension function
       // Handle both CommonJS (module.exports) and ES6 (export default) patterns
       const ext = extension as Record<string, unknown>;
+      this.logger.debug(`Extension keys: ${JSON.stringify(Object.keys(ext))}`);
+
       if (typeof extension === 'function') {
         // Direct function export
+        this.logger.info(`Calling extension function directly for ${bundleName}...`);
         extension(nodecgContext);
-        this.logger.info(`Executed extension for bundle: ${bundleName}`);
+        this.logger.info(`✅ Executed extension for bundle: ${bundleName}`);
       } else if (ext.default && typeof ext.default === 'function') {
         // ES6 default export
+        this.logger.info(`Calling extension default export for ${bundleName}...`);
         (ext.default as (ctx: unknown) => void)(nodecgContext);
-        this.logger.info(`Executed extension for bundle: ${bundleName}`);
+        this.logger.info(`✅ Executed extension for bundle: ${bundleName}`);
       } else {
         this.logger.warn(`Extension for ${bundleName} does not export a function`);
         this.logger.debug(`Extension structure: ${JSON.stringify(Object.keys(ext))}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to execute extension for ${bundleName}:`);
+      this.logger.error(`❌ Failed to execute extension for ${bundleName}:`);
       this.logger.error(error instanceof Error ? error.stack || error.message : String(error));
     }
   }
