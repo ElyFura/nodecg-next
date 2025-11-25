@@ -1,6 +1,16 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
-import { Package, Radio, Users, Settings, LayoutDashboard, Moon, Sun, LogOut } from 'lucide-react';
+import {
+  Package,
+  Radio,
+  Users,
+  Settings,
+  LayoutDashboard,
+  Moon,
+  Sun,
+  LogOut,
+  Grid3x3,
+} from 'lucide-react';
 import { useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
@@ -10,6 +20,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Workspace', href: '/workspace', icon: Grid3x3 },
     { name: 'Bundles', href: '/bundles', icon: Package },
     { name: 'Replicants', href: '/replicants', icon: Radio },
     { name: 'Users', href: '/users', icon: Users },

@@ -5,6 +5,7 @@
 
 import { readdir, readFile, stat, watch } from 'fs/promises';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 import { BaseService, ServiceOptions } from '../base.service';
 import { Bundle, BundleConfig, BundleManager as IBundleManager } from '@nodecg/types';
 import { BundleRepository } from '../../database/repositories/bundle.repository';
@@ -12,6 +13,7 @@ import { getRepositories } from '../../database/client';
 import { NodeCGError, ErrorCodes } from '../../utils/errors';
 import type { ReplicantService } from '../replicant';
 import { createNodeCGContext } from './extension-context';
+import type { Server as SocketIOServer } from 'socket.io';
 
 export interface BundleManagerOptions extends ServiceOptions {
   bundlesDir?: string;
@@ -35,6 +37,8 @@ export class BundleManager extends BaseService implements IBundleManager {
   // eslint-disable-next-line no-undef
   private watchers: Map<string, AbortController> = new Map();
   private replicantService: ReplicantService | null = null;
+  private socketIO: SocketIOServer | null = null;
+  private executedExtensions: Set<string> = new Set();
 
   constructor(options: BundleManagerOptions = {}) {
     super('BundleManager', options);
@@ -63,12 +67,42 @@ export class BundleManager extends BaseService implements IBundleManager {
   }
 
   /**
+   * Set the Socket.IO server
+   * This is called after the WebSocket server is created during server initialization
+   */
+  setSocketIO(io: SocketIOServer): void {
+    this.socketIO = io;
+    this.logger.info('Socket.IO server set on BundleManager');
+
+    // Re-execute extensions with Socket.IO support
+    this.executeLoadedExtensions();
+  }
+
+  /**
    * Execute extensions for all loaded bundles
-   * This is called when replicantService becomes available
+   * Only executes when BOTH replicantService AND socketIO are available
    */
   private executeLoadedExtensions(): void {
+    // Only execute if both services are available
+    if (!this.replicantService || !this.socketIO) {
+      this.logger.debug(
+        `Deferring extension execution - replicantService: ${!!this.replicantService}, socketIO: ${!!this.socketIO}`
+      );
+      return;
+    }
+
+    this.logger.info(`Executing loaded extensions for ${this.bundles.size} bundle(s)`);
     for (const [bundleName, bundle] of this.bundles) {
+      this.logger.debug(`Checking bundle: ${bundleName}, has extension: ${!!bundle.extension}`);
+
+      // Skip if extension already executed
+      if (this.executedExtensions.has(bundleName)) {
+        this.logger.debug(`Extension for ${bundleName} already executed, skipping`);
+        continue;
+      }
+
       if (bundle.extension) {
+        this.logger.info(`Executing extension for: ${bundleName}`);
         this.executeExtension(bundleName, bundle.extension);
       }
     }
@@ -78,6 +112,11 @@ export class BundleManager extends BaseService implements IBundleManager {
    * Execute a bundle extension with NodeCG context
    */
   private executeExtension(bundleName: string, extension: unknown): void {
+    this.logger.info(`executeExtension called for ${bundleName}`);
+    this.logger.debug(`  - replicantService available: ${!!this.replicantService}`);
+    this.logger.debug(`  - socketIO available: ${!!this.socketIO}`);
+    this.logger.debug(`  - extension type: ${typeof extension}`);
+
     if (!this.replicantService) {
       this.logger.debug(
         `ReplicantService not available yet, deferring extension execution for ${bundleName}`
@@ -87,25 +126,37 @@ export class BundleManager extends BaseService implements IBundleManager {
 
     try {
       // Create NodeCG context for the extension
-      const nodecgContext = createNodeCGContext(bundleName, this.logger, this.replicantService);
+      this.logger.info(`Creating NodeCG context for ${bundleName}...`);
+      const nodecgContext = createNodeCGContext(
+        bundleName,
+        this.logger,
+        this.replicantService,
+        this.socketIO || undefined
+      );
 
       // Execute the extension function
       // Handle both CommonJS (module.exports) and ES6 (export default) patterns
       const ext = extension as Record<string, unknown>;
+      this.logger.debug(`Extension keys: ${JSON.stringify(Object.keys(ext))}`);
+
       if (typeof extension === 'function') {
         // Direct function export
+        this.logger.info(`Calling extension function directly for ${bundleName}...`);
         extension(nodecgContext);
-        this.logger.info(`Executed extension for bundle: ${bundleName}`);
+        this.executedExtensions.add(bundleName);
+        this.logger.info(`✅ Executed extension for bundle: ${bundleName}`);
       } else if (ext.default && typeof ext.default === 'function') {
         // ES6 default export
+        this.logger.info(`Calling extension default export for ${bundleName}...`);
         (ext.default as (ctx: unknown) => void)(nodecgContext);
-        this.logger.info(`Executed extension for bundle: ${bundleName}`);
+        this.executedExtensions.add(bundleName);
+        this.logger.info(`✅ Executed extension for bundle: ${bundleName}`);
       } else {
         this.logger.warn(`Extension for ${bundleName} does not export a function`);
         this.logger.debug(`Extension structure: ${JSON.stringify(Object.keys(ext))}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to execute extension for ${bundleName}:`);
+      this.logger.error(`❌ Failed to execute extension for ${bundleName}:`);
       this.logger.error(error instanceof Error ? error.stack || error.message : String(error));
     }
   }
@@ -293,9 +344,9 @@ export class BundleManager extends BaseService implements IBundleManager {
       const extensionPath = join(bundleDir, 'extension', 'index.js');
       try {
         await stat(extensionPath);
-        // Dynamic import for extension
-        extension = await import(extensionPath);
-        this.logger.debug(`Loaded extension for bundle: ${bundleName}`);
+        // Dynamic import for extension - convert to file:// URL for Windows compatibility
+        extension = await import(pathToFileURL(extensionPath).href);
+        this.logger.info(`✅ Loaded extension for bundle: ${bundleName}`);
       } catch {
         // Extension is optional
         this.logger.debug(`No extension found for bundle: ${bundleName}`);
@@ -366,6 +417,7 @@ export class BundleManager extends BaseService implements IBundleManager {
       }
 
       this.bundles.delete(bundleName);
+      this.executedExtensions.delete(bundleName);
       this.logger.info(`Unloaded bundle: ${bundleName}`);
       this.emitEvent('bundle:unloaded', bundleName);
     } catch (error) {
@@ -517,7 +569,7 @@ export class BundleManager extends BaseService implements IBundleManager {
             this.logger.debug(`File changed in ${bundleName}: ${event.filename}`);
 
             // Debounce reload (wait 500ms for more changes)
-            // eslint-disable-next-line no-undef
+
             setTimeout(() => {
               this.reload(bundleName).catch((error) => {
                 this.logger.error(`Hot reload failed for ${bundleName}:`, error);

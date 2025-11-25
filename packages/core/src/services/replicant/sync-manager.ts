@@ -233,7 +233,7 @@ export class SyncManager {
       `Broadcasting change for ${namespace}:${name} to ${subscribers.length} subscribers`
     );
 
-    // Broadcast to all subscribers
+    // Broadcast to all subscribers on /replicants namespace
     for (const subscriberId of subscribers) {
       const socket = this.clientSockets.get(subscriberId);
       if (socket) {
@@ -246,6 +246,28 @@ export class SyncManager {
         });
       }
     }
+
+    // Also broadcast to dashboard and graphics namespaces via room system
+    // This ensures clients connected to /dashboard or /graphics also receive updates
+    const roomName = `replicant:${namespace}:${name}`;
+    const updatePayload = {
+      namespace,
+      name,
+      value: value?.value ?? null,
+      revision: value?.revision ?? 0,
+      operation,
+    };
+
+    // Broadcast to dashboard namespace
+    this.io.of('/dashboard').to(roomName).emit('replicant:updated', updatePayload);
+
+    // Broadcast to graphics namespace
+    this.io.of('/graphics').to(roomName).emit('replicant:updated', updatePayload);
+
+    // Broadcast to extension namespace
+    this.io.of('/extension').to(roomName).emit('replicant:updated', updatePayload);
+
+    logger.debug(`Broadcasted ${namespace}:${name} update to all namespaces via room ${roomName}`);
   }
 
   /**

@@ -193,12 +193,14 @@ export async function dashboardRoutes(fastify: FastifyInstance): Promise<void> {
       background: #5568d3;
     }
 
-    /* Panel Grid */
+    /* Panel Grid - Using flexbox with NodeCG's exact widths */
     .panel-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-      gap: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
       margin-bottom: 30px;
+      align-items: flex-start;
+      align-content: flex-start;
     }
 
     .panel-card {
@@ -207,26 +209,24 @@ export async function dashboardRoutes(fastify: FastifyInstance): Promise<void> {
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
       overflow: hidden;
       transition: transform 0.2s, box-shadow 0.2s;
+      flex-shrink: 0;
     }
+
+    /* NodeCG width formula: 128 + (width - 1) * 144 */
+    .panel-card.width-1 { width: 128px; min-width: 128px; }
+    .panel-card.width-2 { width: 272px; min-width: 272px; }
+    .panel-card.width-3 { width: 416px; min-width: 416px; }
+    .panel-card.width-4 { width: 560px; min-width: 560px; }
+    .panel-card.width-5 { width: 704px; min-width: 704px; }
+    .panel-card.width-6 { width: 848px; min-width: 848px; }
+    .panel-card.width-7 { width: 992px; min-width: 992px; }
+    .panel-card.width-8 { width: 1136px; min-width: 1136px; }
+    .panel-card.width-9 { width: 1280px; min-width: 1280px; }
+    .panel-card.width-10 { width: 1424px; min-width: 1424px; }
 
     .panel-card:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    .panel-card.width-2 {
-      grid-column: span 2;
-    }
-
-    .panel-card.width-3 {
-      grid-column: span 3;
-    }
-
-    @media (max-width: 1200px) {
-      .panel-card.width-2,
-      .panel-card.width-3 {
-        grid-column: span 1;
-      }
     }
 
     .panel-header {
@@ -342,7 +342,7 @@ export async function dashboardRoutes(fastify: FastifyInstance): Promise<void> {
       ${panels
         .map(
           (panel) => `
-      <div class="panel-card ${panel.width > 1 ? `width-${panel.width}` : ''}">
+      <div class="panel-card width-${panel.width}">
         <div class="panel-header">
           <div>
             <div class="panel-title">${panel.title}</div>

@@ -5,11 +5,15 @@
 
 import type { Logger } from '@nodecg/types';
 import type { ReplicantService } from '../replicant';
+import type { Server as SocketIOServer } from 'socket.io';
 
 export interface NodeCGExtensionAPI {
   bundleName: string;
   log: Logger;
   Replicant: <T = unknown>(name: string, opts?: ReplicantOptions) => ReplicantProxy<T>;
+  listenFor: <T = unknown>(messageName: string, handler: (data: T) => void | Promise<void>) => void;
+  sendMessage: <T = unknown>(messageName: string, data?: T) => void;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
 }
 
 export interface ReplicantOptions {
@@ -31,11 +35,103 @@ export interface ReplicantProxy<T = unknown> {
 export function createNodeCGContext(
   bundleName: string,
   logger: Logger,
-  replicantService: ReplicantService | null
+  replicantService: ReplicantService | null,
+  io?: SocketIOServer
 ): NodeCGExtensionAPI {
+  // Message handlers registry
+  const messageHandlers = new Map<string, Array<(data: unknown) => void | Promise<void>>>();
+
+  // Lifecycle event handlers
+  const lifecycleHandlers = new Map<string, Array<(...args: unknown[]) => void>>();
+
+  // Message event handler function
+  const handleMessage = (data: { bundleName: string; messageName: string; data?: unknown }) => {
+    if (data.bundleName === bundleName) {
+      const handlers = messageHandlers.get(data.messageName);
+      if (handlers) {
+        handlers.forEach((handler) => {
+          try {
+            const result = handler(data.data);
+            if (result instanceof Promise) {
+              result.catch((error) => {
+                logger.error(`Error in async message handler for ${data.messageName}:`, error);
+              });
+            }
+          } catch (error) {
+            logger.error(`Error in message handler for ${data.messageName}:`, error);
+          }
+        });
+      }
+    }
+  };
+
+  // Setup message listeners if Socket.IO is available
+  if (io) {
+    // Listen for messages from all namespaces
+    const namespaces = ['/dashboard', '/graphics', '/extension'];
+    namespaces.forEach((ns) => {
+      const namespace = io.of(ns);
+
+      // Add listener for existing connections
+      namespace.sockets.forEach((socket) => {
+        socket.on('message', handleMessage);
+      });
+
+      // Add listener for future connections
+      namespace.on('connection', (socket) => {
+        socket.on('message', handleMessage);
+      });
+    });
+  }
+
   return {
     bundleName,
     log: logger,
+
+    /**
+     * Listen for messages from dashboard/graphics
+     */
+    listenFor: <T = unknown>(messageName: string, handler: (data: T) => void | Promise<void>) => {
+      if (!messageHandlers.has(messageName)) {
+        messageHandlers.set(messageName, []);
+      }
+      messageHandlers.get(messageName)!.push(handler as (data: unknown) => void | Promise<void>);
+      logger.debug(`Registered message handler for: ${bundleName}:${messageName}`);
+    },
+
+    /**
+     * Send message to all connected clients (dashboard/graphics)
+     */
+    sendMessage: <T = unknown>(messageName: string, data?: T) => {
+      if (!io) {
+        logger.warn(`Cannot send message ${messageName}, Socket.IO not available`);
+        return;
+      }
+
+      const payload = {
+        bundleName,
+        messageName,
+        data,
+      };
+
+      // Broadcast to all namespaces
+      io.of('/dashboard').emit('message', payload);
+      io.of('/graphics').emit('message', payload);
+      io.of('/extension').emit('message', payload);
+
+      logger.debug(`Sent message: ${bundleName}:${messageName}`);
+    },
+
+    /**
+     * Listen for lifecycle events (e.g., 'bundleUnload')
+     */
+    on: (event: string, handler: (...args: unknown[]) => void) => {
+      if (!lifecycleHandlers.has(event)) {
+        lifecycleHandlers.set(event, []);
+      }
+      lifecycleHandlers.get(event)!.push(handler);
+      logger.debug(`Registered lifecycle handler for: ${bundleName}:${event}`);
+    },
 
     /**
      * Create or get a replicant
