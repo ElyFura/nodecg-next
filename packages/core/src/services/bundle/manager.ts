@@ -38,6 +38,7 @@ export class BundleManager extends BaseService implements IBundleManager {
   private watchers: Map<string, AbortController> = new Map();
   private replicantService: ReplicantService | null = null;
   private socketIO: SocketIOServer | null = null;
+  private executedExtensions: Set<string> = new Set();
 
   constructor(options: BundleManagerOptions = {}) {
     super('BundleManager', options);
@@ -89,6 +90,15 @@ export class BundleManager extends BaseService implements IBundleManager {
         `[executeLoadedExtensions] Bundle: ${bundleName}, has extension: ${!!bundle.extension}`
       );
       this.logger.debug(`Checking bundle: ${bundleName}, has extension: ${!!bundle.extension}`);
+
+      // Skip if extension already executed
+      if (this.executedExtensions.has(bundleName)) {
+        console.log(
+          `[executeLoadedExtensions] Extension for ${bundleName} already executed, skipping`
+        );
+        continue;
+      }
+
       if (bundle.extension) {
         console.log(`[executeLoadedExtensions] Calling executeExtension for ${bundleName}`);
         this.logger.info(`Executing extension for: ${bundleName}`);
@@ -135,11 +145,13 @@ export class BundleManager extends BaseService implements IBundleManager {
         // Direct function export
         this.logger.info(`Calling extension function directly for ${bundleName}...`);
         extension(nodecgContext);
+        this.executedExtensions.add(bundleName);
         this.logger.info(`✅ Executed extension for bundle: ${bundleName}`);
       } else if (ext.default && typeof ext.default === 'function') {
         // ES6 default export
         this.logger.info(`Calling extension default export for ${bundleName}...`);
         (ext.default as (ctx: unknown) => void)(nodecgContext);
+        this.executedExtensions.add(bundleName);
         this.logger.info(`✅ Executed extension for bundle: ${bundleName}`);
       } else {
         this.logger.warn(`Extension for ${bundleName} does not export a function`);
@@ -412,6 +424,7 @@ export class BundleManager extends BaseService implements IBundleManager {
       }
 
       this.bundles.delete(bundleName);
+      this.executedExtensions.delete(bundleName);
       this.logger.info(`Unloaded bundle: ${bundleName}`);
       this.emitEvent('bundle:unloaded', bundleName);
     } catch (error) {
