@@ -69,6 +69,11 @@ export async function setupWebSocket(
     bundleManager.setReplicantService(replicantService);
   }
 
+  // Set Socket.IO server on BundleManager to enable message handling in extensions
+  if (bundleManager && typeof bundleManager.setSocketIO === 'function') {
+    bundleManager.setSocketIO(io);
+  }
+
   logger.info('Replicant Service and SyncManager initialized');
 
   // Global error handler

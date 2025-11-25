@@ -12,6 +12,7 @@ import { getRepositories } from '../../database/client';
 import { NodeCGError, ErrorCodes } from '../../utils/errors';
 import type { ReplicantService } from '../replicant';
 import { createNodeCGContext } from './extension-context';
+import type { Server as SocketIOServer } from 'socket.io';
 
 export interface BundleManagerOptions extends ServiceOptions {
   bundlesDir?: string;
@@ -35,6 +36,7 @@ export class BundleManager extends BaseService implements IBundleManager {
   // eslint-disable-next-line no-undef
   private watchers: Map<string, AbortController> = new Map();
   private replicantService: ReplicantService | null = null;
+  private socketIO: SocketIOServer | null = null;
 
   constructor(options: BundleManagerOptions = {}) {
     super('BundleManager', options);
@@ -63,6 +65,18 @@ export class BundleManager extends BaseService implements IBundleManager {
   }
 
   /**
+   * Set the Socket.IO server
+   * This is called after the WebSocket server is created during server initialization
+   */
+  setSocketIO(io: SocketIOServer): void {
+    this.socketIO = io;
+    this.logger.info('Socket.IO server set on BundleManager');
+
+    // Re-execute extensions with Socket.IO support
+    this.executeLoadedExtensions();
+  }
+
+  /**
    * Execute extensions for all loaded bundles
    * This is called when replicantService becomes available
    */
@@ -87,7 +101,12 @@ export class BundleManager extends BaseService implements IBundleManager {
 
     try {
       // Create NodeCG context for the extension
-      const nodecgContext = createNodeCGContext(bundleName, this.logger, this.replicantService);
+      const nodecgContext = createNodeCGContext(
+        bundleName,
+        this.logger,
+        this.replicantService,
+        this.socketIO || undefined
+      );
 
       // Execute the extension function
       // Handle both CommonJS (module.exports) and ES6 (export default) patterns
@@ -517,7 +536,7 @@ export class BundleManager extends BaseService implements IBundleManager {
             this.logger.debug(`File changed in ${bundleName}: ${event.filename}`);
 
             // Debounce reload (wait 500ms for more changes)
-            // eslint-disable-next-line no-undef
+
             setTimeout(() => {
               this.reload(bundleName).catch((error) => {
                 this.logger.error(`Hot reload failed for ${bundleName}:`, error);
