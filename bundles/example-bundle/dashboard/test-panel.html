@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin: 0;
+    }
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 24px;
+    }
+    .counter-display {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    button {
+      padding: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+    .btn-increment {
+      background: #10b981;
+    }
+    .btn-decrement {
+      background: #f59e0b;
+    }
+    .btn-reset {
+      background: #ef4444;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #10b981;
+      padding-left: 10px;
+    }
+  </style>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h1>🎮 Example Bundle Test Panel</h1>
+
+  <div class="counter-display" id="counterDisplay">
+    Counter: <span id="counterValue">0</span>
+  </div>
+
+  <div class="button-group">
+    <button class="btn-increment" id="incrementBtn">➕ Increment</button>
+    <button class="btn-decrement" id="decrementBtn">➖ Decrement</button>
+    <button class="btn-reset" id="resetBtn">🔄 Reset</button>
+  </div>
+
+  <div class="log" id="log">
+    <div class="log-entry">Panel loaded. Waiting for connection...</div>
+  </div>
+
+  <!-- Inline NodeCG Client -->
+  <script>
+    (function () {
+      'use strict';
+
+      class Replicant {
+        constructor(name, namespace, options = {}) {
+          this.name = name;
+          this.namespace = namespace;
+          this.defaultValue = options.defaultValue;
+          this._value = this.defaultValue;
+          this.listeners = new Set();
+          this.socket = io('/dashboard', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
+          this.setupSocket();
+          this.subscribe();
+        }
+
+        setupSocket() {
+          this.socket.on('replicant:value', (data) => {
+            if (data.namespace === this.namespace && data.name === this.name) {
+              const newValue = data.value ? JSON.parse(data.value) : this.defaultValue;
+              const oldValue = this._value;
+              this._value = newValue;
+              this.notifyListeners(newValue, oldValue);
+            }
+          });
+
+          this.socket.on('replicant:updated', (data) => {
+            if (data.namespace === this.namespace && data.name === this.name) {
+              const oldValue = this._value;
+              this._value = data.value ? JSON.parse(data.value) : this.defaultValue;
+              this.notifyListeners(this._value, oldValue);
+            }
+          });
+
+          this.socket.on('connect', () => {
+            console.log('[NodeCG] Connected to dashboard namespace');
+            this.subscribe();
+          });
+
+          this.socket.on('message', (payload) => {
+            if (payload.bundleName === this.namespace) {
+              console.log('[NodeCG] Received message:', payload.messageName, payload.data);
+              addLog(`📨 Message: ${payload.messageName} - ${JSON.stringify(payload.data)}`);
+            }
+          });
+        }
+
+        subscribe() {
+          this.socket.emit('replicant:subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
+        }
+
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
+
+        set value(newValue) {
+          const oldValue = this._value;
+          this._value = newValue;
+          this.socket.emit('replicant:update', {
+            namespace: this.namespace,
+            name: this.name,
+            value: JSON.stringify(newValue),
+          });
+          this.notifyListeners(newValue, oldValue);
+        }
+
+        on(callback) {
+          if (typeof callback !== 'function') {
+            console.error('[NodeCG] Replicant.on() requires a function');
+            return;
+          }
+          this.listeners.add(callback);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
+        }
+
+        notifyListeners(newValue, oldValue) {
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
+        }
+      }
+
+      window.nodecg = {
+        bundleName: 'example-bundle',
+        Replicant: function (name, opts) {
+          console.log('[NodeCG] Creating Replicant:', name);
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+        sendMessage: function (msg, data) {
+          console.log('[NodeCG] sendMessage:', msg, data);
+          const socket = io('/dashboard', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('connect', function () {
+            socket.emit('message', {
+              bundleName: window.nodecg.bundleName,
+              messageName: msg,
+              data: data,
+            });
+            addLog(`📤 Sent: ${msg}`);
+          });
+          return Promise.resolve();
+        },
+      };
+
+      console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
+      addLog('✅ NodeCG client initialized');
+    })();
+  </script>
+
+  <!-- Main App Logic -->
+  <script>
+    function addLog(message) {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Initialize counter replicant
+    const counter = nodecg.Replicant('counter', { defaultValue: 0 });
+
+    counter.on((newValue, oldValue) => {
+      document.getElementById('counterValue').textContent = newValue;
+      if (oldValue !== undefined) {
+        addLog(`Counter updated: ${oldValue} → ${newValue}`);
+      }
+    });
+
+    // Button handlers
+    document.getElementById('incrementBtn').addEventListener('click', () => {
+      addLog('Sending increment message...');
+      nodecg.sendMessage('increment');
+    });
+
+    document.getElementById('decrementBtn').addEventListener('click', () => {
+      addLog('Sending decrement message...');
+      nodecg.sendMessage('decrement');
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      addLog('Sending reset message...');
+      nodecg.sendMessage('reset');
+    });
+
+    addLog('Panel ready! Click buttons to test functionality.');
+  </script>
+</body>
+</html>

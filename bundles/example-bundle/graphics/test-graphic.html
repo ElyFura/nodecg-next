@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Graphic</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 1920px;
+      height: 1080px;
+      background: transparent;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    .counter-overlay {
+      position: absolute;
+      bottom: 50px;
+      right: 50px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px 60px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      color: white;
+      text-align: center;
+    }
+    .counter-label {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    .counter-value {
+      font-size: 72px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="counter-overlay">
+    <div class="counter-label">COUNTER</div>
+    <div class="counter-value" id="counterValue">0</div>
+  </div>
+
+  <!-- Inline NodeCG Client for Graphics -->
+  <script>
+    (function () {
+      'use strict';
+
+      class Replicant {
+        constructor(name, namespace, options = {}) {
+          this.name = name;
+          this.namespace = namespace;
+          this.defaultValue = options.defaultValue;
+          this._value = this.defaultValue;
+          this.listeners = new Set();
+          this.socket = io('/graphics', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
+          this.setupSocket();
+          this.subscribe();
+        }
+
+        setupSocket() {
+          this.socket.on('replicant:value', (data) => {
+            if (data.namespace === this.namespace && data.name === this.name) {
+              const newValue = data.value ? JSON.parse(data.value) : this.defaultValue;
+              const oldValue = this._value;
+              this._value = newValue;
+              this.notifyListeners(newValue, oldValue);
+            }
+          });
+
+          this.socket.on('replicant:updated', (data) => {
+            if (data.namespace === this.namespace && data.name === this.name) {
+              const oldValue = this._value;
+              this._value = data.value ? JSON.parse(data.value) : this.defaultValue;
+              this.notifyListeners(this._value, oldValue);
+            }
+          });
+
+          this.socket.on('connect', () => {
+            console.log('[NodeCG Graphics] Connected');
+            this.subscribe();
+          });
+        }
+
+        subscribe() {
+          this.socket.emit('replicant:subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
+        }
+
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
+
+        on(callback) {
+          if (typeof callback !== 'function') return;
+          this.listeners.add(callback);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
+        }
+
+        notifyListeners(newValue, oldValue) {
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
+        }
+      }
+
+      window.nodecg = {
+        bundleName: 'example-bundle',
+        Replicant: function (name, opts) {
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+      };
+
+      console.log('[NodeCG Graphics] Client initialized');
+    })();
+  </script>
+
+  <!-- Graphic Logic -->
+  <script>
+    const counter = nodecg.Replicant('counter', { defaultValue: 0 });
+
+    counter.on((newValue) => {
+      document.getElementById('counterValue').textContent = newValue;
+      console.log('[Graphic] Counter updated:', newValue);
+    });
+  </script>
+</body>
+</html>
