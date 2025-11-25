@@ -21,6 +21,80 @@ let replicantService: ReplicantService | null = null;
 let syncManager: SyncManager | null = null;
 
 /**
+ * Setup replicant subscription handlers on dashboard and graphics namespaces
+ * This must be called AFTER ReplicantService is created
+ */
+function setupReplicantHandlers(io: SocketIOServer, replicantService: ReplicantService): void {
+  const namespaces = ['/dashboard', '/graphics'];
+
+  namespaces.forEach((nsName) => {
+    const namespace = io.of(nsName);
+
+    // For each currently connected socket, add replicant subscription tracking
+    namespace.sockets.forEach((socket) => {
+      addReplicantSubscriptionTracking(socket, replicantService);
+    });
+
+    // For future connections, add tracking on connection
+    namespace.on('connection', (socket) => {
+      addReplicantSubscriptionTracking(socket, replicantService);
+    });
+  });
+
+  logger.info('Replicant subscription handlers added to dashboard and graphics namespaces');
+}
+
+/**
+ * Add replicant subscription tracking to a socket
+ */
+function addReplicantSubscriptionTracking(socket: any, replicantService: ReplicantService): void {
+  // Intercept replicant:subscribe to also subscribe in ReplicantService
+  const originalSubscribeHandler = socket.listeners('replicant:subscribe')[0];
+  if (originalSubscribeHandler) {
+    socket.off('replicant:subscribe', originalSubscribeHandler);
+    socket.on('replicant:subscribe', async (data: { namespace: string; name: string }) => {
+      // Call original handler first
+      await originalSubscribeHandler(data);
+
+      // Also subscribe in ReplicantService for change events
+      if (data?.namespace && data?.name) {
+        replicantService.subscribe(data.namespace, data.name, socket.id);
+        logger.debug(
+          `Socket ${socket.id} subscribed to ${data.namespace}:${data.name} in ReplicantService`
+        );
+      }
+    });
+  }
+
+  // Intercept replicant:unsubscribe to also unsubscribe in ReplicantService
+  const originalUnsubscribeHandler = socket.listeners('replicant:unsubscribe')[0];
+  if (originalUnsubscribeHandler) {
+    socket.off('replicant:unsubscribe', originalUnsubscribeHandler);
+    socket.on('replicant:unsubscribe', async (data: { namespace: string; name: string }) => {
+      // Call original handler first
+      await originalUnsubscribeHandler(data);
+
+      // Also unsubscribe in ReplicantService
+      if (data?.namespace && data?.name) {
+        replicantService.unsubscribe(data.namespace, data.name, socket.id);
+        logger.debug(
+          `Socket ${socket.id} unsubscribed from ${data.namespace}:${data.name} in ReplicantService`
+        );
+      }
+    });
+  }
+
+  // Cleanup on disconnect
+  const originalDisconnectHandler = socket.listeners('disconnect')[0];
+  if (originalDisconnectHandler) {
+    socket.once('disconnect', () => {
+      replicantService.unsubscribeAll(socket.id);
+      logger.debug(`Socket ${socket.id} cleaned up from ReplicantService on disconnect`);
+    });
+  }
+}
+
+/**
  * Setup WebSocket server with Socket.IO
  */
 export async function setupWebSocket(
@@ -58,6 +132,9 @@ export async function setupWebSocket(
 
   replicantService = new ReplicantService(repositories.replicant, redis);
   syncManager = new SyncManager(io, replicantService);
+
+  // Setup replicant subscription handlers on dashboard and graphics namespaces
+  setupReplicantHandlers(io, replicantService);
 
   // Make replicantService available on Fastify instance
   (fastify as FastifyInstance & { replicantService: ReplicantService }).replicantService =
