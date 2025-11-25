@@ -57,6 +57,24 @@ export interface NodeCGConfig {
   plugins?: {
     [pluginId: string]: Record<string, unknown>;
   };
+  /** Observability configuration */
+  observability?: {
+    /** OpenTelemetry configuration */
+    telemetry?: {
+      enabled?: boolean;
+      prometheusPort?: number;
+      otlpEndpoint?: string;
+      sampleRate?: number;
+    };
+    /** Sentry configuration */
+    sentry?: {
+      enabled?: boolean;
+      dsn?: string;
+      tracesSampleRate?: number;
+      profilesSampleRate?: number;
+      debug?: boolean;
+    };
+  };
 }
 
 export interface NodeCGServer {

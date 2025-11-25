@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodecg-next
+  namespace: nodecg-next
+  labels:
+    app: nodecg-next
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: nodecg-next
+  template:
+    metadata:
+      labels:
+        app: nodecg-next
+        version: v1
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9464'
+        prometheus.io/path: '/metrics'
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      # Init containers for database migration
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:latest
+          command:
+            [
+              'sh',
+              '-c',
+              'until nc -z postgres-service 5432; do echo waiting for postgres; sleep 2; done',
+            ]
+
+      containers:
+        - name: nodecg-next
+          image: nodecg/nodecg-next:latest # Replace with your image
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: nodecg-config
+                  key: NODE_ENV
+            - name: HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: nodecg-config
+                  key: HOST
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: nodecg-config
+                  key: PORT
+            - name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: nodecg-config
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: nodecg-config
+                  key: REDIS_URL
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: SENTRY_DSN
+                  optional: true
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nodecg-secrets
+                  key: JWT_SECRET
+
+          # Resource limits
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+
+          # Volume mounts
+          volumeMounts:
+            - name: bundles
+              mountPath: /app/bundles
+              readOnly: true
+            - name: assets
+              mountPath: /app/assets
+
+      volumes:
+        - name: bundles
+          persistentVolumeClaim:
+            claimName: nodecg-bundles-pvc
+        - name: assets
+          persistentVolumeClaim:
+            claimName: nodecg-assets-pvc
+
+      # Pod disruption budget for high availability
+      terminationGracePeriodSeconds: 30
+
+      # Affinity rules for better distribution
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - nodecg-next
+                topologyKey: kubernetes.io/hostname

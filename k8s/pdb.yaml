@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nodecg-pdb
+  namespace: nodecg-next
+  labels:
+    app: nodecg-next
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nodecg-next
