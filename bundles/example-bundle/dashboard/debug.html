@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug & Monitor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #e2e8f0;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+      text-align: center;
+      color: #22c55e;
+      font-family: 'Segoe UI', sans-serif;
+      text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #22c55e;
+      font-family: 'Courier New', monospace;
+    }
+
+    .log-section {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .log-section h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #22c55e;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .log-container {
+      background: #000;
+      border-radius: 4px;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      border-left: 3px solid;
+      padding-left: 10px;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .log-entry.new {
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .log-entry .timestamp {
+      color: #64748b;
+      margin-right: 10px;
+    }
+
+    .log-entry .action {
+      color: #22c55e;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .log-entry .details {
+      color: #cbd5e1;
+    }
+
+    .log-entry.name_changed { border-left-color: #3b82f6; }
+    .log-entry.title_changed { border-left-color: #8b5cf6; }
+    .log-entry.score_changed { border-left-color: #f59e0b; }
+    .log-entry.timer_state { border-left-color: #10b981; }
+    .log-entry.ticker_messages_changed { border-left-color: #ec4899; }
+    .log-entry.bundle_loaded { border-left-color: #22c55e; }
+    .log-entry.bundle_unloaded { border-left-color: #ef4444; }
+
+    .control-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      font-family: 'Courier New', monospace;
+    }
+
+    button:hover {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-clear {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #ef4444;
+    }
+
+    .btn-clear:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+
+    .empty-log {
+      text-align: center;
+      color: #64748b;
+      padding: 40px;
+      font-size: 14px;
+    }
+
+    .replicant-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .replicant-item {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 4px;
+      border-left: 3px solid #22c55e;
+      font-size: 12px;
+    }
+
+    .replicant-name {
+      color: #22c55e;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .replicant-value {
+      color: #cbd5e1;
+      word-break: break-all;
+    }
+  </style>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h2>🐛 Debug & Monitor</h2>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">System Uptime</div>
+      <div class="stat-value" id="uptime">0s</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Replicants</div>
+      <div class="stat-value" id="replicantCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Message Count</div>
+      <div class="stat-value" id="messageCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last Update</div>
+      <div class="stat-value" id="lastUpdate" style="font-size: 14px;">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <h3>
+      <span>📋 Event Log</span>
+      <div>
+        <button id="autoScrollBtn">Auto-Scroll: ON</button>
+        <button class="btn-clear" id="clearLogBtn">Clear Log</button>
+      </div>
+    </h3>
+    <div class="log-container" id="logContainer">
+      <div class="empty-log">Warte auf Events...</div>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <h3>🔧 Active Replicants</h3>
+    <div class="replicant-list" id="replicantList">
+      <div class="empty-log">Lade Replicants...</div>
+    </div>
+  </div>
+
+<!-- NodeCG Client (Inline) -->
+  <script>
+    (function () {
+      'use strict';
+      class Replicant {
+        constructor(name, namespace, options = {}) {
+          this.name = name;
+          this.namespace = namespace;
+          this.defaultValue = options.defaultValue;
+          this._value = this.defaultValue;
+          this.listeners = new Set();
+          this.socket = io('/dashboard', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+          });
+          this.setupSocket();
+          this.subscribe();
+        }
+        setupSocket() {
+          this.socket.on('replicant:value', (data) => {
+            if (data.namespace === this.namespace && data.name === this.name) {
+              const newValue = data.value ? JSON.parse(data.value) : this.defaultValue;
+              const oldValue = this._value;
+              this._value = newValue;
+              this.notifyListeners(newValue, oldValue);
+            }
+          });
+          this.socket.on('replicant:updated', (data) => {
+            if (data.namespace === this.namespace && data.name === this.name) {
+              const oldValue = this._value;
+              this._value = data.value ? JSON.parse(data.value) : this.defaultValue;
+              this.notifyListeners(this._value, oldValue);
+            }
+          });
+          this.socket.on('connect', () => {
+            console.log('[NodeCG] Connected to dashboard namespace');
+            this.subscribe();
+          });
+          this.socket.on('disconnect', () => {
+            console.log('[NodeCG] Disconnected from dashboard namespace');
+          });
+          this.socket.on('replicant:error', (error) => {
+            console.error('[NodeCG] Replicant error:', error);
+          });
+        }
+        subscribe() {
+          this.socket.emit('replicant:subscribe', {
+            namespace: this.namespace,
+            name: this.name,
+          });
+          console.log('[NodeCG] Subscribed to replicant:', this.namespace, this.name);
+        }
+        get value() {
+          return this._value ?? this.defaultValue;
+        }
+        set value(newValue) {
+          const oldValue = this._value;
+          this._value = newValue;
+          this.socket.emit('replicant:update', {
+            namespace: this.namespace,
+            name: this.name,
+            value: JSON.stringify(newValue),
+          });
+          this.notifyListeners(newValue, oldValue);
+        }
+        on(callback) {
+          if (typeof callback !== 'function') {
+            console.error('[NodeCG] Replicant.on() requires a function');
+            return;
+          }
+          this.listeners.add(callback);
+          if (this._value !== undefined) {
+            try {
+              callback(this._value, undefined);
+            } catch (error) {
+              console.error('[NodeCG] Error in initial callback:', error);
+            }
+          }
+        }
+        notifyListeners(newValue, oldValue) {
+          this.listeners.forEach((listener) => {
+            if (typeof listener === 'function') {
+              try {
+                listener(newValue, oldValue);
+              } catch (error) {
+                console.error('[NodeCG] Error in listener:', error);
+              }
+            }
+          });
+        }
+      }
+      window.nodecg = {
+        bundleName: 'example-bundle',
+        Replicant: function (name, opts) {
+          console.log('[NodeCG] Creating Replicant:', name);
+          return new Replicant(name, window.nodecg.bundleName, opts || {});
+        },
+        sendMessage: function (msg, data) {
+          console.log('[NodeCG] sendMessage:', msg, data);
+          const socket = io('/dashboard', {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+          });
+          socket.on('connect', function () {
+            socket.emit('message', {
+              bundleName: window.nodecg.bundleName,
+              messageName: msg,
+              data: data,
+            });
+          });
+          return Promise.resolve();
+        },
+      };
+      console.log('[NodeCG] Client initialized for', window.nodecg.bundleName);
+    })();
+
+  </script>
+
+  <script>
+    // Initialize replicants
+    const messageLog = nodecg.Replicant('messageLog', { defaultValue: [] });
+    const systemStats = nodecg.Replicant('systemStats', {
+      defaultValue: {
+        uptime: 0,
+        replicantCount: 0,
+        messageCount: 0,
+        lastUpdate: new Date().toISOString()
+      }
+    });
+
+    // DOM Elements
+    const uptimeValue = document.getElementById('uptime');
+    const replicantCountValue = document.getElementById('replicantCount');
+    const messageCountValue = document.getElementById('messageCount');
+    const lastUpdateValue = document.getElementById('lastUpdate');
+    const eventLogContainer = document.getElementById('logContainer');
+    const clearLogBtn = document.getElementById('clearLogBtn');
+    const autoScrollBtn = document.getElementById('autoScrollBtn');
+    const replicantList = document.getElementById('replicantList');
+
+    let autoScroll = true;
+
+    // Format uptime
+    function formatUptime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hours}h ${minutes}m ${secs}s`;
+    }
+
+    // Format timestamp
+    function formatTimestamp(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('de-DE');
+    }
+
+    // Event type colors
+    const eventTypeColors = {
+      name_changed: '#3b82f6',
+      title_changed: '#8b5cf6',
+      score_changed: '#10b981',
+      timer_state: '#f59e0b',
+      ticker_messages_changed: '#06b6d4',
+      bundle_loaded: '#22c55e',
+      bundle_unloaded: '#ef4444',
+      default: '#6b7280'
+    };
+
+    // Render event log
+    function renderEventLog(events) {
+      if (!events || events.length === 0) {
+        eventLogContainer.innerHTML = '<div class="empty-log">Keine Events vorhanden</div>';
+        return;
+      }
+
+      eventLogContainer.innerHTML = '';
+
+      // Show last 100 events
+      const recentEvents = events.slice(-100);
+
+      recentEvents.forEach(event => {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'log-entry';
+
+        const color = eventTypeColors[event.type] || eventTypeColors.default;
+
+        eventEl.innerHTML = `
+          <span class="log-time">${formatTimestamp(event.timestamp)}</span>
+          <span class="log-type" style="background: ${color}20; color: ${color}; border-color: ${color};">
+            ${event.type}
+          </span>
+          <span class="log-message">${event.message}</span>
+        `;
+
+        eventLogContainer.appendChild(eventEl);
+      });
+
+      // Auto-scroll to bottom
+      if (autoScroll) {
+        eventLogContainer.scrollTop = eventLogContainer.scrollHeight;
+      }
+    }
+
+    // Render replicant list
+    function renderReplicantList() {
+      const replicants = [
+        { name: 'currentName', type: 'String' },
+        { name: 'currentTitle', type: 'String' },
+        { name: 'isVisible', type: 'Boolean' },
+        { name: 'scoreboard', type: 'Object' },
+        { name: 'timer', type: 'Object' },
+        { name: 'ticker', type: 'Object' },
+        { name: 'messageLog', type: 'Array' },
+        { name: 'systemStats', type: 'Object' }
+      ];
+
+      replicantList.innerHTML = '';
+
+      replicants.forEach(rep => {
+        const repEl = document.createElement('div');
+        repEl.className = 'replicant-item';
+        repEl.innerHTML = `
+          <div class="replicant-name">${rep.name}</div>
+          <div class="replicant-type">${rep.type}</div>
+        `;
+        replicantList.appendChild(repEl);
+      });
+    }
+
+    // Clear log button
+    clearLogBtn.addEventListener('click', () => {
+      messageLog.value = [];
+    });
+
+    // Auto-scroll toggle
+    autoScrollBtn.addEventListener('click', () => {
+      autoScroll = !autoScroll;
+      autoScrollBtn.textContent = autoScroll ? 'Auto-Scroll: ON' : 'Auto-Scroll: OFF';
+    });
+
+    // Update system stats
+    systemStats.on((newValue) => {
+      if (!newValue) return;
+
+      uptimeValue.textContent = formatUptime(newValue.uptime || 0);
+      replicantCountValue.textContent = newValue.replicantCount || 8;
+      messageCountValue.textContent = newValue.messageCount || 0;
+      lastUpdateValue.textContent = formatTimestamp(newValue.lastUpdate || new Date().toISOString());
+    });
+
+    // Update event log
+    messageLog.on((newValue) => {
+      renderEventLog(newValue);
+    });
+
+    // Initial render
+    renderReplicantList();
+
+    console.log('[NodeCG] Debug panel initialized');
+  </script>

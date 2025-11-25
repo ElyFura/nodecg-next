@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lower Third - Example Bundle</title>
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Timer - NodeCG Next</title>
   <style>
     * {
       margin: 0;
@@ -12,83 +12,170 @@
     }
 
     body {
-      width: 1920px;
-      height: 1080px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow: hidden;
       background: transparent;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    #lower-third {
+    #timer-container {
       position: absolute;
-      bottom: 100px;
-      left: 50px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px 40px;
-      border-radius: 10px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-      transform: translateX(-150%);
-      transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      max-width: 600px;
+      top: 50px;
+      right: 50px;
+      transform: translateX(150%) scale(0.8);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
 
-    #lower-third.visible {
-      transform: translateX(0);
+    #timer-container.visible {
+      transform: translateX(0) scale(1);
+      opacity: 1;
     }
 
-    .name {
-      font-size: 42px;
+    .timer-box {
+      background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.9));
+      padding: 30px 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
+      border: 4px solid #667eea;
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timer-box::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+      animation: shine 3s infinite;
+    }
+
+    @keyframes shine {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .timer-label {
+      font-size: 20px;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-align: center;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .timer-display {
+      font-size: 72px;
       font-weight: bold;
       color: white;
-      margin-bottom: 8px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 20px rgba(102, 126, 234, 0.8),
+                   0 0 40px rgba(102, 126, 234, 0.4);
+      position: relative;
+      z-index: 1;
+      min-width: 280px;
     }
 
-    .title {
-      font-size: 24px;
-      color: rgba(255, 255, 255, 0.9);
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    .timer-display.warning {
+      color: #fbbf24;
+      text-shadow: 0 0 20px rgba(251, 191, 36, 0.8),
+                   0 0 40px rgba(251, 191, 36, 0.4);
+      animation: warningPulse 1s infinite;
     }
 
-    .pulse {
-      animation: pulse 2s ease-in-out;
+    .timer-display.critical {
+      color: #ef4444;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.8),
+                   0 0 40px rgba(239, 68, 68, 0.4);
+      animation: criticalPulse 0.5s infinite;
     }
 
-    @keyframes pulse {
+    .timer-display.finished {
+      color: #10b981;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.8),
+                   0 0 40px rgba(16, 185, 129, 0.4);
+    }
+
+    @keyframes warningPulse {
       0%, 100% {
         opacity: 1;
       }
       50% {
-        opacity: 0.8;
+        opacity: 0.7;
       }
     }
 
-    #connection-status {
+    @keyframes criticalPulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+      }
+    }
+
+    .timer-progress {
       position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 10px 20px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      border-radius: 5px;
-      font-size: 14px;
+      bottom: 0;
+      left: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 0 0 16px 16px;
+      transition: width 0.3s linear;
+      z-index: 2;
     }
 
-    #connection-status.connected {
-      background: rgba(46, 204, 113, 0.7);
+    .timer-status {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      z-index: 2;
     }
 
-    #connection-status.disconnected {
-      background: rgba(231, 76, 60, 0.7);
+    .timer-status.running {
+      background: #10b981;
+      animation: statusBlink 1s infinite;
+    }
+
+    .timer-status.paused {
+      background: #fbbf24;
+    }
+
+    @keyframes statusBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.3;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="connection-status" class="disconnected">Connecting...</div>
-
-  <div id="lower-third">
-    <div class="name" id="name">John Doe</div>
-    <div class="title" id="title">Software Engineer</div>
+  <div id="timer-container">
+    <div class="timer-box">
+      <div class="timer-status" id="status"></div>
+      <div class="timer-label" id="label">Timer</div>
+      <div class="timer-display" id="display">00:00</div>
+      <div class="timer-progress" id="progress" style="width: 100%"></div>
+    </div>
   </div>
 
 <!-- NodeCG Client (Inline) -->
@@ -215,63 +302,3 @@
     })();
   </script>
 
-
-  <script>
-    // Initialize replicants using the inline NodeCG client
-    const currentName = nodecg.Replicant('currentName', {
-      defaultValue: 'John Doe'
-    });
-
-    const currentTitle = nodecg.Replicant('currentTitle', {
-      defaultValue: 'Software Engineer'
-    });
-
-    const isVisible = nodecg.Replicant('isVisible', {
-      defaultValue: false
-    });
-
-    // DOM elements
-    const nameElement = document.getElementById('name');
-    const titleElement = document.getElementById('title');
-    const lowerThirdElement = document.getElementById('lower-third');
-    const statusElement = document.getElementById('connection-status');
-
-    // Update connection status (using Socket.IO for status)
-    const statusSocket = io('/replicants', {
-      path: '/socket.io',
-      transports: ['websocket', 'polling'],
-    });
-
-    statusSocket.on('connect', () => {
-      statusElement.textContent = 'Connected';
-      statusElement.className = 'connected';
-    });
-
-    statusSocket.on('disconnect', () => {
-      statusElement.textContent = 'Disconnected';
-      statusElement.className = 'disconnected';
-    });
-
-    // Update name
-    currentName.on((newValue) => {
-      nameElement.textContent = newValue || 'John Doe';
-      nameElement.classList.add('pulse');
-      setTimeout(() => nameElement.classList.remove('pulse'), 2000);
-    });
-
-    // Update title
-    currentTitle.on((newValue) => {
-      titleElement.textContent = newValue || 'Software Engineer';
-    });
-
-    // Update visibility
-    isVisible.on((newValue) => {
-      if (newValue) {
-        lowerThirdElement.classList.add('visible');
-      } else {
-        lowerThirdElement.classList.remove('visible');
-      }
-    });
-
-    console.log('[NodeCG] Lower third graphic loaded with real-time replicants');
-  </script>

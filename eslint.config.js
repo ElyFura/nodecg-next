@@ -87,6 +87,42 @@ export default [
     },
   },
   {
+    files: [
+      'bundles/**/extension/**/*.js',
+      'bundles/**/dashboard/**/*.js',
+      'bundles/**/graphics/**/*.js',
+    ],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        process: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        io: 'readonly',
+      },
+    },
+    plugins: {
+      prettier: prettier,
+    },
+    rules: {
+      ...prettierConfig.rules,
+      'prettier/prettier': 'error',
+      'no-undef': 'error',
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+  {
     ignores: [
       'node_modules',
       'dist',

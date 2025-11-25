@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lower Third - Example Bundle</title>
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>News Ticker - NodeCG Next</title>
   <style>
     * {
       margin: 0;
@@ -12,83 +12,180 @@
     }
 
     body {
-      width: 1920px;
-      height: 1080px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow: hidden;
       background: transparent;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    #lower-third {
+    #ticker-container {
       position: absolute;
-      bottom: 100px;
-      left: 50px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px 40px;
-      border-radius: 10px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-      transform: translateX(-150%);
-      transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      max-width: 600px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.95), rgba(20,20,20,0.95), rgba(0,0,0,0.95));
+      border-top: 4px solid;
+      border-image: linear-gradient(90deg, #667eea, #764ba2, #667eea) 1;
+      transform: translateY(150%);
+      opacity: 0;
+      transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      overflow: hidden;
+      box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.5);
     }
 
-    #lower-third.visible {
-      transform: translateX(0);
+    #ticker-container.visible {
+      transform: translateY(0);
+      opacity: 1;
     }
 
-    .name {
-      font-size: 42px;
+    .ticker-label {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 0 30px;
+      display: flex;
+      align-items: center;
+      font-size: 20px;
       font-weight: bold;
       color: white;
-      margin-bottom: 8px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      z-index: 2;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
     }
 
-    .title {
+    .ticker-label::after {
+      content: '';
+      position: absolute;
+      right: -20px;
+      top: 0;
+      bottom: 0;
+      width: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      clip-path: polygon(0 0, 0 100%, 100% 50%);
+    }
+
+    .ticker-content-wrapper {
+      position: absolute;
+      left: 180px;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      overflow: hidden;
+    }
+
+    .ticker-content {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      white-space: nowrap;
+      animation: scroll linear infinite;
+      padding-left: 100%;
+    }
+
+    @keyframes scroll {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      margin: 0 60px;
       font-size: 24px;
-      color: rgba(255, 255, 255, 0.9);
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      font-weight: 500;
     }
 
-    .pulse {
-      animation: pulse 2s ease-in-out;
+    .ticker-item.urgent {
+      color: #ef4444;
+      font-weight: bold;
+      animation: urgentBlink 1s infinite;
     }
 
-    @keyframes pulse {
+    .ticker-item.urgent::before {
+      content: '⚠ ';
+      margin-right: 5px;
+    }
+
+    .ticker-item.high {
+      color: #f59e0b;
+      font-weight: bold;
+    }
+
+    .ticker-item.high::before {
+      content: '• ';
+      margin-right: 5px;
+      color: #f59e0b;
+    }
+
+    .ticker-item.low {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    @keyframes urgentBlink {
       0%, 100% {
         opacity: 1;
       }
       50% {
-        opacity: 0.8;
+        opacity: 0.6;
       }
     }
 
-    #connection-status {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 10px 20px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      border-radius: 5px;
-      font-size: 14px;
+    .ticker-separator {
+      display: inline-block;
+      margin: 0 40px;
+      color: #667eea;
+      font-size: 24px;
+      font-weight: bold;
     }
 
-    #connection-status.connected {
-      background: rgba(46, 204, 113, 0.7);
+    .ticker-time {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-left: 10px;
+      font-weight: normal;
     }
 
-    #connection-status.disconnected {
-      background: rgba(231, 76, 60, 0.7);
+    /* Pulse effect for new messages */
+    @keyframes newMessage {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .ticker-item.new {
+      animation: newMessage 0.5s ease-out;
     }
   </style>
 </head>
 <body>
-  <div id="connection-status" class="disconnected">Connecting...</div>
-
-  <div id="lower-third">
-    <div class="name" id="name">John Doe</div>
-    <div class="title" id="title">Software Engineer</div>
+  <div id="ticker-container">
+    <div class="ticker-label">
+      <span>📰 NEWS</span>
+    </div>
+    <div class="ticker-content-wrapper">
+      <div class="ticker-content" id="ticker-content">
+        <span class="ticker-item">Willkommen zu NodeCG Next</span>
+        <span class="ticker-separator">●</span>
+        <span class="ticker-item">Keine Nachrichten verfügbar</span>
+        <span class="ticker-separator">●</span>
+        <!-- Content will be duplicated here by JavaScript -->
+      </div>
+    </div>
   </div>
 
 <!-- NodeCG Client (Inline) -->
@@ -215,63 +312,3 @@
     })();
   </script>
 
-
-  <script>
-    // Initialize replicants using the inline NodeCG client
-    const currentName = nodecg.Replicant('currentName', {
-      defaultValue: 'John Doe'
-    });
-
-    const currentTitle = nodecg.Replicant('currentTitle', {
-      defaultValue: 'Software Engineer'
-    });
-
-    const isVisible = nodecg.Replicant('isVisible', {
-      defaultValue: false
-    });
-
-    // DOM elements
-    const nameElement = document.getElementById('name');
-    const titleElement = document.getElementById('title');
-    const lowerThirdElement = document.getElementById('lower-third');
-    const statusElement = document.getElementById('connection-status');
-
-    // Update connection status (using Socket.IO for status)
-    const statusSocket = io('/replicants', {
-      path: '/socket.io',
-      transports: ['websocket', 'polling'],
-    });
-
-    statusSocket.on('connect', () => {
-      statusElement.textContent = 'Connected';
-      statusElement.className = 'connected';
-    });
-
-    statusSocket.on('disconnect', () => {
-      statusElement.textContent = 'Disconnected';
-      statusElement.className = 'disconnected';
-    });
-
-    // Update name
-    currentName.on((newValue) => {
-      nameElement.textContent = newValue || 'John Doe';
-      nameElement.classList.add('pulse');
-      setTimeout(() => nameElement.classList.remove('pulse'), 2000);
-    });
-
-    // Update title
-    currentTitle.on((newValue) => {
-      titleElement.textContent = newValue || 'Software Engineer';
-    });
-
-    // Update visibility
-    isVisible.on((newValue) => {
-      if (newValue) {
-        lowerThirdElement.classList.add('visible');
-      } else {
-        lowerThirdElement.classList.remove('visible');
-      }
-    });
-
-    console.log('[NodeCG] Lower third graphic loaded with real-time replicants');
-  </script>
