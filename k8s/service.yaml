@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodecg-service
+  namespace: nodecg-next
+  labels:
+    app: nodecg-next
+spec:
+  type: LoadBalancer
+  selector:
+    app: nodecg-next
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000
+    - name: metrics
+      protocol: TCP
+      port: 9464
+      targetPort: 9464
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800 # 3 hours for WebSocket connections
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodecg-headless
+  namespace: nodecg-next
+  labels:
+    app: nodecg-next
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: nodecg-next
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

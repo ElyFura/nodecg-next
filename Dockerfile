@@ -1,7 +1,7 @@
-# NodeCG Next - Dockerfile
-# Multi-stage build for production
+# NodeCG Next - Production Dockerfile
+# Multi-stage build with observability support
 
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
@@ -50,16 +50,18 @@ COPY --from=build /app/packages/core/src/database/generated ./packages/core/src/
 COPY packages/core/prisma ./packages/core/prisma
 
 # Expose ports
-EXPOSE 3000
+# 3000: HTTP Server
+# 9464: Prometheus Metrics
+EXPOSE 3000 9464
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# Health check - improved for production readiness
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/ready', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the server
 CMD ["node", "packages/core/dist/index.js"]

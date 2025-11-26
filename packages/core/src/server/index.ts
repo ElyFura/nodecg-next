@@ -18,6 +18,12 @@ import { ServiceRegistry } from '../services/base.service';
 import { initializeDatabase, seedDefaultRoles } from '../database/init';
 import { PluginManagerService } from '../services/plugin';
 import { getPrismaClient } from '../database/client';
+import {
+  TelemetryService,
+  MetricsService,
+  SentryService,
+  PerformanceMonitor,
+} from '../observability';
 
 export class NodeCGServerImpl implements NodeCGServer {
   private fastify: FastifyInstance;
@@ -28,6 +34,10 @@ export class NodeCGServerImpl implements NodeCGServer {
   private serviceRegistry: ServiceRegistry;
   private bundleManager: BundleManager;
   private pluginManager: PluginManagerService;
+  private telemetryService: TelemetryService;
+  private metricsService: MetricsService;
+  private sentryService: SentryService;
+  private performanceMonitor: PerformanceMonitor;
 
   constructor(config: NodeCGConfig) {
     this.config = config;
@@ -80,6 +90,41 @@ export class NodeCGServerImpl implements NodeCGServer {
 
     // Decorate with replicantService placeholder (will be set in setupWebSocket)
     this.fastify.decorate('replicantService', null);
+
+    // Initialize Observability Services
+    this.telemetryService = new TelemetryService(
+      {
+        enabled: config.observability?.telemetry?.enabled ?? true,
+        serviceName: 'nodecg-next',
+        serviceVersion: process.env.npm_package_version || '0.1.0',
+        environment: process.env.NODE_ENV || 'development',
+        prometheusPort: config.observability?.telemetry?.prometheusPort ?? 9464,
+        otlpEndpoint: config.observability?.telemetry?.otlpEndpoint,
+        sampleRate: config.observability?.telemetry?.sampleRate ?? 0.1,
+      },
+      this.logger
+    );
+
+    this.metricsService = new MetricsService(this.logger);
+
+    this.sentryService = new SentryService(
+      {
+        enabled: config.observability?.sentry?.enabled ?? false,
+        dsn: config.observability?.sentry?.dsn,
+        environment: process.env.NODE_ENV || 'development',
+        release: process.env.npm_package_version || '0.1.0',
+        tracesSampleRate: config.observability?.sentry?.tracesSampleRate ?? 0.1,
+        profilesSampleRate: config.observability?.sentry?.profilesSampleRate ?? 0.1,
+        debug: config.observability?.sentry?.debug ?? false,
+      },
+      this.logger
+    );
+
+    this.performanceMonitor = new PerformanceMonitor(this.logger);
+
+    // Decorate with observability services
+    this.fastify.decorate('metricsService', this.metricsService);
+    this.fastify.decorate('performanceMonitor', this.performanceMonitor);
   }
 
   async start(): Promise<void> {
@@ -89,6 +134,12 @@ export class NodeCGServerImpl implements NodeCGServer {
 
     try {
       this.logger.info('Starting NodeCG Next server...');
+
+      // Initialize observability services first
+      this.logger.info('Initializing observability...');
+      await this.telemetryService.initialize();
+      this.sentryService.initialize();
+      this.sentryService.setupFastify(this.fastify);
 
       // Initialize database first (create /db directory and schema)
       this.logger.info('Initializing database...');
@@ -108,6 +159,7 @@ export class NodeCGServerImpl implements NodeCGServer {
 
       // Register plugins and middleware
       await this.registerPlugins();
+      await this.setupMetricsEndpoint();
       await registerMiddleware(this.fastify, this.config);
       await registerRoutes(this.fastify, this.config);
 
@@ -137,6 +189,7 @@ export class NodeCGServerImpl implements NodeCGServer {
     } catch (error) {
       this.logger.error('Failed to start server:', error);
       this.eventBus.emit(Events.SERVER_ERROR, error);
+      this.sentryService.captureException(error as Error);
       throw error;
     }
   }
@@ -167,6 +220,13 @@ export class NodeCGServerImpl implements NodeCGServer {
 
       // Then close Fastify server
       await this.fastify.close();
+
+      // Shutdown observability services
+      this.logger.info('Shutting down observability...');
+      await this.telemetryService.shutdown();
+      await this.sentryService.flush();
+      await this.sentryService.close();
+
       this.started = false;
       this.logger.info('NodeCG Next server stopped');
 
@@ -177,6 +237,7 @@ export class NodeCGServerImpl implements NodeCGServer {
     } catch (error) {
       this.logger.error('Failed to stop server:', error);
       this.eventBus.emit(Events.SERVER_ERROR, error);
+      this.sentryService.captureException(error as Error);
       throw error;
     }
   }
@@ -216,6 +277,21 @@ export class NodeCGServerImpl implements NodeCGServer {
     });
 
     this.logger.debug('Fastify plugins registered');
+  }
+
+  private async setupMetricsEndpoint(): Promise<void> {
+    // Prometheus metrics endpoint
+    this.fastify.get('/metrics', async (_request, reply) => {
+      reply.header('Content-Type', this.metricsService.getRegister().contentType);
+      return await this.metricsService.getMetrics();
+    });
+
+    // Performance report endpoint
+    this.fastify.get('/metrics/performance', async () => {
+      return this.performanceMonitor.getReport();
+    });
+
+    this.logger.debug('Metrics endpoints configured');
   }
 }
 
