@@ -7,10 +7,10 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { Logger } from '@nodecg/types';
-import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
 export interface TelemetryConfig {
   enabled: boolean;
@@ -43,7 +43,7 @@ export class TelemetryService {
       this.logger.info('Initializing OpenTelemetry...');
 
       // Create resource attributes
-      const resource = new Resource({
+      const resource = resourceFromAttributes({
         [ATTR_SERVICE_NAME]: this.config.serviceName,
         [ATTR_SERVICE_VERSION]: this.config.serviceVersion,
         environment: this.config.environment,

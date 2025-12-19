@@ -71,7 +71,12 @@ export class AuditService {
    * Query audit logs
    */
   async query(query: AuditLogQuery = {}) {
-    const where: any = {};
+    const where: {
+      userId?: string;
+      action?: { contains: string };
+      resource?: { contains: string };
+      createdAt?: { gte?: Date; lte?: Date };
+    } = {};
 
     if (query.userId) {
       where.userId = query.userId;
@@ -110,10 +115,21 @@ export class AuditService {
     ]);
 
     return {
-      logs: logs.map((log) => ({
-        ...log,
-        metadata: log.metadata ? JSON.parse(log.metadata) : null,
-      })),
+      logs: logs.map(
+        (log: {
+          id: string;
+          userId: string | null;
+          action: string;
+          resource: string;
+          metadata: string | null;
+          ipAddress: string | null;
+          userAgent: string | null;
+          createdAt: Date;
+        }) => ({
+          ...log,
+          metadata: log.metadata ? JSON.parse(log.metadata) : null,
+        })
+      ),
       total,
       limit: query.limit || 100,
       offset: query.offset || 0,
@@ -230,7 +246,10 @@ export class AuditService {
    * Get audit log statistics
    */
   async getStatistics(startDate?: Date, endDate?: Date) {
-    const where: any = {};
+    const where: {
+      createdAt?: { gte?: Date; lte?: Date };
+      userId?: { not: null };
+    } = {};
 
     if (startDate || endDate) {
       where.createdAt = {};
@@ -270,11 +289,11 @@ export class AuditService {
 
     return {
       total,
-      byAction: byAction.map((item) => ({
+      byAction: byAction.map((item: { action: string; _count: number }) => ({
         action: item.action,
         count: item._count,
       })),
-      byUser: byUser.map((item) => ({
+      byUser: byUser.map((item: { userId: string | null; _count: number }) => ({
         userId: item.userId,
         count: item._count,
       })),

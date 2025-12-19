@@ -150,13 +150,13 @@ export async function seedDefaultRoles(logger?: Logger): Promise<void> {
       // Find permission IDs and create RolePermission entries
       const permissionIds = await Promise.all(
         roleData.permissions.map(async (permName) => {
-          const perm = createdPermissions.find((p) => p.name === permName);
+          const perm = createdPermissions.find((p: { name: string }) => p.name === permName);
           return perm!.id;
         })
       );
 
       await Promise.all(
-        permissionIds.map((permId) =>
+        permissionIds.map((permId: string) =>
           prisma.rolePermission.create({
             data: {
               roleId: role.id,

@@ -54,6 +54,8 @@ export interface BundlePanelConfig {
   file: string;
   /** Workspace (optional grouping) */
   workspace?: string;
+  /** Whether panel should take full viewport (fullbleed) */
+  fullbleed?: boolean;
 }
 
 export interface BundleGraphicConfig {

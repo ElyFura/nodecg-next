@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
+import { Route as WorkspaceRouteImport } from './routes/workspace';
 import { Route as UsersRouteImport } from './routes/users';
 import { Route as SettingsRouteImport } from './routes/settings';
 import { Route as ReplicantsRouteImport } from './routes/replicants';
 import { Route as BundlesRouteImport } from './routes/bundles';
 import { Route as IndexRouteImport } from './routes/index';
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/replicants': typeof ReplicantsRoute;
   '/settings': typeof SettingsRoute;
   '/users': typeof UsersRoute;
+  '/workspace': typeof WorkspaceRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/replicants': typeof ReplicantsRoute;
   '/settings': typeof SettingsRoute;
   '/users': typeof UsersRoute;
+  '/workspace': typeof WorkspaceRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -62,13 +70,14 @@ export interface FileRoutesById {
   '/replicants': typeof ReplicantsRoute;
   '/settings': typeof SettingsRoute;
   '/users': typeof UsersRoute;
+  '/workspace': typeof WorkspaceRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/bundles' | '/replicants' | '/settings' | '/users';
+  fullPaths: '/' | '/bundles' | '/replicants' | '/settings' | '/users' | '/workspace';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/bundles' | '/replicants' | '/settings' | '/users';
-  id: '__root__' | '/' | '/bundles' | '/replicants' | '/settings' | '/users';
+  to: '/' | '/bundles' | '/replicants' | '/settings' | '/users' | '/workspace';
+  id: '__root__' | '/' | '/bundles' | '/replicants' | '/settings' | '/users' | '/workspace';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -77,10 +86,18 @@ export interface RootRouteChildren {
   ReplicantsRoute: typeof ReplicantsRoute;
   SettingsRoute: typeof SettingsRoute;
   UsersRoute: typeof UsersRoute;
+  WorkspaceRoute: typeof WorkspaceRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace': {
+      id: '/workspace';
+      path: '/workspace';
+      fullPath: '/workspace';
+      preLoaderRoute: typeof WorkspaceRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/users': {
       id: '/users';
       path: '/users';
@@ -125,6 +142,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReplicantsRoute: ReplicantsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
+  WorkspaceRoute: WorkspaceRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -67,6 +67,7 @@ export interface DashboardPanel {
   file: string;
   width: number;
   url: string;
+  fullbleed?: boolean;
 }
 
 export interface BundleGraphic {

@@ -136,6 +136,8 @@ export default [
       'vitest.config.ts',
       '**/vitest.config.ts',
       'docs/**',
+      '**/generated/**',
+      'packages/core/src/database/generated/**',
     ],
   },
 ];
